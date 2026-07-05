@@ -36,6 +36,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+
+.claude/settings.local.json
+# impeccable engine, if ever installed into the project instead of ~/
+**/skills/impeccable/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

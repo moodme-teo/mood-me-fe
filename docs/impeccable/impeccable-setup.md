@@ -1,0 +1,133 @@
+# impeccable 팀 세팅 — 의사결정 기록
+
+> 작성일: 2026-07-05
+> 작성자: 프로젝트 세팅 담당
+> 목적: mood-me 팀이 [impeccable](https://github.com/pbakaus/impeccable)로 AI와 함께 프론트엔드를 개발하기 위한 세팅. 나중에 합류하는 팀원이 "왜 이렇게 세팅했는지" 이해할 수 있도록 결정과 근거를 남긴다.
+
+---
+
+## 0. 배경
+
+- **impeccable이란?** AI 코딩 에이전트(Claude Code, Codex 등)가 더 나은 프론트엔드 디자인을 만들도록 돕는 **디자인 스킬**. `/impeccable <command>` 형태의 23개 명령과, UI 파일 편집 시 자동으로 도는 디자인 검사(detector) hook을 제공한다.
+- impeccable은 **두 부분**으로 나뉜다:
+  - **엔진(스킬)** — 실제 검사 로직 (`SKILL.md` + `scripts/` + `reference/`). 무겁고, 버전이 있다.
+  - **공유 컨텍스트** — `PRODUCT.md` / `DESIGN.md` / `.impeccable/`. "우리 제품은 이런 디자인 기준이다"를 담은 문서. **팀이 공유해야 하는 핵심.**
+- **팀 세팅의 원칙: "엔진은 각자, 컨텍스트는 공유."**
+
+---
+
+## 1. 초기 상태 진단
+
+세팅 시작 시점에 이미 누군가 설정을 시도한 흔적이 있었고, **팀 공유용으로는 깨진 상태**였다.
+
+| 항목 | 상태 | 문제 |
+|---|---|---|
+| 엔진 (`~/.claude`, `~/.agents`, `~/.cursor`) | 담당자 홈에 전역 설치됨 | 담당자 계정에만 존재 |
+| `.claude/settings.local.json` | 존재 | hook이 `/Users/eun0leee/...` **절대경로**를 박아둠 → 팀원 clone 시 동작 불가 |
+| `.codex/hooks.json` | 존재 | 동일한 절대경로 문제 |
+| `.cursor/hooks.json` | 존재 | 동일 + 팀이 Cursor를 안 씀 |
+| 공유 컨텍스트 (`PRODUCT.md` 등) | 없음 | `/impeccable init` 미실행 → 팀 공유 기준 부재 |
+
+**핵심 문제:** hook들이 담당자 컴퓨터의 절대경로를 가리켜서, 팀원이 레포를 clone해도 그 경로가 없어 hook이 전부 무동작.
+
+---
+
+## 2. 결정: 엔진 배포 방식 = **각자 설치 (Option A)**
+
+두 가지 방식을 비교했다.
+
+### Option A — 각자 설치 (채택 ✅)
+- 팀원 각자 `npx impeccable install` 1회 실행 → 자기 홈에 엔진 설치, hook은 **자기 경로로** 자동 생성.
+- 레포에는 **공유 컨텍스트(`PRODUCT.md`/`DESIGN.md`/`.impeccable/`)만** 커밋.
+- 머신 경로가 박힌 hook 파일은 `.gitignore` 처리.
+
+### Option B — 레포에 벤더링 (미채택)
+- 엔진 전체를 레포 안(submodule/폴더)에 넣고 hook을 상대경로로 → clone만 하면 전원 동일 버전.
+- 재현성 최고지만 레포가 무겁고 초기 세팅이 무거움.
+
+### 채택 근거
+- 프론트엔드 개발자 **모임/스터디** 성격 → 각자 설치할 역량이 되고, 가벼운 게 낫다.
+- impeccable이 원래 이 방식으로 설계됨 (`npx impeccable install`이 툴 자동 감지).
+- **향후 승격 경로:** 버전 드리프트(팀원마다 impeccable 버전이 달라지는 것)가 실제로 문제가 되면 그때 Option B(벤더링)로 전환한다.
+
+---
+
+## 3. 결정: 사용 툴 = **Claude Code + Codex** (Cursor 제외)
+
+- 팀이 실제로 쓰는 툴은 Claude Code와 Codex.
+- 따라서 `.cursor/`는 삭제. 설정은 `.claude/`, `.codex/`만 유지.
+
+---
+
+## 4. 실행한 정리 작업
+
+1. **`.cursor/` 삭제** — 팀이 Cursor 미사용.
+2. **`.gitignore`에 impeccable 섹션 추가** — 머신 경로가 박힌 per-user hook 파일이 커밋되지 않도록:
+   - `.claude/settings.local.json`
+   - `.codex/hooks.json`
+   - `.cursor/`
+   - `**/skills/impeccable/` (엔진이 실수로 레포에 설치되는 경우 대비)
+3. `.claude/settings.local.json`·`.codex/hooks.json`은 **삭제하지 않고 유지** — 담당자 로컬에선 경로가 실제로 맞아 정상 동작하며, gitignore로 공유만 차단.
+
+> 공유 컨텍스트(`PRODUCT.md`/`DESIGN.md`/`.impeccable/`)는 **의도적으로 gitignore하지 않음** → 커밋해서 공유한다.
+
+---
+
+## 5. 결정: 공유 컨텍스트는 **담당자 1인이 작성 → 커밋 → 팀원은 pull**
+
+- `PRODUCT.md` 등은 손으로 처음부터 쓰지 않고 **`/impeccable init`이 인터뷰로 초안 생성** → 담당자가 검수·편집 → 커밋.
+- **작성 주체는 담당자 1명.** 팀원 각자 만들면 제각각이 되어 의미가 없다.
+- 이후 방향이 바뀌면 일반 코드처럼 **PR로 `DESIGN.md`/`PRODUCT.md` 수정 → 리뷰 → 머지**.
+
+---
+
+## 6. `/impeccable init` — PRODUCT.md 전략 결정
+
+인터뷰를 통해 확정한 제품 전략. (전문은 [`PRODUCT.md`](../PRODUCT.md) 참고)
+
+| 항목 | 결정 | 비고 |
+|---|---|---|
+| **Register** | `brand` (감성·표현 중심) | 무드보드 결과물의 '느낌'과 공유성이 핵심. 이후 모든 디자인 판단의 기준. |
+| **주 사용자** | MZ 개인 (SNS 공유) | 모바일에서 가볍게, 결과물을 인스타·카카오 등에 공유. |
+| **핵심 감정** | 설렘 · 발견의 재미 | "오 이거 나 같다"의 순간. |
+| **브랜드 성격** | 몽환적 · 감각적 · 친근함 | ethereal한 미감 + BeReal/Duolingo식 낮은 진입장벽. "감각은 높이되, 사용은 쉽게." |
+| **레퍼런스** | Duolingo · BeReal (친근 캐주얼) | 즉각성·친근함은 취하되 유치함은 배제. |
+| **안티-레퍼런스** | ① 전형적 SaaS 대시보드 ② 흔한 AI 생성물 티 ③ 유치한 클립아트·이모지 범벅 ④ 무겁고 진지한 기업 톤 | 생성형이지만 '사람이 큐레이션한' 느낌 지향. |
+| **접근성** | WCAG AA 준수 | 아래 상세. |
+
+### 제품 흐름 (파악된 것)
+테스트 답변 → Claude(Haiku)가 이미지 프롬프트 + 키워드 9개 + "무드 성향" 변환 → fal.ai(Flux schnell) 실시간 이미지 생성 → Konva 캔버스에서 편집 → PNG로 내보내 공유. 스택: Next.js 16 + React 19 + Tailwind v4 + framer-motion + Supabase.
+
+### 5가지 디자인 원칙
+1. 결과물이 주인공, UI는 물러선다
+2. 생성 과정 자체가 콘텐츠다 (기다림 → 채워지는 설렘)
+3. 친근하되 유치하지 않게 (낮은 진입장벽 + 높은 감각)
+4. 모든 화면은 공유를 전제로
+5. AI 티를 지운다 (사람이 큐레이션한 감각)
+
+### 접근성 개발 기준 (팀 합의)
+명도 대비 ≥4.5:1(큰 글자 3:1) · 색상에만 의존하지 않기(아이콘·밑줄 병행) · 시맨틱 HTML · 링크/버튼 구분 · 키보드 접근성 · 포커스 표시기 · **이미지 대체 텍스트(AI 생성 이미지가 핵심이라 특히 중요)** · 보완적 ARIA · `lang` 지정 · `prefers-reduced-motion` 대안.
+
+---
+
+## 7. 남은 작업 (TODO)
+
+- [x] **`DESIGN.md` 씨앗 생성** — 씨앗(seed) 모드로 스캐폴드 작성. 전략 방향(북극성·원칙·금지사항)은 PRODUCT.md에서 채우고, **색상값·폰트·모션 등은 `[담당자 결정]`으로 표시**해 UX/UI 담당자 인수인계 브리프를 겸함. **살붙이기는 담당자 몫.** 코드에 실제 토큰이 생기면 `/impeccable document`를 스캔 모드로 재실행해 실제 값 추출.
+- [ ] **UX/UI 담당자 DESIGN.md 확정** — 색 전략·팔레트·폰트·모션 강도 등 `[담당자 결정]` 항목을 담당자가 채운다. PR로 리뷰·머지.
+- [ ] **커밋 & 푸시** — `PRODUCT.md`, `DESIGN.md`, `.gitignore`, 이 문서.
+- [ ] **README 온보딩** — 팀원 합류 시 `npx impeccable install` 1회만 하면 되도록 안내 추가.
+
+> **역할 분담 결정:** DESIGN.md는 세팅 담당이 씨앗만 만들고, 실제 시각 결정(색/폰트/모션)은 UX/UI 담당자가 확정한다. 씨앗 파일의 `[담당자 결정]` 마커가 곧 담당자의 작업 목록이다.
+
+## 8. 팀원 온보딩 (합류 시)
+
+```bash
+# 1. 레포 clone 후, impeccable 엔진 설치 (각자 1회)
+npx impeccable install        # Claude Code / Codex 자동 감지
+
+# 2. 공유 컨텍스트는 이미 레포에 있음 (PRODUCT.md / DESIGN.md)
+#    → impeccable 명령 실행 시 자동으로 읽힘. 추가 작업 불필요.
+
+# 3. 이후 디자인 작업은 impeccable 명령으로
+#    예) /impeccable craft <기능>, /impeccable critique <화면>
+```
