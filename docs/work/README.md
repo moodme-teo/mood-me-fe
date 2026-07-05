@@ -4,7 +4,7 @@
 그중 이슈 등록과 구현/PR 을 두 개의 스킬로 자동화했습니다.
 
 ```
-docs/work 문서 작성 ──/work-issue──▶ GitHub 이슈(배정+보드) ──/work-work──▶ 구현+커밋+PR ──▶ 리뷰 ──▶ 머지
+docs/work/todo 문서 작성 ──/work-issue──▶ GitHub 이슈(배정+보드) ──/work-work──▶ 구현+커밋+PR ──▶ 리뷰 ──▶ 머지
 ```
 
 ## 최초 1회
@@ -20,10 +20,10 @@ gh auth refresh -s project         # 프로젝트 보드(백로그 자동 배치
 
 ## 1. 작업 문서 쓰기
 
-`docs/work/_template.md` 를 복사해서 새 파일로 저장하고 내용을 채웁니다.
+`docs/work/_template.md` 를 복사해서 **`docs/work/todo/`** 안에 새 파일로 저장하고 내용을 채웁니다. **파일명은 자유**입니다.
 
 ```bash
-cp docs/work/_template.md docs/work/share-button.md
+cp docs/work/_template.md docs/work/todo/share-button.md
 ```
 
 - `type`: 커밋 prefix와 동일 (`feat|fix|refactor|rename|remove|style|chore|docs|hotfix|test|perf`)
@@ -36,7 +36,7 @@ cp docs/work/_template.md docs/work/share-button.md
 
 문서를 저장한 뒤 실행하면:
 
-- `docs/work`의 미등록 문서를 찾아(여러 개면 선택) GitHub 이슈로 등록 — **시안 A(이모지 브래킷형)**
+- `docs/work/todo`의 미등록 문서를 찾아(여러 개면 선택) GitHub 이슈로 등록 — **시안 A(이모지 브래킷형)**
 - **문서 작성자(=실행한 본인)** 에게 자동 배정
 - **페이지 라벨**(`page` 값) 부착
 - **무드미 MVP 보드 → 백로그** 에 추가
@@ -52,6 +52,29 @@ cp docs/work/_template.md docs/work/share-button.md
 - `dev` 로 향하는 **PR 생성** — **페이지 라벨** 부착 + **본인 제외 협업자 전원**을 리뷰어로 지정 (`Closes #N` 로 이슈 연결)
 
 이후 **리뷰 → 머지** 는 사람이 진행합니다. (스킬은 절대 직접 머지하지 않습니다.)
+
+## 브랜치 전략
+
+```
+main ───────────────●──────────────▶  release 된 것 (배포)
+                     ▲ merge
+dev ──●────●────●────●──────────────▶  개발 통합 (feature PR을 squash-merge)
+       ▲         │
+       │ 브랜치   │ PR → merge
+feature ●────────┘                      dev에서 따서 작업
+```
+
+- **main**: release 기준. dev가 안정화되면 main으로 merge.
+- **dev**: 개발 통합 브랜치. 모든 feature PR은 여기로 **squash-merge**.
+- **feature**: `dev`에서 따서 작업 → PR 생성 → `dev`로 merge.
+
+**브랜치 컨벤션**: `<prefix>/<작업명>` (prefix = 커밋 타입, 작업명 = 영문 kebab-case)
+
+```
+feat/login      fix/board-export      refactor/test-flow
+```
+
+> `/work-work` 실행 시 이 규칙대로 `dev` 기준 feature 브랜치가 자동 생성됩니다.
 
 ## 이슈 / PR 컨벤션 (시안 A)
 

@@ -32,8 +32,8 @@ gh issue list --assignee "@me" --state open \
 
 선택한 이슈에서 작업 명세를 찾는다.
 
-1. `docs/work/*.md` 중 front-matter `issue:` 값이 **선택한 이슈 번호와 일치**하는 문서를 찾아 읽는다(가장 신뢰할 수 있는 출처).
-2. 못 찾으면 이슈 본문의 `## 🔗 참고`에 적힌 `docs/work/...` 경로를 사용한다.
+1. `docs/work/todo/*.md` 중 front-matter `issue:` 값이 **선택한 이슈 번호와 일치**하는 문서를 찾아 읽는다(가장 신뢰할 수 있는 출처).
+2. 못 찾으면 이슈 본문의 `## 🔗 참고`에 적힌 `docs/work/todo/...` 경로를 사용한다.
 3. 그래도 없으면 이슈 본문 자체(개요/작업 내용/완료 조건)를 명세로 사용한다.
 
 명세의 **✅ 작업 내용** 체크리스트와 **🎯 완료 조건**을 구현 기준으로 삼는다.
@@ -43,14 +43,21 @@ gh issue list --assignee "@me" --state open \
 - 없으면 이슈에 붙은 라벨 중 페이지 라벨(`로그인|메인|테스트|보드생성|보드편집|보드완성`)을 사용.
 - 그래도 없으면 `AskUserQuestion`으로 어떤 페이지인지 물어 확정.
 
-## 3. 작업 브랜치 생성
+## 3. 작업 브랜치 생성 (feature 브랜치)
 
-- 기준 브랜치: 팀 통합 브랜치 **`dev`** (원격 최신 반영).
-- 브랜치명: `<type>/#<이슈번호>-<영문-슬러그>` (슬러그는 제목 기반 kebab-case, 없으면 이슈번호만)
+브랜치 전략을 따른다:
+- `main` : release 된 것 (배포 기준)
+- `dev` : 개발 통합 브랜치. 모든 feature PR은 여기로 **squash-merge**.
+- `feature` : **`dev`에서 따서** 작업 → PR 생성 → `dev`로 merge.
+
+규칙:
+- **기준 브랜치는 항상 `dev`** (원격 최신 반영).
+- 브랜치명 컨벤션: `<prefix>/<작업명>` — prefix는 이슈 `type`, 작업명은 영문 kebab-case.
+  - 예: `feat/login`, `fix/board-export`, `refactor/test-flow`
 
 ```bash
 git fetch origin
-git switch -c "feat/#42-share-button" origin/dev
+git switch -c "feat/login" origin/dev
 ```
 
 ## 4. 구현
@@ -122,8 +129,8 @@ Closes #42
 
 ## 7. 결과 보고
 
-- 🌿 브랜치: `feat/#42-share-button`
-- 🔀 PR: URL + `#N`
+- 🌿 브랜치: `feat/login` (dev 기준)
+- 🔀 PR: URL + `#N` (base: dev)
 - 🏷 라벨: <페이지> · 👀 리뷰어: <본인 제외 협업자>
 - 🔗 `Closes #42` 로 연결됨 → 머지 시 이슈 자동 종료
 - 다음 단계: 리뷰 → 머지
