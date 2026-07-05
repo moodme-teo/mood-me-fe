@@ -1,36 +1,125 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# mood-me
 
-## Getting Started
+짧은 테스트 답변을 **나만의 AI 무드보드**로 바꿔 SNS에 공유하는 감성 웹 경험.
 
-First, run the development server:
+사용자가 테스트에 답하면 → Claude가 답을 이미지 프롬프트·키워드·무드 성향으로 변환하고 → fal.ai(Flux schnell)가 이미지를 실시간으로 생성해 보드를 채우며 → Konva 캔버스에서 꾸민 뒤 → PNG로 내보내 공유합니다.
+
+제품·디자인 배경은 [`PRODUCT.md`](./PRODUCT.md), [`DESIGN.md`](./DESIGN.md) 참고.
+
+## 기술 스택
+
+| 영역 | 사용 기술 |
+| --- | --- |
+| 프레임워크 | Next.js 16 (App Router) · React 19 · TypeScript |
+| 스타일 | Tailwind CSS v4 |
+| 인증 · DB · 스토리지 | Supabase (`@supabase/ssr`) |
+| 이미지 생성 | fal.ai — Flux schnell |
+| 텍스트/키워드 생성 | Anthropic Claude (`claude-haiku-4-5`) |
+| 캔버스 편집 | Konva · react-konva |
+| 애니메이션 | Framer Motion |
+
+## 사전 요구사항
+
+- **Node.js 20 이상** (Next.js 16 요구사항)
+- npm (저장소에 `package-lock.json` 포함)
+- 아래 서비스의 API 키:
+  - [Supabase](https://supabase.com) 프로젝트 (URL · anon key · service role key)
+  - [fal.ai](https://fal.ai) API 키
+  - [Anthropic](https://console.anthropic.com) API 키
+
+## 시작하기
+
+### 1. 클론 & 의존성 설치
+
+```bash
+git clone <repo-url>
+cd mood-me
+npm install
+```
+
+### 2. 환경변수 설정
+
+`.env.example`를 복사해 `.env.local`을 만들고 값을 채웁니다.
+
+```bash
+cp .env.example .env.local
+```
+
+| 변수 | 설명 | 노출 |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL | 클라이언트 |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon 공개 키 | 클라이언트 |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role 키 | **서버 전용** |
+| `FAL_KEY` | fal.ai API 키 | **서버 전용** |
+| `ANTHROPIC_API_KEY` | Anthropic Claude API 키 | **서버 전용** |
+| `NEXT_PUBLIC_SITE_URL` | 앱 기본 URL (로컬은 `http://localhost:3000`) | 클라이언트 |
+
+> ⚠️ **서버 전용** 키(`SUPABASE_SERVICE_ROLE_KEY`, `FAL_KEY`, `ANTHROPIC_API_KEY`)는 절대 클라이언트에 노출하면 안 됩니다. `src/lib/*`의 관련 모듈은 API 라우트·서버 컴포넌트 안에서만 import 하세요. `.env.local`은 `.gitignore`에 포함되어 커밋되지 않습니다.
+
+### 3. impeccable 설치 (최초 1회) ⚠️
+
+이 프로젝트는 [impeccable](https://github.com/pbakaus/impeccable) — AI 코딩 에이전트(**Claude Code / Codex**)가 더 나은 UI를 만들도록 돕는 디자인 스킬 — 로 프론트엔드를 개발합니다. 레포를 clone한 뒤 **각자 컴퓨터에 엔진을 1회 설치**해야 합니다.
+
+```bash
+npx impeccable install     # Claude Code / Codex 자동 감지해서 설치
+```
+
+- 팀 디자인 기준 문서(`PRODUCT.md` · `DESIGN.md`)는 **이미 레포에 있어** 자동으로 읽힙니다. 따로 만들 필요 없습니다.
+- 설치하면 UI 파일 편집 시 자동으로 도는 **디자인 검사 hook**(AI 슬롭·저대비·접근성 문제 감지)도 함께 켜집니다.
+- **설치하지 않으면** `/impeccable` 명령과 자동 검사가 동작하지 않습니다. clone 후 꼭 1회 실행하세요.
+
+> 💡 개인별 hook 설정 파일(`.claude/settings.local.json` · `.codex/hooks.json`)은 머신마다 경로가 달라 `.gitignore` 처리되어 있습니다. `npx impeccable install`이 자기 경로에 맞게 자동 생성하므로 정상입니다.
+
+**자주 쓰는 명령**
+
+| 명령 | 언제 |
+| --- | --- |
+| `/impeccable shape <대상>` | 코드 짜기 전 UX/UI 먼저 설계 |
+| `/impeccable craft <대상>` | 새 기능/화면 기획+구현 한 번에 |
+| `/impeccable critique <대상>` | 화면 UX 리뷰(점수 포함) |
+| `/impeccable audit <대상>` | 접근성·성능·반응형 점검 |
+| `/impeccable polish <대상>` | 배포 전 마감 다듬기 |
+
+전체 명령·사용법은 [`docs/impeccable/impeccable-guide.md`](./docs/impeccable/impeccable-guide.md), 세팅 배경은 [`docs/impeccable/impeccable-setup.md`](./docs/impeccable/impeccable-setup.md) 참고. (`PRODUCT.md`·`DESIGN.md`는 팀 공용 기준 문서 — 수정은 PR로.)
+
+### 4. 개발 서버 실행
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+[http://localhost:3000](http://localhost:3000) 에서 확인합니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 사용 가능한 스크립트
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| 명령 | 설명 |
+| --- | --- |
+| `npm run dev` | 개발 서버 실행 |
+| `npm run build` | 프로덕션 빌드 |
+| `npm run start` | 빌드된 앱 실행 |
+| `npm run lint` | ESLint 검사 |
 
-## Learn More
+## 프로젝트 구조
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/                  # Next.js App Router (레이아웃·페이지·전역 스타일)
+│   ├── layout.tsx
+│   ├── page.tsx
+│   └── globals.css
+├── components/
+│   └── canvas/           # Konva 무드보드 캔버스
+│       └── BoardCanvas.tsx
+└── lib/
+    ├── anthropic.ts      # Claude 클라이언트 (서버 전용)
+    ├── fal.ts            # fal.ai 클라이언트 (서버 전용)
+    └── supabase/
+        ├── client.ts     # 브라우저용 Supabase 클라이언트
+        └── server.ts     # 서버용 Supabase 클라이언트 (SSR)
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 참고 사항
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Konva는 클라이언트 전용**입니다. `next.config.ts`에서 `konva`·`canvas`를 `serverExternalPackages`로 지정해 서버 번들에서 제외합니다.
+- 외부 이미지는 `next.config.ts`의 `images.remotePatterns`에 허용된 호스트(`fal.media`, `**.supabase.co`)에서만 로드됩니다. 새 이미지 소스를 추가하면 이곳에 등록하세요.
+- 이 저장소는 **커스텀 Next.js 규칙**을 따릅니다. 코드 작성 전 [`AGENTS.md`](./AGENTS.md)를 먼저 읽어주세요.
