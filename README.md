@@ -8,15 +8,15 @@
 
 ## 기술 스택
 
-| 영역 | 사용 기술 |
-| --- | --- |
-| 프레임워크 | Next.js 16 (App Router) · React 19 · TypeScript |
-| 스타일 | Tailwind CSS v4 |
-| 인증 · DB · 스토리지 | Supabase (`@supabase/ssr`) |
-| 이미지 생성 | fal.ai — Flux schnell |
-| 텍스트/키워드 생성 | Anthropic Claude (`claude-haiku-4-5`) |
-| 캔버스 편집 | Konva · react-konva |
-| 애니메이션 | Framer Motion |
+| 영역                 | 사용 기술                                       |
+| -------------------- | ----------------------------------------------- |
+| 프레임워크           | Next.js 16 (App Router) · React 19 · TypeScript |
+| 스타일               | Tailwind CSS v4                                 |
+| 인증 · DB · 스토리지 | Supabase (`@supabase/ssr`)                      |
+| 이미지 생성          | fal.ai — Flux schnell                           |
+| 텍스트/키워드 생성   | Anthropic Claude (`claude-haiku-4-5`)           |
+| 캔버스 편집          | Konva · react-konva                             |
+| 애니메이션           | Framer Motion                                   |
 
 ## 사전 요구사항
 
@@ -45,14 +45,14 @@ npm install
 cp .env.example .env.local
 ```
 
-| 변수 | 설명 | 노출 |
-| --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL | 클라이언트 |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon 공개 키 | 클라이언트 |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role 키 | **서버 전용** |
-| `FAL_KEY` | fal.ai API 키 | **서버 전용** |
-| `ANTHROPIC_API_KEY` | Anthropic Claude API 키 | **서버 전용** |
-| `NEXT_PUBLIC_SITE_URL` | 앱 기본 URL (로컬은 `http://localhost:3000`) | 클라이언트 |
+| 변수                            | 설명                                         | 노출          |
+| ------------------------------- | -------------------------------------------- | ------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase 프로젝트 URL                        | 클라이언트    |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon 공개 키                        | 클라이언트    |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Supabase service role 키                     | **서버 전용** |
+| `FAL_KEY`                       | fal.ai API 키                                | **서버 전용** |
+| `ANTHROPIC_API_KEY`             | Anthropic Claude API 키                      | **서버 전용** |
+| `NEXT_PUBLIC_SITE_URL`          | 앱 기본 URL (로컬은 `http://localhost:3000`) | 클라이언트    |
 
 > ⚠️ **서버 전용** 키(`SUPABASE_SERVICE_ROLE_KEY`, `FAL_KEY`, `ANTHROPIC_API_KEY`)는 절대 클라이언트에 노출하면 안 됩니다. `src/lib/*`의 관련 모듈은 API 라우트·서버 컴포넌트 안에서만 import 하세요. `.env.local`은 `.gitignore`에 포함되어 커밋되지 않습니다.
 
@@ -72,13 +72,13 @@ npx impeccable install     # Claude Code / Codex 자동 감지해서 설치
 
 **자주 쓰는 명령**
 
-| 명령 | 언제 |
-| --- | --- |
-| `/impeccable shape <대상>` | 코드 짜기 전 UX/UI 먼저 설계 |
-| `/impeccable craft <대상>` | 새 기능/화면 기획+구현 한 번에 |
-| `/impeccable critique <대상>` | 화면 UX 리뷰(점수 포함) |
-| `/impeccable audit <대상>` | 접근성·성능·반응형 점검 |
-| `/impeccable polish <대상>` | 배포 전 마감 다듬기 |
+| 명령                          | 언제                           |
+| ----------------------------- | ------------------------------ |
+| `/impeccable shape <대상>`    | 코드 짜기 전 UX/UI 먼저 설계   |
+| `/impeccable craft <대상>`    | 새 기능/화면 기획+구현 한 번에 |
+| `/impeccable critique <대상>` | 화면 UX 리뷰(점수 포함)        |
+| `/impeccable audit <대상>`    | 접근성·성능·반응형 점검        |
+| `/impeccable polish <대상>`   | 배포 전 마감 다듬기            |
 
 전체 명령·사용법은 [`docs/impeccable/impeccable-guide.md`](./docs/impeccable/impeccable-guide.md), 세팅 배경은 [`docs/impeccable/impeccable-setup.md`](./docs/impeccable/impeccable-setup.md) 참고. (`PRODUCT.md`·`DESIGN.md`는 팀 공용 기준 문서 — 수정은 PR로.)
 
@@ -92,12 +92,12 @@ npm run dev
 
 ## 사용 가능한 스크립트
 
-| 명령 | 설명 |
-| --- | --- |
-| `npm run dev` | 개발 서버 실행 |
-| `npm run build` | 프로덕션 빌드 |
+| 명령            | 설명           |
+| --------------- | -------------- |
+| `npm run dev`   | 개발 서버 실행 |
+| `npm run build` | 프로덕션 빌드  |
 | `npm run start` | 빌드된 앱 실행 |
-| `npm run lint` | ESLint 검사 |
+| `npm run lint`  | ESLint 검사    |
 
 ## 프로젝트 구조
 
@@ -117,6 +117,26 @@ src/
         ├── client.ts     # 브라우저용 Supabase 클라이언트
         └── server.ts     # 서버용 Supabase 클라이언트 (SSR)
 ```
+
+## 커밋 컨벤션
+
+모든 커밋 메시지는 `<prefix> : <메시지>` 형식을 따릅니다. (prefix 뒤 **공백 콜론 공백** 필수)
+
+```
+feat : 새로운 기능 추가
+fix : 버그 및 기타 수정
+refactor : 코드 리팩토링
+rename : 네이밍 수정, 파일 이동, 오타 수정
+remove : 파일 삭제
+style : css style 관련 변경
+chore : 빌드 부분 혹은 패키지 매니저, config 수정, 모듈 추가
+docs : 문서 작성
+hotfix : 긴급 작업
+test : 테스트 코드 관련
+perf : 퍼포먼스 효율 개선 관련
+```
+
+> 이 규칙은 **Husky `commit-msg` 훅으로 자동 강제**됩니다. `npm install` 시 `prepare` 스크립트가 훅을 활성화하므로 별도 설정은 필요 없습니다. 형식·prefix에 맞지 않으면 커밋이 거부됩니다. 자세한 내용은 [`docs/convention/commit-convention.md`](./docs/convention/commit-convention.md) 참고.
 
 ## 참고 사항
 
