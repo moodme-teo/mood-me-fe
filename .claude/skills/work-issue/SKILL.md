@@ -33,7 +33,11 @@ gh auth status >/dev/null 2>&1 || echo "NO_AUTH"
    - ⚠️ 이 저장소의 Next.js는 학습 데이터와 다르다. 구현 방향을 적을 때 `AGENTS.md` 지침대로 `node_modules/next/dist/docs/` 의 관련 가이드를 참고한다.
 2. `docs/work/ISSUE_TEMPLATE.md` 구조를 따라 **`docs/work/todo/<번호>-<작업명 영문 kebab-case>.md`** 를 생성한다.
    - 예: `a1` + "로그인 페이지 구현" → `docs/work/todo/a1-login-page.md`
-   - front-matter: `todo`(번호) / `role`(역할) / `type`(작업 성격에 맞는 커밋 prefix, 기본 `feat`) / `title`(작업이름 기반 이슈 제목) / `page` / `schedule`(일정) / `issue:`(빈 값)
+   - front-matter: `todo`(번호) / `role`(역할) / `type`(작업 성격에 맞는 커밋 prefix, 기본 `feat`) / `title`(작업이름 기반 이슈 제목) / `page` / `schedule`(일정) / `issue:`(빈 값) / `output`(아래 기준)
+   - **`output: repo | none`** — 작업 결과물이 레포에 들어가는가로 판단한다.
+     - `repo`: 코드·문서·설정·이미지 등 커밋될 산출물이 있음 → `/work-work` 가 **draft PR** 흐름으로 진행
+     - `none`: 신청·회의·이름 선정 등 레포 밖에서 끝나는 작업 → PR 없이 **이슈 + 보드로만** 추적, 완료는 `/work-done`
+     - 애매하면 초안 확인 단계에서 사용자에게 함께 확정받는다.
    - 본문: 역할 관점을 반영해 `## 📋 개요`(PRD 근거 포함) / `## ✅ 작업 내용`(구현 단위 체크리스트) / `## 🎯 완료 조건` / `## 🔗 참고` 를 탐색 결과 기반으로 작성.
 3. **작성한 초안을 사용자에게 보여주고 확인받는다.** 수정 요청이 있으면 반영한 뒤 다음 단계로 진행한다.
 
@@ -126,6 +130,6 @@ gh project item-edit --project-id <PROJECT_NODE_ID> --id "$ITEM" \
 - 🏷 라벨: <페이지> (예: 로그인)
 - 📋 프로젝트: 무드미 MVP → 백로그 + 일정 기록 (또는 수동 배치 안내)
 - 🔁 역기록: 문서 `issue: N` + todo-list 이슈 열 `#N`
-- 다음 단계: `/work-work` 로 구현 시작
+- 다음 단계: `/work-work` 로 작업 시작 (`output: repo` 면 draft PR 흐름, `none` 이면 보드 추적만 — 완료 시 `/work-done`)
 
 > 커밋 여부는 사용자에게 맡긴다. 필요하면 `docs : a1 이슈 문서 작성 및 이슈 번호 기록` 형식으로 커밋할 수 있음을 안내(자동 커밋하지 않음).
