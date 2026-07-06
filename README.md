@@ -134,6 +134,30 @@ perf : 퍼포먼스 효율 개선 관련
 
 > 이 규칙은 **Husky `commit-msg` 훅으로 자동 강제**됩니다. `npm install` 시 `prepare` 스크립트가 훅을 활성화하므로 별도 설정은 필요 없습니다. 형식·prefix에 맞지 않으면 커밋이 거부됩니다. 자세한 내용은 [`docs/convention/commit-convention.md`](./docs/convention/commit-convention.md) 참고.
 
+## 작업 워크플로우
+
+**GitHub 이슈가 곧 todo** 입니다. 별도 todo 파일 없이, 모든 작업은 이슈로 등록되어 **무드미 MVP 프로젝트 보드**(백로그 → 진행중 → 작업 완료)에서 관리됩니다. 등록부터 완료까지 Claude Code 스킬 3개로 자동화되어 있습니다:
+
+```
+/work-issue ──▶ GitHub 이슈 등록 ──▶ /work-work ──▶ 구현 + PR ──▶ 리뷰 ──▶ /work-done ──▶ 머지 + 이슈 닫기
+```
+
+| 스킬 | 하는 일 |
+| ---- | ------- |
+| `/work-issue 역할, 작업이름, 일정, 페이지` | PRD·코드를 탐색해 명세(개요/작업 내용/완료 조건)를 이슈 본문으로 작성하고 즉시 등록. 라벨·배정·보드 백로그·일정 기록까지 자동. 기본은 본인 배정, `--assignee <이름>`/`--assignee none` 으로 지정·미배정 가능 |
+| `/work-work` | 내 이슈 + 미배정 이슈 중 선택(미배정을 고르면 본인에게 배정) → 보드 `진행중` → `dev` 기준 feature 브랜치에서 이슈 명세대로 구현 → 커밋 → `dev` 로 향하는 PR 생성(페이지 라벨 + 본인 제외 협업자 전원 리뷰어) |
+| `/work-done` | 리뷰 끝난 PR을 `dev` 로 squash-merge + 브랜치 삭제 → 이슈 자동 종료. PR 없는 작업(조사·신청 등)은 이슈만 닫음. GitHub에서 직접 머지해도 무방 |
+
+**브랜치 전략** (머지 방식은 브랜치 룰셋으로 강제됩니다):
+
+```
+main    ← dev 안정화 시 일반 merge (release)
+dev     ← feature PR을 squash-merge (개발 통합)
+feature ← dev 에서 따서 작업 (예: feat/login)
+```
+
+새로 합류했다면 최초 1회 GitHub CLI 인증이 필요합니다 (`gh auth login` + `gh auth refresh -s project`). 전체 흐름·컨벤션·보드 사용법은 [`docs/work/README.md`](./docs/work/README.md) 참고.
+
 ## 참고 사항
 
 - **Konva는 클라이언트 전용**입니다. `next.config.ts`에서 `konva`·`canvas`를 `serverExternalPackages`로 지정해 서버 번들에서 제외합니다.
