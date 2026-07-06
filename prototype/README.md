@@ -42,4 +42,4 @@ python3 -m http.server 8777
 
 DESIGN.md의 북극성 **"채워지는 꿈, 밤에"** 를 따릅니다. 깊은 페트롤 잉크 배경 위에서 무드보드가
 스스로 빛나는 광원처럼 떠오르고(결과물이 히어로), 따뜻한 애프리콧 글로우 하나로 친근함을 냅니다.
-본문 Pretendard · 몽환의 정점 Gowun Batang, WCAG AA 대비·키보드·`prefers-reduced-motion` 대응.
+본문 SUIT · 메인 영문 Raleway/Petit Formal Script, WCAG AA 대비·키보드·`prefers-reduced-motion` 대응.

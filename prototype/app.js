@@ -15,6 +15,14 @@
   const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
   const icon = (id, cls = "i") => `<svg class="${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
   const prefersReduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const storage = {
+    get(key) {
+      try { return localStorage.getItem(key); } catch { return null; }
+    },
+    set(key, value) {
+      try { localStorage.setItem(key, value); } catch {}
+    },
+  };
 
   // 편집/결과 보드가 공유하는 6타일 콜라주 레이아웃 (3×4 그리드, 빈틈·겹침 없음)
   const BOARD_LAYOUT = [
@@ -30,29 +38,45 @@
 
   /* --- state ----------------------------------------------------------- */
   const state = {
-    account: null,             // "kakao" | "guest"
+    account: null,             // "kakao" | "google" | "guest"
+    saved: false,
     qIndex: 0,
     answers: {},               // qid -> { selected:[keys], text }
-    previewPhotos: [],         // 질문별 대표 사진 키 (프리뷰 채우기)
+    testBoardItems: [],         // 테스트 중 보드에 안착한 오브젝트
     boardPhotos: [],           // 최종 보드 6장
     elements: [],              // 편집 요소 {id,type,payload,x,y}
     activeTool: "move",
     profile: null,
     moodValues: null,
     genTimer: null,
+    savedBoards: [],           // History — 완성된 무드보드 기록
+    currentBoardId: null,      // 편집 중인 보드(재저장 시 중복 방지)
+    isPlacing: false,
+    readyToGenerate: false,
   };
   let elSeq = 0;
 
+  const TEST_PLACEMENTS = [
+    { x: 7, y: 8, w: 35, h: 25, r: -3 },
+    { x: 53, y: 11, w: 34, h: 18, r: 4 },
+    { x: 16, y: 39, w: 31, h: 17, r: 2 },
+    { x: 49, y: 44, w: 38, h: 24, r: -5 },
+    { x: 17, y: 68, w: 55, h: 16, r: 3 },
+  ];
+
   /* --- screen router --------------------------------------------------- */
-  const SCREENS = ["login", "main", "test", "generating", "edit", "result"];
+  const BOARDS_KEY = "moodme.boards";
+  const SCREENS = ["login", "home", "main", "test", "generating", "edit", "result"];
   function go(name) {
     SCREENS.forEach((s) => {
       const el = $(`#screen-${s}`);
+      if (!el) return;
       const active = s === name;
       el.dataset.active = String(active);
       el.hidden = !active;
     });
     const active = $(`#screen-${name}`);
+    if (!active) return;
     active.scrollTop = 0;
     const scroll = slot("result-board") ? active.querySelector(".result-scroll") : null;
     if (scroll) scroll.scrollTop = 0;
@@ -62,6 +86,22 @@
       heading.setAttribute("tabindex", "-1");
       requestAnimationFrame(() => heading.focus({ preventScroll: true }));
     }
+  }
+
+  function persistBoards() {
+    try { storage.set(BOARDS_KEY, JSON.stringify(state.savedBoards)); } catch {}
+  }
+  function loadBoards() {
+    try {
+      const raw = storage.get(BOARDS_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      state.savedBoards = Array.isArray(parsed) ? parsed : [];
+    } catch { state.savedBoards = []; }
+  }
+  // 저장된 보드가 있으면 History(home), 없으면 첫 진입(main)
+  function routeHome() {
+    renderHome();
+    go(state.savedBoards.length ? "home" : "main");
   }
 
   /* --- toast ----------------------------------------------------------- */
@@ -117,40 +157,135 @@
   /* ==================================================================== */
   /* LOGIN                                                                */
   /* ==================================================================== */
+  function isLoggedIn() { return state.account === "kakao" || state.account === "google"; }
+
   function enter(account) {
     state.account = account;
-    slot("account").textContent = account === "kakao" ? "혜경 님" : "게스트로 둘러보는 중";
+    renderAccount();
     renderGallery();
-    go("main");
+    routeHome();
   }
   $('[data-action="login-kakao"]').addEventListener("click", () => {
     toast("카카오 계정으로 시작했어요");
     enter("kakao");
   });
+  $('[data-action="login-google"]').addEventListener("click", () => {
+    toast("구글 계정으로 시작했어요");
+    enter("google");
+  });
   $('[data-action="login-guest"]').addEventListener("click", () => enter("guest"));
+  $$('[data-action="account"]').forEach((el) => el.addEventListener("click", () => {
+    // 로그인 상태면 로그아웃 메뉴, 아니면 로그인 화면으로.
+    if (isLoggedIn()) { openAccountMenu(el); return; }
+    go("login");
+  }));
+
+  function renderAccount() {
+    const initial = state.account === "kakao" ? "혜" : state.account === "google" ? "G" : null;
+    $$('[data-slot="account"]').forEach((accountEl) => {
+      accountEl.innerHTML = initial || icon("i-user");
+      accountEl.dataset.on = String(isLoggedIn());
+      accountEl.setAttribute("aria-label", isLoggedIn() ? "계정 메뉴 열기" : "로그인하기");
+      accountEl.setAttribute("aria-haspopup", isLoggedIn() ? "menu" : "false");
+    });
+  }
+
+  // 로그인 상태에서 프로필(아바타)을 누르면 뜨는 계정 메뉴 (로그아웃).
+  function openAccountMenu(anchor) {
+    const menu = slot("acct-menu");
+    if (!menu) return;
+    const r = anchor.getBoundingClientRect();
+    menu.style.top = `${r.bottom + 8}px`;
+    menu.style.right = `${Math.max(8, window.innerWidth - r.right)}px`;
+    menu.hidden = false;
+    menu.dataset.open = "true";
+    requestAnimationFrame(() => menu.querySelector(".acct-menu__item")?.focus());
+  }
+  function closeAccountMenu() {
+    const menu = slot("acct-menu");
+    if (!menu) return;
+    menu.dataset.open = "false";
+    menu.hidden = true;
+  }
+  $('[data-action="logout"]').addEventListener("click", () => {
+    state.account = null;
+    state.saved = false;
+    renderAccount();
+    closeAccountMenu();
+    toast("로그아웃했어요");
+    // 로그아웃 시 History가 아니라 초기 홈(메인)으로.
+    go("main");
+  });
+  document.addEventListener("click", (e) => {
+    const menu = slot("acct-menu");
+    if (menu && menu.dataset.open === "true" &&
+        !menu.contains(e.target) && !e.target.closest('[data-action="account"]')) {
+      closeAccountMenu();
+    }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeAccountMenu();
+  });
 
   /* ==================================================================== */
   /* MAIN                                                                 */
   /* ==================================================================== */
   const GALLERY = [
-    { photo: "fog_road",  cap: "고요한 몽상가" },
-    { photo: "field",     cap: "다정한 산책자" },
-    { photo: "neon",      cap: "빛을 모으는 사람" },
-    { photo: "clouds",    cap: "은은한 수집가" },
-    { photo: "forest_ray",cap: "잔잔한 관찰자" },
-    { photo: "film",      cap: "필름 무드" },
+    { photos: ["fog_road", "clouds", "film", "lake"], cap: "고요한 몽상가" },
+    { photos: ["field", "cozy", "forest_ray", "fog_layers"], cap: "다정한 산책자" },
+    { photos: ["neon", "stars", "film", "clouds"], cap: "빛을 모으는 사람" },
+    { photos: ["forest_ray", "lake", "field", "cozy"], cap: "잔잔한 관찰자" },
   ];
   function renderGallery() {
     const g = slot("gallery");
-    g.innerHTML = GALLERY.map((it) => {
-      const p = PHOTOS[it.photo];
-      return `<figure>
-        <img src="${IMG(p.id, 500)}" alt="${p.alt}" loading="lazy" decoding="async">
+    g.innerHTML = GALLERY.map((it, boardIndex) => {
+      const tiles = it.photos.map((key) => {
+        const p = PHOTOS[key];
+        return `<span class="mood-card__tile"><img src="${IMG(p.id, 360)}" alt="${p.alt}" loading="lazy" decoding="async"></span>`;
+      }).join("");
+      return `<figure class="mood-card mood-card--${boardIndex + 1}">
+        <div class="mood-card__grid">${tiles}</div>
         <figcaption>${it.cap}</figcaption>
       </figure>`;
     }).join("");
   }
-  $('[data-action="start-test"]').addEventListener("click", startTest);
+  $$('[data-action="start-test"]').forEach((b) => b.addEventListener("click", startTest));
+
+  /* ==================================================================== */
+  /* HOME · History (저장된 무드보드 목록)                                */
+  /* ==================================================================== */
+  function boardMini(photos) {
+    return photos.slice(0, 6).map((key) => {
+      const p = PHOTOS[key];
+      if (!p) return "";
+      return `<span class="mood-card__tile"><img src="${IMG(p.id, 300)}" alt="" loading="lazy" decoding="async"></span>`;
+    }).join("");
+  }
+  function renderHome() {
+    const host = slot("history-stack");
+    if (!host) return;
+    const boards = state.savedBoards;
+    slot("history-count").textContent = boards.length ? `${boards.length}개의 무드보드를 모았어요` : "";
+    host.innerHTML = boards.map((b, i) =>
+      `<button class="hist-card" type="button" data-board="${i}" aria-label="${b.profileName} 무드보드 열기">
+        <span class="hist-card__grid">${boardMini(b.photos)}</span>
+        <figcaption>${b.profileName}</figcaption>
+      </button>`
+    ).join("");
+    $$("[data-board]", host).forEach((btn) =>
+      btn.addEventListener("click", () => openSavedBoard(Number(btn.dataset.board))));
+  }
+  function openSavedBoard(index) {
+    const e = state.savedBoards[index];
+    if (!e) return;
+    state.boardPhotos = e.photos.slice();
+    state.elements = e.elements.map((r) => ({ ...r, id: ++elSeq }));
+    state.profile = { name: e.profileName, en: e.profileEn, desc: e.profileDesc };
+    state.moodValues = e.moodValues;
+    state.saved = !!e.saved;
+    state.currentBoardId = e.id;
+    renderResultView();
+  }
 
   /* ==================================================================== */
   /* TEST                                                                 */
@@ -158,8 +293,12 @@
   function startTest() {
     state.qIndex = 0;
     state.answers = {};
-    state.previewPhotos = [];
-    renderPreview();
+    state.testBoardItems = [];
+    state.isPlacing = false;
+    state.readyToGenerate = false;
+    state.saved = false;
+    state.currentBoardId = null;   // 새 보드 시작
+    renderTestBoard();
     renderQuestion();
     go("test");
   }
@@ -172,11 +311,16 @@
   function renderQuestion() {
     const q = QUESTIONS[state.qIndex];
     const ans = ensureAnswer(q);
+    const stage = slot("test-stage");
+    if (stage) stage.dataset.phase = "card";
+    state.isPlacing = false;
+    state.readyToGenerate = false;
 
     // progress
     const pct = ((state.qIndex) / QUESTIONS.length) * 100;
-    slot("test-progress").style.width = `${pct}%`;
+    slot("test-progress").style.setProperty("--progress", pct / 100);
     slot("test-count").textContent = `${state.qIndex + 1} / ${QUESTIONS.length}`;
+    slot("q-step").textContent = `step${state.qIndex + 1}`;
 
     $("#q-title").textContent = q.title;
     slot("q-hint").textContent = q.hint;
@@ -189,6 +333,10 @@
     updateMeta(q);
   }
 
+  function isLastQuestion() {
+    return state.qIndex === QUESTIONS.length - 1;
+  }
+
   function renderImageChoices(q, ans) {
     const chips = q.options.map((o) => {
       const p = PHOTOS[o.photo];
@@ -199,15 +347,7 @@
         <span class="choice-img__check">${icon("i-check")}</span>
       </button>`;
     }).join("");
-    let extra = "";
-    if (q.type === "image_text") {
-      extra = `<div class="text-refine">
-        <label for="refine-input">이 장면에 이름을 붙인다면?</label>
-        <input class="field" id="refine-input" type="text" maxlength="24"
-               placeholder="${q.placeholder}" value="${escapeAttr(ans.text)}">
-      </div>`;
-    }
-    return `<div class="choices-img">${chips}</div>${extra}`;
+    return `<div class="choices-img">${chips}</div>`;
   }
 
   function renderKeywordChoices(q, ans) {
@@ -221,14 +361,111 @@
   function wireChoices(q) {
     const host = slot("q-choices");
     $$("[data-key]", host).forEach((btn) => {
-      btn.addEventListener("click", () => toggleSelect(q, btn.dataset.key));
-    });
-    const input = $("#refine-input", host);
-    if (input) {
-      input.addEventListener("input", () => {
-        ensureAnswer(q).text = input.value;
+      btn.addEventListener("click", () => {
+        toggleSelect(q, btn.dataset.key);
       });
+    });
+  }
+
+  function selectedChoiceKey(q) {
+    const ans = ensureAnswer(q);
+    return ans.selected[0] || q.options[0]?.key;
+  }
+
+  function keywordLabel(q, key) {
+    return q.options.find((o) => o.key === key)?.label || key;
+  }
+
+  function boardObjectInner(item) {
+    if (item.photo) {
+      const p = PHOTOS[item.photo];
+      return `<img src="${IMG(p.id, 360)}" alt="">${item.label ? `<span>${escapeHtml(item.label)}</span>` : ""}`;
     }
+    return `<strong>${escapeHtml(item.label)}</strong>`;
+  }
+
+  function buildBoardObject(q) {
+    const ans = ensureAnswer(q);
+    const placement = TEST_PLACEMENTS[state.qIndex % TEST_PLACEMENTS.length];
+    const base = {
+      id: `${q.id}-${Date.now()}`,
+      questionIndex: state.qIndex,
+      x: placement.x,
+      y: placement.y,
+      w: placement.w,
+      h: placement.h,
+      r: placement.r,
+    };
+
+    if (q.type === "keyword") {
+      const labels = ans.selected.map((key) => keywordLabel(q, key)).join(" · ");
+      return { ...base, type: "keyword", label: labels };
+    }
+
+    const selected = q.options.find((o) => o.key === selectedChoiceKey(q));
+    return { ...base, type: "image", photo: selected?.photo, label: "" };
+  }
+
+  function renderTestBoard() {
+    const host = slot("test-board-items");
+    if (!host) return;
+    host.innerHTML = state.testBoardItems.map((item) =>
+      `<div class="board-object board-object--${item.type}" style="--x:${item.x};--y:${item.y};--w:${item.w};--h:${item.h};--r:${item.r}">
+        ${boardObjectInner(item)}
+      </div>`
+    ).join("");
+  }
+
+  function animateSelectionToBoard(q, done) {
+    const item = buildBoardObject(q);
+    const stage = slot("test-stage");
+    const selectedKey = selectedChoiceKey(q);
+    const selectedEl =
+      $$("[data-key]", slot("q-choices")).find((el) => el.dataset.key === selectedKey) ||
+      slot("question-card");
+    const stageRect = stage.getBoundingClientRect();
+    const fromRect = selectedEl.getBoundingClientRect();
+    const canvasRect = $(".build-board__canvas", stage).getBoundingClientRect();
+
+    state.isPlacing = true;
+    updateMeta(q);
+    stage.dataset.phase = "placing";
+
+    const fly = document.createElement("div");
+    fly.className = `board-object board-object--${item.type} fly-object`;
+    fly.innerHTML = boardObjectInner(item);
+    fly.style.left = (fromRect.left - stageRect.left) + "px";
+    fly.style.top = (fromRect.top - stageRect.top) + "px";
+    fly.style.width = fromRect.width + "px";
+    fly.style.height = fromRect.height + "px";
+    fly.style.transform = "translate3d(0,0,0) rotate(0deg)";
+    stage.appendChild(fly);
+
+    const reduced = prefersReduced();
+    const tx = canvasRect.left - stageRect.left + canvasRect.width * (item.x / 100) - (fromRect.left - stageRect.left);
+    const ty = canvasRect.top - stageRect.top + canvasRect.height * (item.y / 100) - (fromRect.top - stageRect.top);
+    const tw = canvasRect.width * (item.w / 100);
+    const th = canvasRect.height * (item.h / 100);
+    const sx = tw / Math.max(1, fromRect.width);
+    const sy = th / Math.max(1, fromRect.height);
+
+    requestAnimationFrame(() => {
+      fly.style.transform = reduced
+        ? `translate3d(${tx}px, ${ty}px, 0) scale(${sx}, ${sy}) rotate(${item.r}deg)`
+        : `translate3d(${tx}px, ${ty}px, 0) scale(${sx}, ${sy}) rotate(${item.r}deg)`;
+    });
+
+    const finish = () => {
+      fly.remove();
+      state.testBoardItems = state.testBoardItems.filter((old) => old.questionIndex !== state.qIndex);
+      state.testBoardItems.push(item);
+      renderTestBoard();
+      stage.dataset.phase = "settled";
+      state.isPlacing = false;
+      updateMeta(q);
+      done();
+    };
+    window.setTimeout(finish, reduced ? 80 : 720);
   }
 
   function toggleSelect(q, key) {
@@ -271,12 +508,29 @@
       meta.textContent = `${n}개 선택됨`;
       meta.style.color = "var(--accent)";
     }
-    $('[data-action="test-next"]').disabled = !selectionValid(q);
+    updateTestAction(q);
   }
 
-  function escapeAttr(s) { return String(s).replace(/"/g, "&quot;"); }
+  function updateTestAction(q = QUESTIONS[state.qIndex]) {
+    const btn = $('[data-action="test-next"]');
+    if (!btn) return;
+    btn.disabled = state.readyToGenerate ? false : !selectionValid(q) || state.isPlacing;
+    btn.innerHTML = state.readyToGenerate
+      ? `무드보드 생성하기 ${icon("i-sparkle")}`
+      : `다음 ${icon("i-arrow-right")}`;
+  }
 
-  // 프리뷰: 질문마다 대표 사진 한 장으로 무드보드가 "채워진다"
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (ch) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "\"": "&quot;",
+      "'": "&#39;",
+    }[ch]));
+  }
+
+  // 질문마다 대표 사진 한 장을 골라 최종 생성 보드의 재료로 쓴다.
   function representativePhoto(q) {
     const ans = state.answers[q.id];
     if (!ans || !ans.selected.length) return null;
@@ -288,38 +542,46 @@
     const first = q.options.find((o) => o.key === ans.selected[0]);
     return first ? first.photo : null;
   }
-  function renderPreview() {
-    const host = slot("preview");
-    host.innerHTML = QUESTIONS.map((_, i) => {
-      const key = state.previewPhotos[i];
-      if (key) {
-        const p = PHOTOS[key];
-        return `<span class="pslot filled"><img src="${IMG(p.id, 160)}" alt="" decoding="async"></span>`;
-      }
-      return `<span class="pslot pslot-empty"></span>`;
-    }).join("");
-  }
 
   $('[data-action="test-next"]').addEventListener("click", () => {
-    const q = QUESTIONS[state.qIndex];
-    if (!selectionValid(q)) return;
-    state.previewPhotos[state.qIndex] = representativePhoto(q);
-    renderPreview();
-
-    if (state.qIndex < QUESTIONS.length - 1) {
-      state.qIndex++;
-      renderQuestion();
-    } else {
-      slot("test-progress").style.width = "100%";
+    if (state.readyToGenerate) {
       startGenerating();
+      return;
     }
+
+    const q = QUESTIONS[state.qIndex];
+    if (!selectionValid(q) || state.isPlacing) return;
+    animateSelectionToBoard(q, () => {
+      if (!isLastQuestion()) {
+        window.setTimeout(() => {
+          state.qIndex++;
+          renderQuestion();
+        }, prefersReduced() ? 0 : 360);
+      } else {
+        slot("test-progress").style.setProperty("--progress", 1);
+        state.readyToGenerate = true;
+        updateTestAction(q);
+      }
+    });
   });
 
-  $('[data-action="test-back"]').addEventListener("click", () => {
+  function moveTestBack() {
+    if (state.isPlacing) return;
+    if (state.readyToGenerate) {
+      state.readyToGenerate = false;
+      state.testBoardItems = state.testBoardItems.filter((item) => item.questionIndex < state.qIndex);
+      renderTestBoard();
+      renderQuestion();
+      return;
+    }
     if (state.qIndex === 0) { go("main"); return; }
     state.qIndex--;
+    state.testBoardItems = state.testBoardItems.filter((item) => item.questionIndex < state.qIndex);
+    renderTestBoard();
     renderQuestion();
-  });
+  }
+
+  $('[data-action="test-back"]').addEventListener("click", moveTestBack);
 
   /* ==================================================================== */
   /* GENERATING                                                           */
@@ -363,7 +625,7 @@
     const percentEl = slot("gen-percent");
     const statusEl = slot("gen-status");
     let pct = 0, msgI = 0;
-    fill.style.width = "0%";
+    fill.style.setProperty("--progress", 0);
     percentEl.textContent = "0%";
     statusEl.textContent = GEN_MESSAGES[0];
 
@@ -373,7 +635,7 @@
     state.genTimer = setInterval(() => {
       const elapsed = performance.now() - start;
       pct = clamp(Math.round((elapsed / total) * 100), 0, 100);
-      fill.style.width = pct + "%";
+      fill.style.setProperty("--progress", pct / 100);
       percentEl.textContent = pct + "%";
       const wantMsg = Math.min(GEN_MESSAGES.length - 1, Math.floor((pct / 100) * GEN_MESSAGES.length));
       if (wantMsg !== msgI) {
@@ -422,10 +684,6 @@
     elSeq = 0;
     setTool("move");
     renderStickerTray();
-    // 시작 힌트: 사용자가 붙인 한 컷 텍스트가 있으면 자동으로 얹어준다
-    const textAns = QUESTIONS.find((q) => q.type === "image_text");
-    const t = textAns && state.answers[textAns.id] && state.answers[textAns.id].text.trim();
-    if (t) addElement({ type: "text", payload: t, x: 0.5, y: 0.86 });
     go("edit");
   }
 
@@ -458,11 +716,18 @@
       toast("펜 드로잉은 실제 앱에서 제공돼요");
       return;
     }
+    if (tool === "erase") {
+      setTool("erase");
+      toast(state.elements.length ? "지울 스티커·글자를 탭하세요" : "스티커나 글자를 먼저 추가해보세요");
+      return;
+    }
     setTool("move");
   }
   function setTool(tool) {
     state.activeTool = tool;
     tools.forEach((t) => t.setAttribute("aria-pressed", String(t.dataset.tool === tool)));
+    const board = slot("edit-board");
+    if (board) board.dataset.tool = tool;
   }
   function toggleTray() {
     const tray = slot("sticker-tray");
@@ -509,8 +774,7 @@
     makeDraggable(el, rec);
     el.querySelector(".el__del").addEventListener("click", (e) => {
       e.stopPropagation();
-      state.elements = state.elements.filter((r) => r.id !== id);
-      el.remove();
+      removeElement(el, id);
     });
     selectElement(el);
     return el;
@@ -531,6 +795,7 @@
     let startX, startY, baseX, baseY, w, h, dragging = false;
     const onDown = (e) => {
       if (e.target.closest(".el__del")) return;
+      if (state.activeTool === "erase") return;   // 지우개 모드: 드래그·선택 대신 탭으로 삭제
       e.preventDefault();
       selectElement(el);
       const board = slot("edit-board").getBoundingClientRect();
@@ -554,7 +819,15 @@
     el.addEventListener("pointermove", onMove);
     el.addEventListener("pointerup", onUp);
     el.addEventListener("pointercancel", onUp);
-    el.addEventListener("click", (e) => { e.stopPropagation(); selectElement(el); });
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (state.activeTool === "erase") { removeElement(el, rec.id); return; }
+      selectElement(el);
+    });
+  }
+  function removeElement(el, id) {
+    state.elements = state.elements.filter((r) => r.id !== id);
+    el.remove();
   }
   function point(e) { return { x: e.clientX, y: e.clientY }; }
 
@@ -564,17 +837,57 @@
       selectElement(null);
   });
 
-  $('[data-action="edit-back"]').addEventListener("click", () => go("generating") || startGenerating());
+  $('[data-action="edit-back"]').addEventListener("click", () => {
+    // 편집 나가기: 생성중 화면으로 되돌아가지 않는다. 저장 여부만 확인 후 홈으로.
+    if (!window.confirm("지금까지 만든 무드보드를 저장하지 않고 나가시겠어요?")) return;
+    routeHome();
+  });
   $('[data-action="save-board"]').addEventListener("click", () => {
     selectElement(null);
-    toast(state.account === "guest" ? "임시 저장했어요 (게스트)" : "무드보드를 저장했어요");
+    // 엔딩 마찰 제거: 공개 직전에 로그인으로 가로막지 않는다.
+    // 로그인 상태면 보관, 게스트면 결과의 안내 배너로 로그인 유도.
+    if (isLoggedIn()) {
+      state.saved = true;
+      toast("무드보드를 저장했어요");
+    }
     buildResult();
   });
 
   /* ==================================================================== */
   /* RESULT                                                               */
   /* ==================================================================== */
+  // 편집 완료 → 무드 계산, History에 기록, 결과 화면 렌더
   function buildResult() {
+    const { norm, profile } = computeMood();
+    state.profile = profile;
+    state.moodValues = norm;
+
+    const snapshot = {
+      photos: state.boardPhotos.slice(),
+      elements: state.elements.map(({ type, payload, x, y }) => ({ type, payload, x, y })),
+      profileName: profile.name,
+      profileEn: profile.en,
+      profileDesc: profile.desc,
+      moodValues: norm,
+      saved: state.saved,
+    };
+    const existing = state.savedBoards.find((b) => b.id === state.currentBoardId);
+    if (existing) {
+      Object.assign(existing, snapshot);
+      state.savedBoards = [existing, ...state.savedBoards.filter((b) => b !== existing)];
+    } else {
+      const entry = { id: Date.now(), ...snapshot };
+      state.savedBoards.unshift(entry);
+      state.currentBoardId = entry.id;
+    }
+    // 저장(로그인) 보드만 영속화. 게스트 임시 보드는 세션 History에만 남는다.
+    if (state.saved) persistBoards();
+
+    renderResultView();
+  }
+
+  // 결과 화면을 state(현재/불러온 보드)로부터 그린다
+  function renderResultView() {
     renderBoardGrid(slot("result-grid"));
     // 편집 요소를 결과 보드에 그대로 얹기 (비율 좌표 재사용)
     const rboard = slot("result-board");
@@ -589,16 +902,44 @@
       placeElement(el, rec.x, rec.y);
     });
 
-    const { norm, profile } = computeMood();
-    state.profile = profile; state.moodValues = norm;
+    const profile = state.profile;
     slot("profile-name").textContent = profile.name;
     slot("profile-en").textContent = profile.en;
     slot("profile-desc").textContent = profile.desc;
     slot("result-board").setAttribute("aria-label", `${profile.name} 무드보드`);
 
-    renderRadar(norm);
-    slot("guest-banner").hidden = state.account !== "guest";
+    renderRadar(state.moodValues);
+    renderBars(slot("bars"), state.moodValues, { showVal: true });
+    renderHighlight(state.moodValues);
+    slot("guest-banner").hidden = state.saved;
     go("result");
+  }
+
+  // 다섯 축의 비중을 가로 막대로 (결과 스펙트럼 + 생성중 미니 공용)
+  function renderBars(host, values, opts = {}) {
+    if (!host) return;
+    host.innerHTML = AXES.map((a) => {
+      const pct = Math.round(clamp(values[a.key] || 0, 0, 1) * 100);
+      return `<div class="bar-row">
+        <span class="bar-row__label">${a.label}</span>
+        <span class="bar-row__track"><span class="bar-row__fill" style="--v:0"></span></span>
+        ${opts.showVal ? `<span class="bar-row__val">${pct}%</span>` : ""}
+      </div>`;
+    }).join("");
+    // 다음 프레임에 목표값으로 → transition(scaleX) 발동
+    requestAnimationFrame(() => {
+      $$(".bar-row__fill", host).forEach((fill, i) => {
+        fill.style.setProperty("--v", clamp(values[AXES[i].key] || 0, 0, 1).toFixed(3));
+      });
+    });
+  }
+
+  function renderHighlight(values) {
+    const host = slot("mood-highlight");
+    if (!host) return;
+    const ranked = [...AXES].sort((a, b) => (values[b.key] || 0) - (values[a.key] || 0));
+    host.innerHTML =
+      `가장 강한 결 <strong>${ranked[0].label}</strong> · 가장 옅은 결 <strong>${ranked[ranked.length - 1].label}</strong>`;
   }
 
   function renderRadar(values) {
@@ -666,6 +1007,7 @@
 
   $('[data-action="result-edit"]').addEventListener("click", () => go("edit"));
   $('[data-action="restart"]').addEventListener("click", startTest);
+  $('[data-action="go-home"]').addEventListener("click", routeHome);
 
   // DOM 지오메트리를 캔버스로 옮겨 실제 PNG를 만든다 (스티커·텍스트 포함)
   async function renderBlob() {
@@ -695,7 +1037,7 @@
       const cy = (r.top - brect.top + r.height / 2) * scale;
       if (el.classList.contains("el--text")) {
         const fs = parseFloat(getComputedStyle(el).fontSize) * scale;
-        ctx.font = `700 ${fs}px "Gowun Batang", serif`;
+        ctx.font = `700 ${fs}px "SUIT", sans-serif`;
         ctx.fillStyle = "#ffffff";
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
         ctx.shadowColor = "rgba(10,14,24,0.7)"; ctx.shadowBlur = 10 * scale; ctx.shadowOffsetY = 2 * scale;
@@ -740,5 +1082,8 @@
   }
 
   /* --- boot ------------------------------------------------------------ */
-  go("login");
+  loadBoards();
+  renderAccount();
+  renderGallery();
+  routeHome();
 })();

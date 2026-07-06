@@ -8,13 +8,13 @@
   <title>mood·me — 추구미 무드보드</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23161b26'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23f1b267'/%3E%3C/svg%3E" />
 
-  <!-- 폰트: 본문/인터랙션 Pretendard, 몽환의 정점 Gowun Batang -->
+  <!-- 폰트: 본문/인터랙션 SUIT, 메인 영문 Raleway + Petit Formal Script -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Petit+Formal+Script&family=Raleway:wght@300..900&display=swap" />
   <link rel="stylesheet" as="style" crossorigin
-        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+        href="https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/static/woff2/SUIT.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -35,13 +35,16 @@
       <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></symbol>
       <symbol id="i-bookmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></symbol>
       <symbol id="i-sparkle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5 10.1 11.9 4.5 10l5.6-1.4L12 3z"/></symbol>
+      <symbol id="i-eraser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21h13"/><path d="M3 17.5 13 7.5a2 2 0 0 1 2.8 0l3.7 3.7a2 2 0 0 1 0 2.8L13 20.5a2 2 0 0 1-2.8 0L3 17.5z"/><path d="M9 12.5 15.5 19"/></symbol>
+      <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/></symbol>
+      <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></symbol>
     </defs>
   </svg>
 
   <main id="app" aria-live="polite">
 
     <!-- 5.1 LOGIN ------------------------------------------------------- -->
-    <section id="screen-login" class="screen pad" data-active="true" aria-labelledby="login-title">
+    <section id="screen-login" class="screen pad" aria-labelledby="login-title" hidden>
       <div class="login-hero">
         <div class="login-orbs" aria-hidden="true">
           <span class="orb orb-1"></span>
@@ -49,7 +52,7 @@
           <span class="orb orb-3"></span>
         </div>
         <h1 id="login-title" class="wordmark">mood<span class="dot">·</span>me</h1>
-        <p class="lead serif" style="font-size:clamp(1.15rem,5vw,1.35rem);color:var(--ink)">
+        <p class="lead" style="font-size:clamp(1.15rem,5vw,1.35rem);color:var(--ink)">
           몇 개의 질문이면 충분해요.<br>당신의 추구미를 무드보드로.
         </p>
         <p class="lead">테스트에 답하면 AI가 당신만의 무드보드를 그려줘요. 꾸미고, 저장하고, 자랑하세요.</p>
@@ -57,6 +60,12 @@
       <div class="login-actions">
         <button class="btn btn--kakao btn--block btn--lg" data-action="login-kakao" type="button">
           카카오로 시작하기
+        </button>
+        <button class="btn btn--google btn--block btn--lg" data-action="login-google" type="button">
+          <svg class="i g-mark" aria-hidden="true" viewBox="0 0 24 24">
+            <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.24 1.4-1.7 4.2-5.5 4.2-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.9 1.5l2.7-2.6C16.9 3.4 14.7 2.4 12 2.4 6.7 2.4 2.4 6.7 2.4 12S6.7 21.6 12 21.6c5.5 0 9.2-3.9 9.2-9.4 0-.6-.07-1.1-.16-1.6H12z"/>
+          </svg>
+          구글로 시작하기
         </button>
         <button class="btn btn--ghost btn--block" data-action="login-guest" type="button">
           로그인 없이 둘러보기
@@ -70,31 +79,53 @@
       <header class="topbar">
         <span class="wordmark" style="font-size:1.4rem">mood<span class="dot">·</span>me</span>
         <span class="spacer"></span>
-        <span class="topbar__title" data-slot="account" style="color:var(--muted);font-weight:500"></span>
+        <button class="avatar" data-action="account" type="button" data-slot="account" aria-label="로그인해서 보드 저장하기">
+          <svg class="i" aria-hidden="true"><use href="#i-user"/></svg>
+        </button>
       </header>
 
       <div class="main-hero">
-        <p class="eyebrow">오늘의 추구미</p>
-        <h1 id="main-title">지금의 나를 닮은 <em>무드</em>를 찾아서.</h1>
-        <p class="lead">이미지와 단어를 고르면, 그 취향을 한 장의 무드보드로 채워드려요.</p>
-      </div>
-
-      <div class="gallery" data-slot="gallery" aria-label="다른 사람들이 만든 무드보드 예시"></div>
-
-      <div class="main-copy">
-        <div class="steps">
-          <div class="step"><span class="step__n">1</span><span class="step__t"><strong>고르기</strong><span>끌리는 장면과 단어를 몇 개 선택</span></span></div>
-          <div class="step"><span class="step__n">2</span><span class="step__t"><strong>채워지기</strong><span>AI가 당신의 취향으로 보드를 그려요</span></span></div>
-          <div class="step"><span class="step__n">3</span><span class="step__t"><strong>나누기</strong><span>꾸미고 저장해서 SNS에 공유</span></span></div>
+        <div class="main-doodles" aria-hidden="true">
+          <span class="doodle doodle--star">✧</span>
+          <span class="doodle doodle--spark">✦</span>
+          <span class="doodle doodle--cursor">⌁</span>
         </div>
+        <h1 id="main-title" class="mixed-title" aria-label="Make Your Mood Board a Reality!">
+          <span class="raleway-main">Make</span>
+          <span class="petit-formal-script-word">Your</span>
+          <span class="raleway-main">Mood</span><br>
+          <span class="raleway-main">Board</span>
+          <span class="raleway-main">a</span>
+          <span class="petit-formal-script-word">Reality!</span>
+        </h1>
+        <p class="lead">짧은 테스트로 지금의 공기, 말투, 색감을 한 장의 무드보드로 정리해요.</p>
       </div>
 
-      <div class="main-cta">
-        <button class="btn btn--primary btn--block btn--lg" data-action="start-test" type="button">
-          무드보드 만들기
-          <svg class="i" aria-hidden="true"><use href="#i-arrow-right"/></svg>
+      <div class="gallery" data-slot="gallery" aria-label="완성된 무드보드 예시"></div>
+
+      <button class="btn btn--primary btn--block btn--lg main-floating-cta" data-action="start-test" type="button">
+        무드보드 만들기
+      </button>
+    </section>
+
+    <!-- 5.2b HOME (History — 저장된 무드보드가 1개 이상일 때) ------------- -->
+    <section id="screen-home" class="screen" aria-labelledby="home-title" hidden>
+      <header class="topbar">
+        <h1 id="home-title" class="history__title">History</h1>
+        <span class="spacer"></span>
+        <button class="avatar" data-action="account" type="button" data-slot="account" aria-label="로그인해서 보드 저장하기">
+          <svg class="i" aria-hidden="true"><use href="#i-user"/></svg>
         </button>
+      </header>
+
+      <div class="home-scroll">
+        <p class="history__sub" data-slot="history-count"></p>
+        <div class="history__stack" data-slot="history-stack" aria-label="저장된 무드보드"></div>
       </div>
+
+      <button class="btn btn--primary btn--block btn--lg main-floating-cta" data-action="start-test" type="button">
+        무드보드 만들기
+      </button>
     </section>
 
     <!-- 5.3 TEST ------------------------------------------------------- -->
@@ -109,16 +140,21 @@
         </div>
       </header>
 
-      <div class="preview" aria-label="지금까지의 선택으로 채워지는 무드보드 미리보기">
-        <span class="preview__label">채워지는 무드보드</span>
-        <div class="preview__slots" data-slot="preview"></div>
-      </div>
+      <div class="test-stage" data-slot="test-stage" data-phase="card">
+        <div class="build-board" aria-label="완성되어 가는 추구미 무드보드">
+          <span class="build-board__label">무드보드</span>
+          <div class="build-board__canvas">
+            <div class="build-board__items" data-slot="test-board-items"></div>
+          </div>
+        </div>
 
-      <div class="test-body">
-        <h2 class="q-title" id="q-title"></h2>
-        <p class="q-hint" data-slot="q-hint"></p>
-        <div data-slot="q-choices"></div>
-        <p class="q-meta" data-slot="q-meta" role="status"></p>
+        <div class="question-card" data-slot="question-card">
+          <p class="q-step" data-slot="q-step">step1</p>
+          <h2 class="q-title" id="q-title"></h2>
+          <p class="q-hint" data-slot="q-hint"></p>
+          <div data-slot="q-choices"></div>
+          <p class="q-meta" data-slot="q-meta" role="status"></p>
+        </div>
       </div>
 
       <div class="test-foot">
@@ -133,7 +169,7 @@
     <section id="screen-generating" class="screen" aria-labelledby="gen-status" hidden>
       <div class="gen-wrap">
         <div class="gen-board" data-slot="gen-board" aria-hidden="true"></div>
-        <p class="gen-status serif" id="gen-status" data-slot="gen-status" role="status">당신이 고른 공기를 모으는 중…</p>
+        <p class="gen-status" id="gen-status" data-slot="gen-status" role="status">당신이 고른 공기를 모으는 중…</p>
         <div class="gen-prog">
           <div class="progress__bar"><div class="progress__fill" data-slot="gen-progress"></div></div>
           <span class="progress__label" data-slot="gen-percent">0%</span>
@@ -144,7 +180,7 @@
     <!-- 5.5 EDIT ------------------------------------------------------- -->
     <section id="screen-edit" class="screen" aria-labelledby="edit-title" hidden>
       <header class="topbar">
-        <button class="iconbtn" data-action="edit-back" type="button" aria-label="생성 다시 보기">
+        <button class="iconbtn" data-action="edit-back" type="button" aria-label="편집 나가기">
           <svg class="i" aria-hidden="true"><use href="#i-arrow-left"/></svg>
         </button>
         <span class="topbar__title" id="edit-title">무드보드 꾸미기</span>
@@ -172,6 +208,9 @@
           <button class="tool" data-tool="pen" aria-pressed="false" type="button">
             <svg class="i" aria-hidden="true"><use href="#i-pen"/></svg>펜
           </button>
+          <button class="tool" data-tool="erase" aria-pressed="false" type="button">
+            <svg class="i" aria-hidden="true"><use href="#i-eraser"/></svg>지우개
+          </button>
 
           <!-- sticker tray -->
           <div class="tray" data-slot="sticker-tray" role="menu" aria-label="스티커 선택">
@@ -183,7 +222,7 @@
       <div class="edit-foot">
         <button class="btn btn--primary btn--block btn--lg" data-action="save-board" type="button">
           <svg class="i" aria-hidden="true"><use href="#i-check"/></svg>
-          완성하고 저장
+          완성하고 공유하기
         </button>
       </div>
     </section>
@@ -196,6 +235,9 @@
         </button>
         <span class="topbar__title">나의 무드보드</span>
         <span class="spacer"></span>
+        <button class="iconbtn" data-action="go-home" type="button" aria-label="홈으로">
+          <svg class="i" aria-hidden="true"><use href="#i-home"/></svg>
+        </button>
         <button class="iconbtn" data-action="restart" type="button" aria-label="처음부터 다시 만들기">
           <svg class="i" aria-hidden="true"><use href="#i-sparkle"/></svg>
         </button>
@@ -221,9 +263,16 @@
           <div class="radar-wrap" data-slot="radar"></div>
         </section>
 
+        <section class="mood-graph mood-graph--bars" aria-labelledby="bars-title">
+          <h3 id="bars-title">무드 스펙트럼</h3>
+          <p class="sub">다섯 결의 비중을 막대로 펼쳐봤어요.</p>
+          <div class="bars" data-slot="bars"></div>
+          <p class="mood-highlight" data-slot="mood-highlight"></p>
+        </section>
+
         <aside class="guest-banner" data-slot="guest-banner" hidden>
           <svg class="i" aria-hidden="true"><use href="#i-bookmark"/></svg>
-          <p><strong>로그인하면 언제든 다시 볼 수 있어요.</strong> 지금은 게스트라 이 창을 닫으면 사라질 수 있어요.</p>
+          <p><strong>로그인하면 이 무드보드를 보관할 수 있어요.</strong> 지금은 기기에만 임시로 남아 있어요.</p>
         </aside>
 
         <div class="share-block">
@@ -252,10 +301,15 @@
   <!-- error / retry modal (generation failure edge case) -->
   <div class="modal-bd" data-slot="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal">
-      <h3 id="modal-title" class="serif">앗, 생성이 잠깐 멈췄어요</h3>
+      <h3 id="modal-title">앗, 생성이 잠깐 멈췄어요</h3>
       <p>당신의 선택은 그대로 있어요. 다시 시도하면 이어서 그려드릴게요.</p>
       <button class="btn btn--primary btn--block btn--lg" data-action="retry-generate" type="button">다시 시도</button>
     </div>
+  </div>
+
+  <!-- account menu (로그인 상태에서 프로필 탭 시) -->
+  <div class="acct-menu" data-slot="acct-menu" role="menu" aria-label="계정 메뉴" data-open="false" hidden>
+    <button class="acct-menu__item" data-action="logout" type="button" role="menuitem">로그아웃</button>
   </div>
 
   <div id="toasts" aria-live="assertive"></div>

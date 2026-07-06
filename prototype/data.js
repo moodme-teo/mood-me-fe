@@ -52,7 +52,6 @@ const PHOTOS = {
  * 추구미 테스트 — 5문항, 세 가지 선택 타입을 모두 시연.
  *  type: "image"        이미지만 선택
  *  type: "keyword"      키워드 칩만 선택
- *  type: "image_text"   이미지 선택 후 짧은 텍스트로 구체화
  */
 const QUESTIONS = [
   {
@@ -107,12 +106,11 @@ const QUESTIONS = [
   },
   {
     id: "q4",
-    type: "image_text",
+    type: "image",
     minSelect: 1,
     maxSelect: 1,
     title: "무드보드의 주인공 한 컷",
-    hint: "가장 '나 같은' 한 장을 고르고, 이름을 붙여줘요.",
-    placeholder: "예: 비 그친 새벽의 냄새",
+    hint: "가장 '나 같은' 한 장을 골라요.",
     options: [
       { key: "reflect",   photo: "reflect" },
       { key: "bokeh",     photo: "bokeh" },
