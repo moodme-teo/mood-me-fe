@@ -20,7 +20,7 @@
 
 ## 사전 요구사항
 
-- **Node.js 20 이상** (Next.js 16 요구사항)
+- **Node.js 24 이상** (`.nvmrc` 참고 — `nvm use` 로 적용)
 - npm (저장소에 `package-lock.json` 포함)
 - 아래 서비스의 API 키:
   - [Supabase](https://supabase.com) 프로젝트 (URL · anon key · service role key)
@@ -39,11 +39,7 @@ npm install
 
 ### 2. 환경변수 설정
 
-`.env.example`를 복사해 `.env.local`을 만들고 값을 채웁니다.
-
-```bash
-cp .env.example .env.local
-```
+배포용 환경변수는 **GitHub / Vercel** 에서 관리합니다. 로컬에서 띄울 때는 프로젝트 루트에 `.env.local` 을 직접 만들고 값을 채웁니다 — **값은 팀 Figma를 참고하세요.**
 
 | 변수                            | 설명                                         | 노출          |
 | ------------------------------- | -------------------------------------------- | ------------- |
