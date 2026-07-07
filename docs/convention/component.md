@@ -2,12 +2,12 @@
 
 > 베이스: [bulletproof-react — Components And Styling](https://github.com/alan2207/bulletproof-react/blob/master/docs/components-and-styling.md) + [Project Structure](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md). 폴더 배치는 [folder-structure.md](../folder-structure.md).
 
-## 배치: ui / features / canvas
+## 배치: ui / 도메인 / canvas
 
 - `components/ui/` — 도메인 지식이 없는 프리미티브만 (Button, Card, Dialog …). 무드보드를 아는 컴포넌트는 여기 금지. 시각 규칙은 [DESIGN.md](../../DESIGN.md) 기준
-- `features/<도메인>/components/` — 그 feature 전용 컴포넌트. 대부분의 컴포넌트가 여기 삽니다
+- `components/<도메인>/` (`mood-test/`, `board/` …) — 도메인 컴포넌트. 대부분의 컴포넌트가 여기 삽니다
 - `components/canvas/` — Konva 격리 구역. 특수 규칙 적용 → [canvas.md](./canvas.md)
-- **콜로케이션**: 쓰이는 곳 가까이. 2개 이상 feature에서 쓰일 때만 공용으로 승격 — 성급한 공용화 금지
+- **콜로케이션**: 쓰이는 곳 가까이. 한 라우트 전용이면 라우트 폴더 안 `_components/`도 허용, 2곳 이상에서 쓰일 때만 승격 — 성급한 공용화 금지
 
 ## Server / Client Component
 
@@ -39,6 +39,6 @@ function Board() { return <div><StickerList /></div>; }
 ## Import 규칙
 
 - 항상 절대 경로 `@/*` — `../../..` 금지
-- **feature 간 직접 import 금지** — 조합은 `app/`(페이지) 레벨에서
-- **단방향**: 공용 → features → app. 역방향 금지 (ESLint zones로 강제 — [folder-structure.md](../folder-structure.md))
+- **도메인 컴포넌트 폴더 간 직접 import 최소화** — 조합은 `app/`(페이지) 레벨에서. `ui/`는 누구나 사용
+- **단방향**: lib/types/hooks → components → app. 역방향 금지 (ESLint zones로 강제 — [folder-structure.md](../folder-structure.md))
 - 배럴 파일(index.ts) 금지 — 파일 직접 import. 예외는 `components/canvas/index.ts` 하나

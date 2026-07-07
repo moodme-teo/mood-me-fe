@@ -4,9 +4,14 @@
 
 ## 파일 · 폴더명
 
-- **모든 파일·폴더는 kebab-case** — 컴포넌트 파일 포함 (`board-canvas.tsx`, `question-card.tsx`). bulletproof-react 표준을 그대로 채택하고, ESLint `check-file` 룰로 강제합니다(후속 이슈).
-  - ⚠️ 기존 `BoardCanvas.tsx`는 확정 시 rename — 이 항목은 PR 리뷰에서 결정합니다.
-- 라우트 폴더: kebab-case (`app/test/[session-id]/generating/`)
+| 대상 | 규칙 | 예 |
+| --- | --- | --- |
+| 컴포넌트 파일 | PascalCase.tsx | `BoardCanvas.tsx`, `QuestionCard.tsx` |
+| 훅 파일 | `use` + camelCase | `useGenerationJob.ts` |
+| 그 외 모듈 (lib/utils/types) | lowercase(-kebab) | `anthropic.ts`, `api-client.ts`, `mood-test.ts` |
+| 폴더 · 라우트 폴더 | kebab-case | `components/mood-test/`, `app/test/[session-id]/generating/` |
+
+- ESLint `check-file` 룰로 강제합니다(후속 이슈) — 컴포넌트 파일만 PascalCase, 나머지는 kebab-case 패턴.
 
 ## 식별자
 

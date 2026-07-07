@@ -21,13 +21,13 @@
 ## 클라이언트: 요청 선언 방식
 
 - **fetch wrapper 단일 인스턴스**: 모든 클라이언트 요청은 `lib/api-client.ts`를 경유 — base URL, `{ data }/{ error }` 파싱, 에러 변환을 한 곳에서. 컴포넌트 안에서 생 `fetch()` 금지
-- **요청 선언은 즉석에서 만들지 않고 feature의 `api/` 폴더에 파일로 분리**해 export 합니다. 요청 하나당:
+- **요청 선언은 즉석에서 만들지 않고 `lib/api/`에 요청 단위 파일로 분리**해 export 합니다. 요청 하나당:
   1. 요청/응답 **타입과 Zod 스키마**
   2. api-client를 쓰는 **fetcher 함수**
   3. (TanStack Query 도입 후) fetcher를 소비하는 **훅**
 
 ```
-src/features/generation/api/
+src/lib/api/
 ├── create-generation-job.ts   # 스키마 + fetcher (+ 훅)
 └── get-generation-job.ts
 ```

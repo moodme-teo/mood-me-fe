@@ -16,7 +16,7 @@ lib/ (anthropic · fal · supabase 래퍼 — 서버 전용)
 외부 서비스 (Claude · fal.ai · Supabase)
 ```
 
-의존 방향은 항상 한쪽: **공용(components/hooks/lib/types/utils) → features → app**. 역방향 import는 ESLint로 차단합니다.
+의존 방향은 항상 한쪽: **lib/types/hooks → components → app**. 역방향 import는 ESLint로 차단합니다.
 
 ## 데이터 흐름 (일반)
 

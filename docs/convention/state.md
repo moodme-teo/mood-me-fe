@@ -25,6 +25,6 @@
 
 현재 **아무것도 도입하지 않았습니다.** 아래 신호가 오면 팀 합의 후 도입하고, 그전까지 선제 도입도·개별 재구현 난립도 금지:
 
-- **Zustand** ← 전역 클라이언트 상태(캔버스 편집 상태 등)가 prop drilling/Context 한계에 부딪힐 때. feature 전용 스토어는 `features/<도메인>/stores/`에 ([canvas.md](./canvas.md)의 Canvas Store가 1순위 후보)
+- **Zustand** ← 전역 클라이언트 상태(캔버스 편집 상태 등)가 prop drilling/Context 한계에 부딪힐 때. 도메인 전용 스토어는 그 도메인 폴더 안에 콜로케이션 ([canvas.md](./canvas.md)의 Canvas Store가 1순위 후보)
 - **TanStack Query** ← 클라이언트 폴링·캐싱·무효화가 2곳 이상 필요할 때 (예: job 폴링에 재시도·백오프·탭 전환 처리까지 붙을 때). 도입 시 Query Key 규칙은 [api.md](./api.md)
 - **React Hook Form** ← 검증 필드가 많은 폼이 생길 때. 도입 시 필드 단위가 아니라 폼 단위 응집으로 (Zod resolver와 함께)

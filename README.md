@@ -114,7 +114,7 @@ src/
         └── server.ts     # 서버용 Supabase 클라이언트 (SSR)
 ```
 
-> 위는 현재 스캐폴드 상태입니다. **목표 구조(features 기반)와 배치 규칙**은 [`docs/folder-structure.md`](./docs/folder-structure.md) 참고.
+> 위는 현재 스캐폴드 상태입니다. **전체 목표 구조와 배치 규칙**은 [`docs/folder-structure.md`](./docs/folder-structure.md) 참고.
 
 ## 문서
 

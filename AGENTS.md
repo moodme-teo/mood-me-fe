@@ -20,7 +20,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 1. Claude(`lib/anthropic.ts`) · fal.ai(`lib/fal.ts`) · Supabase service role 코드는 **서버 전용** — 클라이언트 컴포넌트에서 import 금지
 2. Konva 코드는 `components/canvas/` 안에서만 — 외부에서는 배럴(`@/components/canvas`)로만 import
-3. import는 단방향: 공용 → features → app. **feature 간 직접 import 금지**
+3. import는 절대 경로 `@/*` + 단방향(lib/types → components → app). **배럴 파일 금지** (canvas 예외)
 4. 커밋 메시지: `<prefix> : <메시지>` (Husky가 강제)
 
 # 워크플로우
