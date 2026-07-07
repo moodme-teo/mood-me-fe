@@ -1,4 +1,4 @@
-import ProgressBar from "./ProgressBar";
+import ProgressBar from "@/components/test/ProgressBar";
 
 export default function TestHeader({
   current,

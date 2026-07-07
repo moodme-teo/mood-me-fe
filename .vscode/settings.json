@@ -1,0 +1,21 @@
+{
+  // 저장 시 Prettier 포맷
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+  // 저장 시 ESLint 자동 수정 (import 순서/정렬 포함)
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    // import 정렬은 ESLint(import/order·sort-imports)가 담당 — TS organizeImports와 충돌 방지
+    "source.organizeImports": "never"
+  },
+  "eslint.useFlatConfig": true,
+
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+
+  "files.eol": "\n",
+  "tailwindCSS.experimental.classRegex": [
+    ["cn\\(([^)]*)\\)", "[\"'`]([^\"'`]*)[\"'`]"]
+  ]
+}

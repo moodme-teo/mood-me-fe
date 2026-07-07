@@ -48,6 +48,7 @@ gh pr list --state all --search "Closes #<N> in:body" \
   ```
 
   - 머지되면 `Closes #N` 으로 이슈가 자동으로 닫힌다. 안 닫혔으면 `gh issue close <N> --reason completed`.
+
 - **MERGED PR** → 사람이 이미 GitHub에서 머지한 경우. 이슈가 닫혔는지만 확인하고, 안 닫혔으면 닫는다.
 - **CLOSED PR (미머지)** → 작업이 취소된 것인지 사용자에게 확인 후 처리 방향을 정한다.
 - **PR이 없으면** → "레포에 들어가는 결과물이 없는 작업이었나"를 `AskUserQuestion`으로 확인한다.

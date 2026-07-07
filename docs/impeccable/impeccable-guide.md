@@ -43,14 +43,14 @@ npx impeccable install     # Claude Code / Codex 자동 감지해서 설치
 
 ## 3. 자주 쓰는 명령 (이것만 알아도 충분)
 
-| 명령 | 언제 쓰나 | 예시 |
-|---|---|---|
-| **`craft`** | 새 기능/화면을 **기획+구현 한 번에** | `/impeccable craft 결과 공유 화면` |
-| **`shape`** | 코드 짜기 전에 **UX/UI 먼저 설계** | `/impeccable shape 테스트 문항 플로우` |
-| **`critique`** | 만든 화면의 **UX 리뷰(점수 포함)** | `/impeccable critique 무드보드 캔버스` |
-| **`audit`** | **접근성·성능·반응형** 기술 점검 | `/impeccable audit 결과 화면` |
-| **`polish`** | 배포 전 **마감 다듬기** | `/impeccable polish 공유 CTA` |
-| **`live`** | 브라우저에서 요소 골라 **변형안 실시간 생성** | `/impeccable live` |
+| 명령           | 언제 쓰나                                     | 예시                                   |
+| -------------- | --------------------------------------------- | -------------------------------------- |
+| **`craft`**    | 새 기능/화면을 **기획+구현 한 번에**          | `/impeccable craft 결과 공유 화면`     |
+| **`shape`**    | 코드 짜기 전에 **UX/UI 먼저 설계**            | `/impeccable shape 테스트 문항 플로우` |
+| **`critique`** | 만든 화면의 **UX 리뷰(점수 포함)**            | `/impeccable critique 무드보드 캔버스` |
+| **`audit`**    | **접근성·성능·반응형** 기술 점검              | `/impeccable audit 결과 화면`          |
+| **`polish`**   | 배포 전 **마감 다듬기**                       | `/impeccable polish 공유 CTA`          |
+| **`live`**     | 브라우저에서 요소 골라 **변형안 실시간 생성** | `/impeccable live`                     |
 
 > 이 외에도 `animate`, `colorize`, `typeset`, `layout`, `clarify`, `harden` 등 총 23개 명령이 있어요. 전체 목록은 그냥 `/impeccable` 입력.
 

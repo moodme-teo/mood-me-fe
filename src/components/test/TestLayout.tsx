@@ -7,11 +7,12 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import BuildBoardPreview from "./BuildBoardPreview";
-import StageBody from "./StageBody";
-import { STAGES } from "./stages";
-import TestFooter from "./TestFooter";
-import TestHeader from "./TestHeader";
+
+import BuildBoardPreview from "@/components/test/BuildBoardPreview";
+import StageBody from "@/components/test/StageBody";
+import { STAGES } from "@/components/test/stages";
+import TestFooter from "@/components/test/TestFooter";
+import TestHeader from "@/components/test/TestHeader";
 
 export default function TestLayout({ sessionId }: { sessionId: string }) {
   const router = useRouter();

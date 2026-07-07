@@ -1,10 +1,5 @@
 export type StageId =
-  | "gather"
-  | "trim1"
-  | "trim2"
-  | "shadow"
-  | "transition"
-  | "final";
+  "gather" | "trim1" | "trim2" | "shadow" | "transition" | "final";
 
 export type Stage = {
   id: StageId;
