@@ -39,6 +39,7 @@
 | 규칙 | 도구 | 상태 |
 | --- | --- | --- |
 | 커밋 메시지 형식 | Husky `commit-msg` 훅 | ✅ 적용됨 |
+| import 규칙 (상대경로 금지 → `@/*` · 순서/정렬 · 확장자) | ESLint `eslint-plugin-import` + `no-restricted-imports` (`eslint.config.mjs`) | ✅ 적용됨 |
 | 서버 코드 클라이언트 유출 차단 | `server-only` — `lib/anthropic.ts` · `lib/fal.ts` · `lib/supabase/server.ts` | 🔜 후속 이슈 |
 | 폴더 경계 (단방향 · Konva 격리 · 서버 lib) | ESLint `import/no-restricted-paths` zones | 🔜 후속 이슈 |
 | 파일명 규칙 (컴포넌트 PascalCase · 그 외 kebab) | ESLint `check-file` | 🔜 후속 이슈 |
