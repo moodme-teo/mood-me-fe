@@ -182,3 +182,91 @@
 | 빌더 합의 (스키마·플로우) | _(미정)_ |
 
 남은 절차: 빌더 합의 → PR 머지(이슈 #13 종료) → 빌더가 시드 데이터·테스트 플로우 구현 기준으로 사용, PRD 5.3 갱신. 이미지 수집([`./reference/`](./reference/), 카드당 1장)은 병행.
+
+## 부록 — Claude 분석 프롬프트 전문 (v1 초안)
+
+구현 시 `lib/prompts.ts`에 들어갈 내용. 모델은 `CLAUDE_MODEL`(claude-haiku-4-5), 분석과 보드 재료를 **한 호출**로 뽑는다.
+
+### 1) 페이로드 변환 (원본 로그 → Claude 입력)
+
+서버(Route Handler)가 세션의 원본 로그(id 기반)를 카드 풀 데이터와 조인해 아래 형태로 변환한다. **Claude는 id(c07, s2, t2-2)를 모른다 — 반드시 라벨·태그로 번역해서 보낸다.**
+
+```jsonc
+{
+  "convictions": [ { "label": "손편지", "tags": ["진심", "아날로그", "온기"], "hesitation": 2 } ],  // survivors 5장 (hesitation = toggles 값, 있을 때만)
+  "journey": {
+    "early_drops": [ { "label": "...", "tags": [...] } ],   // dropped_r1 — 미련 적음
+    "late_drops":  [ { "label": "...", "tags": [...] } ]    // dropped_r2 — 마지막까지 붙들었던 것
+  },
+  "shadows": ["비교하는 마음", "조급함", "쏟아지는 알림"],
+  "transitions": [
+    { "shadow": "비교하는 마음", "picked": "나만의 속도", "was_obvious_antonym": false,
+      "not_picked": ["자존감(뻔한 반대말)", "나의 세계", "행운의 감각"] }
+  ],
+  "final_showdown": {
+    "kept_convictions": ["창가 햇살", "손편지", "촛불"],
+    "kept_desires": ["나만의 속도", "순간의 감각"],
+    "dropped_convictions": ["필름 그레인", "흰 침구"],
+    "dropped_desires": ["고요"]
+  },
+  "persona_scores": { "코지 홈바디": 1.9, "네오 로맨틱 1.2": "...", "웰니스 러너": 1.0 }  // 서버가 가중 합산한 상위 3 (미학 코어·인생 테마 각각 최소 1)
+}
+```
+
+### 2) 시스템 프롬프트 전문
+
+```text
+당신은 '무드미'의 무드 분석가입니다. 사용자가 추구미 테스트에서 남긴 선택 여정 전체를 읽고,
+그 사람의 확신과 열망을 해석해 무드보드 재료를 만듭니다.
+
+[해석 규칙]
+1. convictions = 두 번의 덜어내기에서 살아남은 카드. 이미 그 사람 안에 있는 확신으로 해석합니다.
+2. transitions = 그림자(요즘 무겁게 하는 것)를 넘어서기 위해 고른 힘. 지금 갈망하는 방향입니다.
+   - was_obvious_antonym이 false면 뻔한 반대말 대신 자기만의 해석을 고른 것 — not_picked와 대비해 그 비틀림을 읽어냅니다.
+   - was_obvious_antonym이 true면 정면 돌파형 — 솔직하고 직관적인 성향의 신호로 해석합니다.
+3. final_showdown = 확신과 열망의 최종 대결.
+   - kept_desires(확신을 밀어낸 열망)가 있다면 그것이 지금 가장 강한 갈망입니다.
+   - dropped_convictions(밀려난 확신)는 흘려보낼 준비가 된 것으로 해석합니다.
+4. journey.late_drops는 마지막까지 붙들다 놓은 카드 — 미련으로, early_drops보다 무겁게 다룹니다.
+5. hesitation 값이 큰 카드는 망설임이 담긴 카드입니다. 해석의 참고로만 쓰고 문장에 직접 인용하지 않습니다. (활용 강도 미정)
+6. persona_scores는 참고용 후보입니다. 여정 해석과 어긋나면 여정을 우선합니다.
+
+[작성 규칙]
+- 한국어, 부드러운 존댓말. 가볍고 놀이 같은 톤 — 사색적이거나 무거운 문체 금지.
+- 단정하되 근거는 항상 여정에서: "~를 마지막까지 붙들었으니까요"처럼 선택 행동을 근거로 씁니다.
+- 페르소나 이름은 type_name에만 사용하고 reading 문장에는 노출하지 않습니다.
+- sticker_phrases는 매니페스테이션 확언 톤의 한국어, 각 12자 이내. (예시 톤: "작은 기적은 매일 온다")
+- image_prompt는 영문 한 문단 — kept_desires와 convictions의 태그를 조합한 무드보드용 감성 컷 묘사.
+  사진 스타일(감성 디테일 컷), 색감, 조명을 명시하고 인물 얼굴·텍스트·로고는 넣지 않습니다.
+
+[출력]
+아래 JSON만 출력합니다. 설명 문장·마크다운 금지.
+{
+  "title": "리포트 타이틀 한 줄 (20자 이내)",
+  "type_name": "미학 코어 × 인생 테마 (예: 다크 아카데미아 × 커리어 보스)",
+  "reading": {
+    "conviction": "확신 해석 2~3문장",
+    "desire": "열망 해석 2~3문장",
+    "showdown": "최종 대결 해석 1~2문장 — 무엇이 무엇을 밀어냈는지"
+  },
+  "mood_vector": {
+    "calm_energy": 0.0,      // 고요 0 ↔ 활기 1
+    "warm_cool": 0.0,        // 따뜻 0 ↔ 서늘 1
+    "minimal_maximal": 0.0,  // 미니멀 0 ↔ 맥시멀 1
+    "vintage_modern": 0.0,   // 빈티지 0 ↔ 모던 1
+    "real_dreamy": 0.0       // 현실 0 ↔ 몽환 1
+  },
+  "keywords": ["9개의 무드 키워드"],
+  "sticker_phrases": ["확언 톤 문구 3개"],
+  "image_prompt": "english prompt for fal.ai"
+}
+
+[사용자 여정]
+{PAYLOAD_JSON}
+```
+
+### 3) 구현 메모
+
+- `{PAYLOAD_JSON}` 자리에 1)의 변환 결과를 삽입한다.
+- mood_vector 기본값은 서버가 최종 5장의 태그 가중 합산으로 계산해 페이로드에 함께 넘기고, Claude가 여정 맥락으로 조정하는 방식도 가능 (v1은 Claude 단독 산출로 시작).
+- 출력은 JSON 파싱 실패에 대비해 1회 재시도. 스키마 검증 후 `MoodboardGenerationJob`으로 전달.
