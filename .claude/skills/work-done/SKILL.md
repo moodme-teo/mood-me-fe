@@ -1,6 +1,6 @@
 ---
 name: work-done
-argument-hint: [이슈번호]
+argument-hint: "[이슈번호(예: #28)]"
 description: 나에게 배정된 이슈 중 끝난 작업을 완료 처리합니다. 연결 PR이 있으면 dev 로 squash-merge 해 닫고(이슈는 Closes 로 자동 종료), PR이 없는 작업(레포 결과물 없음)은 이슈만 닫습니다. GitHub에서 사람이 직접 머지해도 됩니다 — 이 스킬은 그 경우 이슈가 닫혔는지만 확인합니다. 보드 상태 이동은 GitHub Projects 자동화가 처리합니다. 작업이 끝났을 때 사용합니다.
 ---
 
