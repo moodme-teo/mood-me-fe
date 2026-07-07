@@ -1,0 +1,62 @@
+# 칸반보드(무드미 MVP) 상태 변경을 Discord 채널로 알린다.
+# 감지 경로:
+#   - issues opened   → 백로그 등록 (자동)
+#   - issues closed   → 작업 완료 (보드 자동화와 동일 시점)
+#   - issues reopened → 백로그 복귀
+#   - workflow_dispatch → 스킬(/work-work 등)이 보드 상태를 직접 옮길 때 호출
+#     gh workflow run discord-board-notify.yml -f issue=28 -f from="백로그" -f to="진행중"
+# 사전 준비: 레포 시크릿 DISCORD_WEBHOOK_URL (discord-review-notify.yml 과 공유)
+# 한계: 보드에서 카드를 손으로 드래그한 변경은 감지하지 못한다.
+
+name: Discord board notify
+
+on:
+  issues:
+    types: [opened, closed, reopened]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: 이슈 번호
+        required: true
+      from:
+        description: 이전 상태
+        required: false
+        default: ""
+      to:
+        description: 새 상태
+        required: true
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord notification
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          ACTION: ${{ github.event.action }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          SENDER: ${{ github.actor }}
+          FROM_STATUS: ${{ inputs.from }}
+          TO_STATUS: ${{ inputs.to }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "::warning::DISCORD_WEBHOOK_URL 시크릿이 없어 알림을 건너뜁니다."
+            exit 0
+          fi
+          # workflow_dispatch 로 호출되면 이슈 제목을 조회해 채운다
+          if [ -z "$ISSUE_TITLE" ]; then
+            ISSUE_TITLE=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json title -q .title)
+          fi
+          case "$EVENT:$ACTION" in
+            issues:opened)   LINE="신규 ➜ **백로그**" ;;
+            issues:closed)   LINE="➜ **작업 완료**" ;;
+            issues:reopened) LINE="다시 열림 ➜ **백로그**" ;;
+            *)               LINE="$FROM_STATUS ➜ **$TO_STATUS**" ;;
+          esac
+          CONTENT="[📋 [무드미 MVP 보드](<https://github.com/orgs/moodme-teo/projects/1>)]"$'\n\n'"**#$ISSUE_NUMBER $ISSUE_TITLE** (by \`$SENDER\`)"$'\n'"> $LINE"
+          jq -n --arg content "$CONTENT" '{content: $content}' \
+          | curl -sS -H "Content-Type: application/json" -d @- "$WEBHOOK_URL"
