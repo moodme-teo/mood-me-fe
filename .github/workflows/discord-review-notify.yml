@@ -1,0 +1,46 @@
+# PR에 리뷰어가 지정되면 Discord 채널로 알림을 보낸다.
+# 사전 준비:
+#   1) 레포 시크릿 DISCORD_WEBHOOK_URL (Discord 채널 → 설정 → 연동 → 웹후크 URL)
+#      gh secret set DISCORD_WEBHOOK_URL --body "<웹훅 URL>"
+#   2) 레포 변수 DISCORD_USER_MAP — GitHub 로그인명 → Discord 유저 ID 매핑 (핑 태깅용)
+#      gh variable set DISCORD_USER_MAP --body '{"dev0leee":"111","hyeon-aa":"222","Haegnim":"333"}'
+#      매핑에 없는 사람은 태깅 없이 `로그인명` 텍스트로 표시된다.
+
+name: Discord review notify
+
+on:
+  pull_request:
+    types: [review_requested]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord notification
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          USER_MAP: ${{ vars.DISCORD_USER_MAP }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          REVIEWER: ${{ github.event.requested_reviewer.login }}
+          SENDER: ${{ github.event.sender.login }}
+        run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "::warning::DISCORD_WEBHOOK_URL 시크릿이 없어 알림을 건너뜁니다."
+            exit 0
+          fi
+          DISCORD_ID=$(echo "${USER_MAP:-null}" | jq -r --arg u "$REVIEWER" 'if type == "object" then .[$u] // empty else empty end')
+          if [ -n "$DISCORD_ID" ]; then
+            MENTION="<@$DISCORD_ID>"
+          else
+            MENTION="\`$REVIEWER\`"
+            echo "::warning::DISCORD_USER_MAP 에 $REVIEWER 매핑이 없어 태깅 없이 이름만 표시합니다."
+          fi
+          CONTENT="[👀 **리뷰 요청**]"$'\n\n'"$MENTION 님! \`$SENDER\` 님이 PR 리뷰를 요청했어요."
+          jq -n \
+            --arg content "$CONTENT" \
+            --arg title "#$PR_NUMBER $PR_TITLE" \
+            --arg url "$PR_URL" \
+            '{content: $content, embeds: [{title: $title, url: $url, color: 5814783}]}' \
+          | curl -sS -H "Content-Type: application/json" -d @- "$WEBHOOK_URL"

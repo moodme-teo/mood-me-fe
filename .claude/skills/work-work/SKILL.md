@@ -1,7 +1,7 @@
 ---
 name: work-work
-argument-hint: "[이슈번호(예: #28)]"
-description: 나에게 배정된(또는 미배정) 열린 GitHub 이슈 목록을 불러와 그중 작업할 것을 선택하면, 이슈 본문의 명세대로 구현하고 컨벤션에 맞춰 커밋한 뒤 PR까지 생성합니다. 미배정 이슈를 고르면 본인에게 배정됩니다. PR에는 페이지 라벨을 붙이고 본인을 제외한 협업자 전원을 리뷰어로 지정합니다. 작업을 시작할 때 사용합니다.
+argument-hint: "[이슈번호(예: #28) — 생략하면 목록에서 선택]"
+description: 나에게 배정된(또는 미배정) 열린 GitHub 이슈 목록을 불러와 그중 작업할 것을 선택하면, 이슈 본문의 명세대로 구현하고 컨벤션에 맞춰 커밋한 뒤 PR까지 생성합니다. 미배정 이슈를 고르면 본인에게 배정됩니다. PR에는 페이지 라벨을 붙입니다. 리뷰어는 자동 지정하지 않으며, 사용자가 원할 때 직접 지정합니다(지정 시 Discord 알림). 작업을 시작할 때 사용합니다.
 ---
 
 # /work-work — 이슈 선택 → 구현 → 커밋 → PR
@@ -72,6 +72,12 @@ git switch -c "feat/login" origin/dev
 
 **보드 상태 이동 (best-effort — 실패해도 계속 진행):** 작업을 시작했으므로 `무드미 MVP` 보드에서 이 이슈의 Status를 `진행중`으로 옮긴다. `/work-issue` 스킬 6단계와 같은 방식(`gh project item-edit`)으로 처리하고, 권한/필드 문제로 실패하면 경고 한 줄만 남긴다.
 
+상태 이동에 성공했으면 Discord 보드 알림도 보낸다 (best-effort — 이슈 생성/닫힘은 워크플로우가 자동 감지하지만, 보드 상태만 옮기는 건 이슈 이벤트가 없어 직접 호출해야 한다):
+
+```bash
+gh workflow run discord-board-notify.yml -f issue=<번호> -f from="백로그" -f to="진행중"
+```
+
 ## 4. 구현
 
 ⚠️ **이 저장소의 Next.js는 학습 데이터와 다릅니다.** 코드를 쓰기 전 `AGENTS.md` 지침대로 `node_modules/next/dist/docs/`의 관련 가이드를 먼저 읽고, deprecation 경고를 따른다.
@@ -96,15 +102,6 @@ git commit -m "feat : 무드보드 공유 버튼 추가"
 
 ## 6. 푸시 & PR 생성
 
-**reviewer 목록 계산 — 본인을 제외한 레포 협업자 전원:**
-
-```bash
-ME=$(gh api user -q .login)
-REVIEWERS=$(gh api repos/moodme-teo/mood-me-fe/collaborators --jq '.[].login' \
-  | grep -v "^${ME}$" | paste -sd, -)
-echo "reviewers=$REVIEWERS"   # 예: hyeon-aa,Haegnim
-```
-
 ```bash
 git push -u origin <브랜치명>
 gh pr create \
@@ -113,13 +110,18 @@ gh pr create \
   --title "feat : 무드보드 공유 버튼 추가" \
   --body-file <임시 PR 본문 파일> \
   --label "<페이지 라벨>" \
-  --assignee "@me" \
-  --reviewer "$REVIEWERS"
+  --assignee "@me"
 ```
 
 - **PR 제목**: 커밋 컨벤션과 동일하게 `<prefix> : <메시지>` (예: `feat : 무드보드 공유 버튼 추가`).
 - **라벨**: 이슈와 동일한 **페이지 라벨** 을 붙인다(2단계에서 확보).
-- **reviewer**: **본인을 제외한 협업자 전원**. reviewer가 0명이면(협업자가 본인뿐) `--reviewer` 는 생략한다.
+- **reviewer**: **자동 지정하지 않는다.** 리뷰 받을 준비가 되면 사용자가 직접 지정한다 — GitHub UI 또는:
+
+  ```bash
+  gh pr edit <N> --add-reviewer <로그인명>
+  ```
+
+  리뷰어를 지정하면 Discord 로 알림이 간다 (`.github/workflows/discord-review-notify.yml`).
 - **PR 본문 템플릿**:
 
 ```markdown
@@ -143,8 +145,8 @@ Closes #42
 
 - 🌿 브랜치: `feat/login` (dev 기준)
 - 🔀 PR: URL + `#N` (base: dev)
-- 🏷 라벨: <페이지> · 👀 리뷰어: <본인 제외 협업자>
+- 🏷 라벨: <페이지> · 👀 리뷰어: 미지정 (리뷰 받을 준비가 되면 `gh pr edit <N> --add-reviewer <로그인명>` — 지정 시 Discord 알림)
 - 🔗 `Closes #42` 로 연결됨 → 머지 시 이슈 자동 종료
-- 다음 단계: 리뷰 → `/work-done` 으로 머지·완료 처리 (GitHub에서 직접 머지해도 됨)
+- 다음 단계: 리뷰어 지정 → 리뷰 → `/work-done` 으로 머지·완료 처리 (GitHub에서 직접 머지해도 됨)
 
 > 이 스킬은 PR 생성까지만 한다. 머지는 리뷰 이후 `/work-done` 또는 사람이 GitHub에서 진행한다. `dev`/`main`에 직접 push하지 않는다.
