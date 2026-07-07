@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | [commit-convention.md](./commit-convention.md) | 커밋 메시지 형식 (`<prefix> : <메시지>`, Husky로 강제) | ✅ 확정 |
 | [branch-pr-convention.md](./branch-pr-convention.md) | 브랜치 전략(main/dev/feature) · 이슈/PR 컨벤션 | ✅ 확정 |
-| [code-convention.md](./code-convention.md) | 폴더 구조 · 네이밍 · Component/API/State/Canvas/AI/Style/Type/Error · 디자인 시스템 | 🚧 초안 (팀 리뷰 후 확정) |
+| [code-convention.md](./code-convention.md) | 폴더 구조 · 네이밍 · Component/API/State/Canvas/AI/Style/Type/Error · 디자인 시스템 · 강제 로드맵(§12) | 🚧 초안 (팀 리뷰 후 확정) |
 
 관련 문서:
 
