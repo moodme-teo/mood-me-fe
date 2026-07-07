@@ -22,13 +22,23 @@
 ```tsx
 // ❌ 컴포넌트가 커지는 순간 통제 불능
 function Board() {
-  function renderStickers() { return <ul>…</ul>; }
+  function renderStickers() {
+    return <ul>…</ul>;
+  }
   return <div>{renderStickers()}</div>;
 }
 
 // ✅ 별도 컴포넌트로 추출
-function StickerList() { return <ul>…</ul>; }
-function Board() { return <div><StickerList /></div>; }
+function StickerList() {
+  return <ul>…</ul>;
+}
+function Board() {
+  return (
+    <div>
+      <StickerList />
+    </div>
+  );
+}
 ```
 
 - **props 수 제한** — props가 많아지면(대략 7개 이상) 컴포넌트를 쪼개거나 composition(children/slot)으로 전환합니다

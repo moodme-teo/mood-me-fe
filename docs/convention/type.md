@@ -10,13 +10,13 @@
 
 ## 타입의 위치
 
-| 타입 | 위치 |
-| --- | --- |
-| 공용 도메인 타입 (`Moodboard`, `MoodTestAnswer` …) | `src/types/` 도메인별 파일 — PRD §7 기준 |
-| DB 스키마 타입 | `src/types/database.ts` — **`supabase gen types typescript` 생성물.** 손으로 재정의 금지 |
-| API 요청/응답 타입 + 에러 code union | `src/types/api.ts` — 서버·클라이언트 공유 |
-| 도메인 폴더 전용 타입 | 그 폴더 안에 콜로케이션 (예: `components/canvas/types.ts`) |
-| 컴포넌트 하나만 쓰는 props | 그 파일 안에 인라인 |
+| 타입                                               | 위치                                                                                     |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| 공용 도메인 타입 (`Moodboard`, `MoodTestAnswer` …) | `src/types/` 도메인별 파일 — PRD §7 기준                                                 |
+| DB 스키마 타입                                     | `src/types/database.ts` — **`supabase gen types typescript` 생성물.** 손으로 재정의 금지 |
+| API 요청/응답 타입 + 에러 code union               | `src/types/api.ts` — 서버·클라이언트 공유                                                |
+| 도메인 폴더 전용 타입                              | 그 폴더 안에 콜로케이션 (예: `components/canvas/types.ts`)                               |
+| 컴포넌트 하나만 쓰는 props                         | 그 파일 안에 인라인                                                                      |
 
 ## Zod가 타입의 원천
 

@@ -1,3 +1,5 @@
+import "server-only";
+
 import Anthropic from "@anthropic-ai/sdk";
 
 // 서버 전용. API 라우트 안에서만 import 하세요 (ANTHROPIC_API_KEY 노출 방지).

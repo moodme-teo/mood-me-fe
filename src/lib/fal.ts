@@ -1,3 +1,5 @@
+import "server-only";
+
 import { fal } from "@fal-ai/client";
 
 // 서버 전용. API 라우트 안에서만 import 하세요 (FAL_KEY 노출 방지).

@@ -4,26 +4,26 @@
 
 ## 파일 · 폴더명
 
-| 대상 | 규칙 | 예 |
-| --- | --- | --- |
-| 컴포넌트 파일 | PascalCase.tsx | `BoardCanvas.tsx`, `QuestionCard.tsx` |
-| 훅 파일 | `use` + camelCase | `useGenerationJob.ts` |
-| 그 외 모듈 (lib/utils/types) | lowercase(-kebab) | `anthropic.ts`, `api-client.ts`, `mood-test.ts` |
-| 폴더 · 라우트 폴더 | kebab-case | `components/mood-test/`, `app/test/[session-id]/generating/` |
+| 대상                         | 규칙              | 예                                                           |
+| ---------------------------- | ----------------- | ------------------------------------------------------------ |
+| 컴포넌트 파일                | PascalCase.tsx    | `BoardCanvas.tsx`, `QuestionCard.tsx`                        |
+| 훅 파일                      | `use` + camelCase | `useGenerationJob.ts`                                        |
+| 그 외 모듈 (lib/utils/types) | lowercase(-kebab) | `anthropic.ts`, `api-client.ts`, `mood-test.ts`              |
+| 폴더 · 라우트 폴더           | kebab-case        | `components/mood-test/`, `app/test/[session-id]/generating/` |
 
 - ESLint `check-file` 룰로 강제합니다(후속 이슈) — 컴포넌트 파일만 PascalCase, 나머지는 kebab-case 패턴.
 
 ## 식별자
 
-| 대상 | 규칙 | 예 |
-| --- | --- | --- |
-| 컴포넌트 | PascalCase | `BoardCanvas`, `QuestionCard` |
-| 훅 | `use` + camelCase | `useGenerationJob` |
-| 이벤트 핸들러 (내부) | `handle` + 동사 | `handleSubmit`, `handleStickerDrop` |
-| 이벤트 props | `on` + 동사 | `onSubmit`, `onSelect` |
-| 불리언 | `is/has/can` 접두 | `isGenerating`, `hasAnswered`, `canUndo` |
-| 상수 | UPPER_SNAKE_CASE | `CLAUDE_MODEL`, `EXPORT_PIXEL_RATIO` |
-| 타입 | PascalCase | `Moodboard`, `MoodTestAnswer` |
+| 대상                 | 규칙              | 예                                       |
+| -------------------- | ----------------- | ---------------------------------------- |
+| 컴포넌트             | PascalCase        | `BoardCanvas`, `QuestionCard`            |
+| 훅                   | `use` + camelCase | `useGenerationJob`                       |
+| 이벤트 핸들러 (내부) | `handle` + 동사   | `handleSubmit`, `handleStickerDrop`      |
+| 이벤트 props         | `on` + 동사       | `onSubmit`, `onSelect`                   |
+| 불리언               | `is/has/can` 접두 | `isGenerating`, `hasAnswered`, `canUndo` |
+| 상수                 | UPPER_SNAKE_CASE  | `CLAUDE_MODEL`, `EXPORT_PIXEL_RATIO`     |
+| 타입                 | PascalCase        | `Moodboard`, `MoodTestAnswer`            |
 
 ## 도메인 용어사전
 

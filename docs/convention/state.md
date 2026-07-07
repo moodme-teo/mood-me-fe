@@ -4,13 +4,13 @@
 
 ## 상태 5분류 — 언제 무엇을 쓰는가
 
-| 종류 | 무드미에서의 예 | 도구 |
-| --- | --- | --- |
-| **URL State** | `sessionId`, `moodboardId`, 문항 번호 | 라우트 파라미터 / searchParams |
-| **Component State** | 입력값, 열림/닫힘, 호버 | `useState` / `useReducer` |
-| **Application State** | 캔버스 편집 상태, 토스트 | Context+hooks → 한계 시 Zustand |
-| **Server Cache State** | 생성 job 상태, 무드보드 데이터 | Server Component fetch → 필요 시 TanStack Query |
-| **Form State** | 테스트 답변 입력, 커스텀 텍스트 | 제어 컴포넌트 → 복잡해지면 React Hook Form |
+| 종류                   | 무드미에서의 예                       | 도구                                            |
+| ---------------------- | ------------------------------------- | ----------------------------------------------- |
+| **URL State**          | `sessionId`, `moodboardId`, 문항 번호 | 라우트 파라미터 / searchParams                  |
+| **Component State**    | 입력값, 열림/닫힘, 호버               | `useState` / `useReducer`                       |
+| **Application State**  | 캔버스 편집 상태, 토스트              | Context+hooks → 한계 시 Zustand                 |
+| **Server Cache State** | 생성 job 상태, 무드보드 데이터        | Server Component fetch → 필요 시 TanStack Query |
+| **Form State**         | 테스트 답변 입력, 커스텀 텍스트       | 제어 컴포넌트 → 복잡해지면 React Hook Form      |
 
 판단 순서: **URL에 담을 수 있으면 URL이 먼저다** → 컴포넌트 안에서 끝나면 local → 그 다음에야 상위 공유를 고민합니다. 상태는 필요한 곳에 최대한 가깝게 두고, 처음부터 전역화하지 않습니다.
 

@@ -1,6 +1,7 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import eslintConfigPrettier from "eslint-config-prettier";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -21,6 +22,10 @@ const eslintConfig = defineConfig([
     settings: {
       // `@/*` 경로 별칭을 internal 그룹으로 분류
       "import/internal-regex": "^@/",
+      // `@/*` 별칭을 실제 파일로 해석 (no-restricted-paths zones에 필요)
+      "import/resolver": {
+        typescript: {},
+      },
     },
     rules: {
       // import : 빈 블럭으로 가져오기 금지
@@ -40,6 +45,47 @@ const eslintConfig = defineConfig([
         "error",
         "ignorePackages",
         { ts: "never", tsx: "never", js: "never", jsx: "never", mjs: "never" },
+      ],
+      // 폴더 경계 — 단방향 의존 + canvas 격리 (docs/convention/folder-structure.md)
+      "import/no-restricted-paths": [
+        "error",
+        {
+          zones: [
+            // lib/types는 상위 레이어(app/components/hooks)를 모름
+            {
+              target: ["./src/lib", "./src/types"],
+              from: ["./src/app", "./src/components", "./src/hooks"],
+            },
+            // hooks는 app/components를 모름
+            {
+              target: "./src/hooks",
+              from: ["./src/app", "./src/components"],
+            },
+            // components는 app을 모름
+            {
+              target: "./src/components",
+              from: "./src/app",
+            },
+            // canvas 격리: 외부는 배럴(index.ts)로만 접근
+            {
+              target: [
+                "./src/app",
+                "./src/hooks",
+                "./src/lib",
+                "./src/types",
+                "./src/components/!(canvas)/**",
+              ],
+              from: "./src/components/canvas",
+              except: ["./index.ts"],
+            },
+            // canvas는 다른 컴포넌트(ui/도메인)를 역참조하지 않음
+            {
+              target: "./src/components/canvas",
+              from: "./src/components",
+              except: ["./canvas"],
+            },
+          ],
+        },
       ],
       // import 상대경로 금지 — 항상 `@/*` 절대경로 (docs/convention/component.md)
       "no-restricted-imports": [
@@ -89,6 +135,8 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  // Prettier와 충돌하는 포맷 규칙 비활성화 — 항상 마지막에
+  eslintConfigPrettier,
 ]);
 
 export default eslintConfig;
