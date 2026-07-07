@@ -1,0 +1,11 @@
+# CODEOWNERS — PR이 열리면 아래 소유자에게 자동으로 리뷰가 요청됩니다.
+# ⚠️ branch-pr-convention.md의 "리뷰어 자동 지정 안 함" 정책과 상충하므로
+#    팀 리뷰(PR #31)에서 유지/삭제를 결정합니다.
+# 문법: <경로 패턴> <소유자…> — 나중에 매칭되는 규칙이 우선.
+
+# 기본: 전체 코드는 프론트 3인 공동 소유
+* @dev0leee @hyeon-aa @Haegnim
+
+# 영역별 책임 (담당이 정해지면 아래를 개인으로 좁히세요)
+/src/**   @dev0leee @hyeon-aa @Haegnim
+/docs/**  @dev0leee @hyeon-aa @Haegnim
