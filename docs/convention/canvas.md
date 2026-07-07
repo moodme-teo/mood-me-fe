@@ -31,7 +31,7 @@
 - Konva 관련 코드(`konva`, `react-konva` import)는 전부 `src/components/canvas/` 안에만. 항상 `'use client'`.
 - 외부에서는 **배럴로만 import**: `import { BoardCanvas } from "@/components/canvas"` — 프로젝트 유일의 배럴 허용 예외입니다. SSR 격리(`next/dynamic` + `ssr: false`)가 배럴에 있고, `next.config.ts`의 `serverExternalPackages`와 세트입니다.
 - Konva 타입은 `import type Konva from "konva"`로만 (값 import 시 SSR에서 터짐).
-- 이 경계는 ESLint zones로 강제합니다(후속 이슈) — [folder-structure.md](./folder-structure.md).
+- 이 경계는 ESLint zones로 강제됩니다(`eslint.config.mjs`) — [folder-structure.md](./folder-structure.md).
 
 ## Export / 이미지 저장 규칙
 

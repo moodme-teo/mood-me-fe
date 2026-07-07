@@ -124,6 +124,7 @@ src/
 | [`docs/convention/folder-structure.md`](./docs/convention/folder-structure.md) | 폴더 구조와 배치 규칙                                                   |
 | [`docs/convention/architecture.md`](./docs/convention/architecture.md)         | 레이어 · 데이터/AI/Canvas 흐름                                          |
 | [`docs/convention/glossary.md`](./docs/convention/glossary.md)                 | 도메인 용어사전                                                         |
+| [`docs/adr/`](./docs/adr/README.md)                                            | 기술 결정 기록(ADR) — 왜 그렇게 결정했는지                              |
 | [`docs/prd/`](./docs/prd/mood-me-prd.md)                                       | 제품 요구사항(PRD)                                                      |
 
 ## 커밋 컨벤션

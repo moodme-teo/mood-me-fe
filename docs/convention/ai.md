@@ -40,4 +40,4 @@
 ## 보안 / env
 
 - `ANTHROPIC_API_KEY`, `FAL_KEY`, `SUPABASE_SERVICE_ROLE_KEY`는 서버 전용 — **`NEXT_PUBLIC_` 접두 금지**, 클라이언트 번들에 절대 노출하지 않습니다.
-- `lib/anthropic.ts` · `lib/fal.ts`는 클라이언트에서 import 금지 (`server-only`로 강제 — 후속 이슈).
+- `lib/anthropic.ts` · `lib/fal.ts`는 클라이언트에서 import 금지 (`server-only`로 강제됨).

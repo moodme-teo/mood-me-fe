@@ -35,17 +35,11 @@ src/
 4. **배럴 파일(index.ts) 금지** — 트리셰이킹을 방해합니다. 파일을 직접 import 합니다. **유일한 예외: `components/canvas/index.ts`** (SSR 격리 래핑 목적 — convention/canvas.md).
 5. import는 항상 절대 경로 `@/*` (`@/components/board/...`). `../../..` 금지.
 
-## ESLint 강제 (후속 이슈)
+## ESLint 강제 (적용됨 — `eslint.config.mjs`)
 
-핵심 경계는 문서가 아니라 [bulletproof-react의 `import/no-restricted-paths` zones](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md)로 강제합니다:
+핵심 경계는 문서가 아니라 [bulletproof-react의 `import/no-restricted-paths` zones](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md) 패턴으로 강제합니다. 실제 설정은 `eslint.config.mjs`의 `import/no-restricted-paths` — 적용된 zones:
 
-```js
-'import/no-restricted-paths': ['error', { zones: [
-  // Konva 격리: canvas 내부 파일은 밖에서 직접 import 금지 (배럴 index.ts만 허용)
-  // 서버 전용 lib(anthropic/fal/supabase-server/prompts)은 클라이언트 구역에서 import 금지
-  // 단방향: lib/types는 components/app을 모름
-  { target: ['./src/lib', './src/types'], from: ['./src/components', './src/app'] },
-]}]
-```
+- 단방향: `lib`/`types`는 상위 레이어(app/components/hooks)를 import 못함, `hooks`는 app/components를 못함, `components`는 app을 못함
+- canvas 격리: 외부는 배럴(`index.ts`)로만 접근, canvas는 다른 컴포넌트(ui/도메인)를 역참조하지 않음
 
-> 원본은 구형 `.eslintrc` 포맷이므로 이 레포의 flat config(`eslint.config.mjs`)로 번역해서 적용합니다. 서버 전용 lib 유출은 `server-only` 패키지가 빌드 타임에 한 번 더 막습니다.
+서버 전용 lib(anthropic/fal/supabase-server)의 클라이언트 유출은 `server-only` 패키지가 빌드 타임에 막습니다.
