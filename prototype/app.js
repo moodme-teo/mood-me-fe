@@ -1005,8 +1005,7 @@
     } finally { btn.disabled = false; }
   });
 
-  $('[data-action="result-edit"]').addEventListener("click", () => go("edit"));
-  $('[data-action="restart"]').addEventListener("click", startTest);
+  $$('[data-action="result-edit"]').forEach((b) => b.addEventListener("click", () => go("edit")));
   $('[data-action="go-home"]').addEventListener("click", routeHome);
 
   // DOM 지오메트리를 캔버스로 옮겨 실제 PNG를 만든다 (스티커·텍스트 포함)
