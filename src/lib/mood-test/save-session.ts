@@ -43,9 +43,9 @@ export async function saveMoodTestSession(
 
   const service = createServiceClient();
 
-  // guest_sessions 발급 엔드포인트(POST /guest-sessions)가 아직 없어서, 게스트 세션
-  // row가 없으면 여기서 즉시 만들어준다 (FK 충족용 임시 조치 — 발급 엔드포인트가 생기면
-  // 이 upsert는 항상 no-op이 된다).
+  // 정상 플로우에서는 클라이언트가 이미 POST /api/guest-sessions로 발급받은 id를
+  // 보내므로 이 upsert는 no-op이다 (#52). 그래도 남겨두는 이유: 혹시 모를 경합/누락에
+  // 대비한 멱등성 안전장치 — 없어도 되는 row를 다시 만들려 하면 그냥 조용히 넘어간다.
   if (!user && guestSessionId) {
     const { error: guestError } = await service
       .from("guest_sessions")
