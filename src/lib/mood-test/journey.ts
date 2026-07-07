@@ -1,37 +1,12 @@
 // 추구미 테스트 여정 로그 — 완료된 세션이 한 번에 보내는 답변 스키마.
-// docs/work/todo/mood-test-questions.md "로깅 스키마" 절 그대로.
+// docs/work/todo/mood-test-questions.md "로깅 스키마" 절 그대로. Zod가 타입의 원천 (docs/convention/type.md).
 
-export type Transition = {
-  shadow: string;
-  picked: string;
-};
+import { z } from "zod";
 
-export type Journey = {
-  selected: string[];
-  dropped_r1: string[];
-  dropped_r2: string[];
-  survivors: string[];
-  shadows: string[];
-  transitions: Transition[];
-  final: string[];
-  dropped_final: string[];
-  toggles: Record<string, number>;
-  toggle_count: number;
-};
-
-const EXPECTED_LENGTHS: Record<
-  "selected" | "dropped_r1" | "dropped_r2" | "survivors" | "shadows" | "transitions" | "final" | "dropped_final",
-  number
-> = {
-  selected: 12,
-  dropped_r1: 4,
-  dropped_r2: 3,
-  survivors: 5,
-  shadows: 3,
-  transitions: 3,
-  final: 5,
-  dropped_final: 3,
-};
+const transitionSchema = z.object({
+  shadow: z.string(),
+  picked: z.string(),
+});
 
 function sameSet(a: string[], b: string[]) {
   if (a.length !== b.length) return false;
@@ -43,41 +18,73 @@ function sameSet(a: string[], b: string[]) {
   return true;
 }
 
-export function validateJourney(journey: Journey): { valid: true } | { valid: false; error: string } {
-  for (const [key, expected] of Object.entries(EXPECTED_LENGTHS) as [keyof typeof EXPECTED_LENGTHS, number][]) {
-    const actual = journey[key]?.length;
-    if (actual !== expected) {
-      return { valid: false, error: `${key}는 ${expected}개여야 합니다 (받은 값: ${actual ?? "undefined"})` };
+export const journeySchema = z
+  .object({
+    selected: z.array(z.string()).length(12),
+    dropped_r1: z.array(z.string()).length(4),
+    dropped_r2: z.array(z.string()).length(3),
+    survivors: z.array(z.string()).length(5),
+    shadows: z.array(z.string()).length(3),
+    transitions: z.array(transitionSchema).length(3),
+    final: z.array(z.string()).length(5),
+    dropped_final: z.array(z.string()).length(3),
+    toggles: z.record(z.string(), z.number()),
+    toggle_count: z.number(),
+  })
+  .superRefine((journey, ctx) => {
+    // selected(12) = dropped_r1(4) + dropped_r2(3) + survivors(5) — 세 그룹이 selected를 정확히 분할해야 함
+    const partition = [
+      ...journey.dropped_r1,
+      ...journey.dropped_r2,
+      ...journey.survivors,
+    ];
+    if (!sameSet(partition, journey.selected)) {
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "dropped_r1 + dropped_r2 + survivors의 합집합이 selected와 일치해야 합니다",
+        path: ["selected"],
+      });
     }
-  }
 
-  // selected(12) = dropped_r1(4) + dropped_r2(3) + survivors(5) — 세 그룹이 selected를 정확히 분할해야 함
-  const partition = [...journey.dropped_r1, ...journey.dropped_r2, ...journey.survivors];
-  if (!sameSet(partition, journey.selected)) {
-    return {
-      valid: false,
-      error: "dropped_r1 + dropped_r2 + survivors의 합집합이 selected와 일치해야 합니다",
-    };
-  }
+    // transitions ↔ shadows 1:1 — 고른 그림자 3개와 전환 응답 3개의 그림자 id가 정확히 일치해야 함
+    const transitionShadows = journey.transitions.map((t) => t.shadow);
+    if (!sameSet(transitionShadows, journey.shadows)) {
+      ctx.addIssue({
+        code: "custom",
+        message: "transitions의 shadow 목록이 shadows와 1:1로 일치해야 합니다",
+        path: ["transitions"],
+      });
+    }
 
-  // transitions ↔ shadows 1:1 — 고른 그림자 3개와 전환 응답 3개의 그림자 id가 정확히 일치해야 함
-  const transitionShadows = journey.transitions.map((t) => t.shadow);
-  if (!sameSet(transitionShadows, journey.shadows)) {
-    return {
-      valid: false,
-      error: "transitions의 shadow 목록이 shadows와 1:1로 일치해야 합니다",
-    };
-  }
+    // final(5) + dropped_final(3) = survivors ∪ transitions.picked (확신 5 + 열망 3 = 8장 중 최종 대결)
+    const showdownPool = [
+      ...journey.survivors,
+      ...journey.transitions.map((t) => t.picked),
+    ];
+    const finalPartition = [...journey.final, ...journey.dropped_final];
+    if (!sameSet(finalPartition, showdownPool)) {
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "final + dropped_final의 합집합이 survivors + transitions.picked(8장)와 일치해야 합니다",
+        path: ["final"],
+      });
+    }
+  });
 
-  // final(5) + dropped_final(3) = survivors ∪ transitions.picked (확신 5 + 열망 3 = 8장 중 최종 대결)
-  const showdownPool = [...journey.survivors, ...journey.transitions.map((t) => t.picked)];
-  const finalPartition = [...journey.final, ...journey.dropped_final];
-  if (!sameSet(finalPartition, showdownPool)) {
-    return {
-      valid: false,
-      error: "final + dropped_final의 합집합이 survivors + transitions.picked(8장)와 일치해야 합니다",
-    };
-  }
+export type Journey = z.infer<typeof journeySchema>;
 
-  return { valid: true };
+// 검증 함수 반환 형태 통일: { ok: true, value } | { ok: false, error } (docs/convention/type.md)
+export function validateJourney(
+  input: unknown,
+): { ok: true; value: Journey } | { ok: false; error: string } {
+  const result = journeySchema.safeParse(input);
+  if (!result.success) {
+    const message = result.error.issues
+      .map((issue) => issue.message)
+      .join("; ");
+    return { ok: false, error: message };
+  }
+  return { ok: true, value: result.data };
 }

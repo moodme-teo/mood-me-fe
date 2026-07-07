@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 // 서비스 롤 클라이언트 — RLS를 우회한다. Route Handler 안에서만 사용할 것
@@ -7,6 +9,8 @@ export function createServiceClient() {
   return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SECRET_KEY!,
-    { auth: { persistSession: false } }
+    {
+      auth: { persistSession: false },
+    },
   );
 }
