@@ -50,17 +50,20 @@ gh issue edit <번호> --add-assignee "@me"
 명세의 **✅ 작업 내용** 체크리스트와 **🎯 완료 조건**을 구현 기준으로 삼는다.
 
 또한 다음을 확보한다:
+
 - **type**(커밋 prefix): 이슈 제목의 브래킷에서 역산한다 — `[Feat] …` → `feat`, `[Chore] …` → `chore`. 브래킷이 없으면 `AskUserQuestion`으로 확정.
 - **페이지 라벨**(PR에 그대로 붙임): 이슈에 붙은 라벨 중 페이지 라벨(`로그인|메인|테스트|보드생성|보드편집|보드완성|공통`)을 사용. 없으면 `AskUserQuestion`으로 확정.
 
 ## 3. 작업 브랜치 생성 (feature 브랜치)
 
 브랜치 전략을 따른다:
+
 - `main` : release 된 것 (배포 기준)
 - `dev` : 개발 통합 브랜치. 모든 feature PR은 여기로 **squash-merge**.
 - `feature` : **`dev`에서 따서** 작업 → PR 생성 → `dev`로 merge.
 
 규칙:
+
 - **기준 브랜치는 항상 `dev`** (원격 최신 반영).
 - 브랜치명 컨벤션: `<prefix>/<작업명>` — prefix는 이슈 `type`, 작업명은 영문 kebab-case.
   - 예: `feat/login`, `fix/board-export`, `refactor/test-flow`
@@ -122,19 +125,24 @@ gh pr create \
   ```
 
   리뷰어를 지정하면 Discord 로 알림이 간다 (`.github/workflows/discord-review-notify.yml`).
+
 - **PR 본문 템플릿**:
 
 ```markdown
 ## 작업 내용
+
 - 명세 체크리스트를 실제로 구현한 항목 요약
 
 ## 관련 이슈
+
 Closes #42
 
 ## 완료 조건 확인
+
 - [x] (명세의 완료 조건 항목들)
 
 ## 리뷰 포인트
+
 - 리뷰어가 특히 봐줬으면 하는 부분
 ```
 

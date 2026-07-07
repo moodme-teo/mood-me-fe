@@ -114,6 +114,19 @@ src/
         └── server.ts     # 서버용 Supabase 클라이언트 (SSR)
 ```
 
+> 위는 현재 스캐폴드 상태입니다. **전체 목표 구조와 배치 규칙**은 [`docs/convention/folder-structure.md`](./docs/convention/folder-structure.md) 참고.
+
+## 문서
+
+| 문서                                                                           | 내용                                                                    |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| [`docs/convention/`](./docs/convention/README.md)                              | 팀 컨벤션 — 커밋/브랜치·Component·State·API·Error·Naming·Type·Canvas·AI |
+| [`docs/convention/folder-structure.md`](./docs/convention/folder-structure.md) | 폴더 구조와 배치 규칙                                                   |
+| [`docs/convention/architecture.md`](./docs/convention/architecture.md)         | 레이어 · 데이터/AI/Canvas 흐름                                          |
+| [`docs/convention/glossary.md`](./docs/convention/glossary.md)                 | 도메인 용어사전                                                         |
+| [`docs/adr/`](./docs/adr/README.md)                                            | 기술 결정 기록(ADR) — 왜 그렇게 결정했는지                              |
+| [`docs/prd/`](./docs/prd/mood-me-prd.md)                                       | 제품 요구사항(PRD)                                                      |
+
 ## 커밋 컨벤션
 
 모든 커밋 메시지는 `<prefix> : <메시지>` 형식을 따릅니다. (prefix 뒤 **공백 콜론 공백** 필수)
@@ -142,11 +155,11 @@ perf : 퍼포먼스 효율 개선 관련
 /work-issue ──▶ GitHub 이슈 등록 ──▶ /work-work ──▶ 구현 + PR ──▶ 리뷰 ──▶ /work-done ──▶ 머지 + 이슈 닫기
 ```
 
-| 스킬 | 하는 일 |
-| ---- | ------- |
+| 스킬                                       | 하는 일                                                                                                                                                                                                      |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `/work-issue 역할, 작업이름, 일정, 페이지` | PRD·코드를 탐색해 명세(개요/작업 내용/완료 조건)를 이슈 본문으로 작성하고 즉시 등록. 라벨·배정·보드 백로그·일정 기록까지 자동. 기본은 본인 배정, `--assignee <이름>`/`--assignee none` 으로 지정·미배정 가능 |
-| `/work-work` | 내 이슈 + 미배정 이슈 중 선택(미배정을 고르면 본인에게 배정) → 보드 `진행중` → `dev` 기준 feature 브랜치에서 이슈 명세대로 구현 → 커밋 → `dev` 로 향하는 PR 생성(페이지 라벨 + 본인 제외 협업자 전원 리뷰어) |
-| `/work-done` | 리뷰 끝난 PR을 `dev` 로 squash-merge + 브랜치 삭제 → 이슈 자동 종료. PR 없는 작업(조사·신청 등)은 이슈만 닫음. GitHub에서 직접 머지해도 무방 |
+| `/work-work`                               | 내 이슈 + 미배정 이슈 중 선택(미배정을 고르면 본인에게 배정) → 보드 `진행중` → `dev` 기준 feature 브랜치에서 이슈 명세대로 구현 → 커밋 → `dev` 로 향하는 PR 생성(페이지 라벨 + 본인 제외 협업자 전원 리뷰어) |
+| `/work-done`                               | 리뷰 끝난 PR을 `dev` 로 squash-merge + 브랜치 삭제 → 이슈 자동 종료. PR 없는 작업(조사·신청 등)은 이슈만 닫음. GitHub에서 직접 머지해도 무방                                                                 |
 
 **브랜치 전략** (머지 방식은 브랜치 룰셋으로 강제됩니다):
 

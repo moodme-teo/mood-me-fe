@@ -144,6 +144,7 @@ gh project item-edit --project-id <PROJECT_NODE_ID> --id "$ITEM" \
 ## 7. 결과 보고
 
 다음을 간결하게 보고:
+
 - ✅ 등록된 이슈: `#N [Feat] ...` + URL
 - 👤 배정: @본인 / @지정된사람 / 미배정
 - 🏷 라벨: <페이지> (예: 로그인)
