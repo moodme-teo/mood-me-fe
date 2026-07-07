@@ -114,6 +114,18 @@ src/
         └── server.ts     # 서버용 Supabase 클라이언트 (SSR)
 ```
 
+> 위는 현재 스캐폴드 상태입니다. **목표 구조(features 기반)와 배치 규칙**은 [`docs/folder-structure.md`](./docs/folder-structure.md) 참고.
+
+## 문서
+
+| 문서 | 내용 |
+| --- | --- |
+| [`docs/convention/`](./docs/convention/README.md) | 팀 컨벤션 — 커밋/브랜치·Component·State·API·Error·Naming·Type·Canvas·AI |
+| [`docs/folder-structure.md`](./docs/folder-structure.md) | 폴더 구조와 배치 규칙 |
+| [`docs/architecture.md`](./docs/architecture.md) | 레이어 · 데이터/AI/Canvas 흐름 |
+| [`docs/glossary.md`](./docs/glossary.md) | 도메인 용어사전 |
+| [`docs/prd/`](./docs/prd/mood-me-prd.md) | 제품 요구사항(PRD) |
+
 ## 커밋 컨벤션
 
 모든 커밋 메시지는 `<prefix> : <메시지>` 형식을 따릅니다. (prefix 뒤 **공백 콜론 공백** 필수)

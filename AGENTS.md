@@ -4,16 +4,25 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
-# 컨벤션
+# mood-me
 
-상세 규칙은 `docs/convention/` — **작업 영역에 해당하는 섹션을 먼저 읽고 구현하세요.**
+테스트 답변을 Claude(텍스트)와 fal.ai(이미지)로 **나만의 AI 무드보드**로 바꿔 Konva 캔버스에서 꾸미고 SNS에 공유하는 웹 경험. Next.js 16 App Router · React 19 · TS · Tailwind v4 · Supabase. 제품/디자인 배경: `PRODUCT.md` / `DESIGN.md`.
 
-- [code-convention.md](docs/convention/code-convention.md) — 폴더 구조 · Component/API/State/Canvas/AI/Style/Type/Naming/Error · 디자인 시스템
-- [commit-convention.md](docs/convention/commit-convention.md) · [branch-pr-convention.md](docs/convention/branch-pr-convention.md)
+# 컨벤션 — 구현 전 반드시 읽기
 
-절대 규칙 요약 (상세와 예외는 위 문서 기준):
+**코드를 쓰기 전, 작업 영역에 해당하는 컨벤션 문서를 먼저 읽으세요.** 상세 규칙은 이 파일에 없습니다.
 
-- Claude(`lib/anthropic.ts`) · fal.ai(`lib/fal.ts`) · Supabase service role 코드는 **서버 전용** — 클라이언트 컴포넌트에서 import 금지
-- Konva 코드는 `components/canvas/` 안에서만 — 외부에서는 배럴(`@/components/canvas`)로만 import
-- 색·폰트는 `globals.css @theme` 토큰만 사용 — 임의값(`text-[#ab12cd]`) 금지
-- 커밋 메시지: `<prefix> : <메시지>` (Husky가 강제)
+- 인덱스: [docs/convention/README.md](docs/convention/README.md)
+- 영역별: [component](docs/convention/component.md) · [state](docs/convention/state.md) · [api](docs/convention/api.md) · [error](docs/convention/error.md) · [naming](docs/convention/naming.md) · [type](docs/convention/type.md) · [canvas](docs/convention/canvas.md) · [ai](docs/convention/ai.md)
+- 구조: [docs/folder-structure.md](docs/folder-structure.md) · [docs/architecture.md](docs/architecture.md) · [docs/glossary.md](docs/glossary.md)
+
+## 절대 규칙
+
+1. Claude(`lib/anthropic.ts`) · fal.ai(`lib/fal.ts`) · Supabase service role 코드는 **서버 전용** — 클라이언트 컴포넌트에서 import 금지
+2. Konva 코드는 `components/canvas/` 안에서만 — 외부에서는 배럴(`@/components/canvas`)로만 import
+3. import는 단방향: 공용 → features → app. **feature 간 직접 import 금지**
+4. 커밋 메시지: `<prefix> : <메시지>` (Husky가 강제)
+
+# 워크플로우
+
+이슈 기반으로 일합니다 — `/work-issue`(명세 작성 + 이슈 등록) → `/work-work`(이슈 선택 → dev 기준 feature 브랜치 → 구현 → 컨벤션 커밋 → PR) → 리뷰 → `/work-done`(squash-merge + 이슈 종료). `dev`/`main`에 직접 push하지 않습니다. 상세: [docs/work/README.md](docs/work/README.md).
