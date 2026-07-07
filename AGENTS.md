@@ -14,7 +14,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 - 인덱스: [docs/convention/README.md](docs/convention/README.md)
 - 영역별: [component](docs/convention/component.md) · [state](docs/convention/state.md) · [api](docs/convention/api.md) · [error](docs/convention/error.md) · [naming](docs/convention/naming.md) · [type](docs/convention/type.md) · [canvas](docs/convention/canvas.md) · [ai](docs/convention/ai.md)
-- 구조: [docs/folder-structure.md](docs/folder-structure.md) · [docs/architecture.md](docs/architecture.md) · [docs/glossary.md](docs/glossary.md)
+- 구조: [docs/convention/folder-structure.md](docs/convention/folder-structure.md) · [docs/convention/architecture.md](docs/convention/architecture.md) · [docs/convention/glossary.md](docs/convention/glossary.md)
 
 ## 절대 규칙
 

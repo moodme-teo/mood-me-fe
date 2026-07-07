@@ -1,6 +1,6 @@
 # 아키텍처
 
-무드미의 전체 구조와 세 가지 핵심 흐름. 폴더별 역할은 [folder-structure.md](./folder-structure.md), 세부 규칙은 [convention/](./convention/README.md) 참고.
+무드미의 전체 구조와 세 가지 핵심 흐름. 폴더별 역할은 [folder-structure.md](./folder-structure.md), 세부 규칙은 [convention 문서들](./README.md) 참고.
 
 ## 레이어
 

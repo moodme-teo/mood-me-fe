@@ -28,9 +28,9 @@
 
 ## 프로젝트 구조 문서
 
-- [../folder-structure.md](../folder-structure.md) — 폴더 구조와 배치 규칙 (bulletproof-react 채택)
-- [../architecture.md](../architecture.md) — 레이어 · 데이터/AI/Canvas 흐름
-- [../glossary.md](../glossary.md) — 도메인 용어사전
+- [folder-structure.md](./folder-structure.md) — 폴더 구조와 배치 규칙 (bulletproof-react 채택)
+- [architecture.md](./architecture.md) — 레이어 · 데이터/AI/Canvas 흐름
+- [glossary.md](./glossary.md) — 도메인 용어사전
 
 ## 강제 로드맵 (Enforcement)
 

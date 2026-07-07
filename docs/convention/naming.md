@@ -1,6 +1,6 @@
 # Naming Convention
 
-> 베이스: [bulletproof-react — Project Standards](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-standards.md) + [toss frontend-fundamentals](https://frontend-fundamentals.com) 가독성·예측 가능성 규칙. 도메인 용어는 [glossary.md](../glossary.md)가 원천.
+> 베이스: [bulletproof-react — Project Standards](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-standards.md) + [toss frontend-fundamentals](https://frontend-fundamentals.com) 가독성·예측 가능성 규칙. 도메인 용어는 [glossary.md](./glossary.md)가 원천.
 
 ## 파일 · 폴더명
 
@@ -27,7 +27,7 @@
 
 ## 도메인 용어사전
 
-- 도메인 개념의 영단어는 [glossary.md](../glossary.md)에 등록된 것만 씁니다. **같은 개념에 새 이름을 만들지 않습니다.** 새 개념 → glossary에 먼저 등록 → 코드에 사용.
+- 도메인 개념의 영단어는 [glossary.md](./glossary.md)에 등록된 것만 씁니다. **같은 개념에 새 이름을 만들지 않습니다.** 새 개념 → glossary에 먼저 등록 → 코드에 사용.
 
 ## toss 규칙 — 이름으로 가독성 만들기
 

@@ -1,6 +1,6 @@
 # AI Convention
 
-> 무드미 고유 도메인 — 외부 레퍼런스 없이 이 문서가 원본입니다. AI 흐름 개요는 [architecture.md](../architecture.md), 실패 처리는 [error.md](./error.md).
+> 무드미 고유 도메인 — 외부 레퍼런스 없이 이 문서가 원본입니다. AI 흐름 개요는 [architecture.md](./architecture.md), 실패 처리는 [error.md](./error.md).
 
 ## Model 선택
 

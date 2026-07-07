@@ -1,6 +1,6 @@
 # Component Convention
 
-> 베이스: [bulletproof-react — Components And Styling](https://github.com/alan2207/bulletproof-react/blob/master/docs/components-and-styling.md) + [Project Structure](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md). 폴더 배치는 [folder-structure.md](../folder-structure.md).
+> 베이스: [bulletproof-react — Components And Styling](https://github.com/alan2207/bulletproof-react/blob/master/docs/components-and-styling.md) + [Project Structure](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md). 폴더 배치는 [folder-structure.md](./folder-structure.md).
 
 ## 배치: ui / 도메인 / canvas
 
@@ -40,5 +40,5 @@ function Board() { return <div><StickerList /></div>; }
 
 - 항상 절대 경로 `@/*` — `../../..` 금지
 - **도메인 컴포넌트 폴더 간 직접 import 최소화** — 조합은 `app/`(페이지) 레벨에서. `ui/`는 누구나 사용
-- **단방향**: lib/types/hooks → components → app. 역방향 금지 (ESLint zones로 강제 — [folder-structure.md](../folder-structure.md))
+- **단방향**: lib/types/hooks → components → app. 역방향 금지 (ESLint zones로 강제 — [folder-structure.md](./folder-structure.md))
 - 배럴 파일(index.ts) 금지 — 파일 직접 import. 예외는 `components/canvas/index.ts` 하나
