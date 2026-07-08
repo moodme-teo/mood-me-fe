@@ -48,10 +48,20 @@ const penElementSchema = baseElementSchema.extend({
   }),
 });
 
+const imageElementSchema = baseElementSchema.extend({
+  type: z.literal("image"),
+  properties: z.object({
+    src: z.string().min(1),
+    width: z.number().positive(),
+    height: z.number().positive(),
+  }),
+});
+
 export const moodboardElementSchema = z.discriminatedUnion("type", [
   stickerElementSchema,
   textElementSchema,
   penElementSchema,
+  imageElementSchema,
 ]);
 
 export const updateMoodboardRequestSchema = z.object({
