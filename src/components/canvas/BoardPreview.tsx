@@ -16,10 +16,7 @@ import {
 } from "react-konva";
 
 import { getStickerAsset } from "@/components/canvas/sticker-assets";
-import type {
-  MoodboardElement,
-  StickerAssetId,
-} from "@/types/moodboard";
+import type { MoodboardElement, StickerAssetId } from "@/types/moodboard";
 import { EXPORT_PIXEL_RATIO } from "@/types/moodboard";
 
 type Props = {
@@ -168,6 +165,10 @@ function StickerShape({ assetId }: { assetId: StickerAssetId }) {
 }
 
 function ElementNode({ element }: { element: MoodboardElement }) {
+  const elementImage = useCanvasImage(
+    element.type === "image" ? element.properties.src : undefined,
+  );
+
   const commonProps = {
     x: element.x,
     y: element.y,
@@ -176,6 +177,19 @@ function ElementNode({ element }: { element: MoodboardElement }) {
     scaleY: element.scaleY,
     listening: false,
   };
+
+  if (element.type === "image") {
+    if (!elementImage) return null;
+    return (
+      <KonvaImage
+        {...commonProps}
+        image={elementImage}
+        width={element.properties.width}
+        height={element.properties.height}
+        cornerRadius={2}
+      />
+    );
+  }
 
   if (element.type === "sticker") {
     return (
@@ -238,7 +252,8 @@ export default function BoardPreview({
 
   useEffect(() => {
     onExportReady?.(
-      () => stageRef.current?.toDataURL({ pixelRatio: EXPORT_PIXEL_RATIO }) ?? null,
+      () =>
+        stageRef.current?.toDataURL({ pixelRatio: EXPORT_PIXEL_RATIO }) ?? null,
     );
   }, [onExportReady]);
 

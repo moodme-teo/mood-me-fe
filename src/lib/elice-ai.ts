@@ -18,5 +18,9 @@ export function getEliceClient(): OpenAI {
   return client;
 }
 
-// 여정 → 무드 프로파일 변환용. 이미지 모델 상수(google/gemini-2.5-flash-image)는 #37에서 추가.
+// 여정 → 무드 프로파일 변환용.
 export const GPT_MODEL = "openai/gpt-5";
+
+// 보드 히어로 컷 생성용 (#37). 실측 스펙: docs/work/todo/moodboard-library-collection.md
+// — aspect_ratio 파라미터는 무시되고 항상 1024×1024로 반환된다.
+export const GEMINI_IMAGE_MODEL = "google/gemini-2.5-flash-image";

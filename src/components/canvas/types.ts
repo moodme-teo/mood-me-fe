@@ -17,11 +17,7 @@ type BaseElement = {
 };
 
 export type StickerAssetId =
-  | "silver-star"
-  | "dream-label"
-  | "soft-orbit"
-  | "lucky-ribbon"
-  | "quiet-spark";
+  "silver-star" | "dream-label" | "soft-orbit" | "lucky-ribbon" | "quiet-spark";
 
 export type StickerElement = BaseElement & {
   type: "sticker";
@@ -53,7 +49,18 @@ export type PenElement = BaseElement & {
   };
 };
 
-export type MoodboardElement = StickerElement | TextElement | PenElement;
+// 큐레이션 타일·AI 생성 컷 등 임의 이미지 요소 (#37 — 보드 조립이 채우는 슬롯).
+export type ImageElement = BaseElement & {
+  type: "image";
+  properties: {
+    src: string;
+    width: number;
+    height: number;
+  };
+};
+
+export type MoodboardElement =
+  StickerElement | TextElement | PenElement | ImageElement;
 
 export type MoodboardDraft = {
   moodboardId: string;
