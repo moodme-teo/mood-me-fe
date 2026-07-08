@@ -11,9 +11,9 @@ App Router (src/app — 라우팅·Server Components)
     ↓
 Route Handlers / Server Actions (검증 → 서비스 호출)
     ↓
-lib/ (anthropic · fal · supabase 래퍼 — 서버 전용)
+lib/ (elice · fal · supabase 래퍼 — 서버 전용)
     ↓
-외부 서비스 (Claude · fal.ai · Supabase)
+외부 서비스 (Elice AX · Supabase)
 ```
 
 의존 방향은 항상 한쪽: **lib/types/hooks → components → app**. 역방향 import는 ESLint로 차단합니다.
@@ -29,8 +29,8 @@ lib/ (anthropic · fal · supabase 래퍼 — 서버 전용)
 ```
 테스트 답변(MoodTestAnswer[])
   → POST /api/generation-jobs            # Route Handler
-  → Claude (답변 → 이미지 프롬프트 + 키워드 9개 + 무드 프로파일)   # lib/anthropic.ts
-  → fal.ai Flux (프롬프트 → base image, 실시간 미리보기)          # lib/fal.ts
+  → Elice AX GPT-5 (답변 → 이미지 프롬프트 + 키워드 9개 + 무드 프로파일)   # lib/elice-ai.ts
+  → Elice AX Gemini (프롬프트 → base image, 실시간 미리보기)      # lib/elice-ai.ts
   → Supabase Storage 업로드 → Moodboard 레코드 생성
   → 클라이언트는 job 상태 폴링 (queued → processing → completed | failed)
 ```

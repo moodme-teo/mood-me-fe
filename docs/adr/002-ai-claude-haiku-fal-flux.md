@@ -1,6 +1,6 @@
 # 002. AI — Claude Haiku(텍스트) + fal.ai Flux schnell(이미지)
 
-- 상태: 채택
+- 상태: superseded by [004](./004-ai-elice-gpt5-gemini.md)
 - 날짜: 2026-07-01
 
 ## 맥락

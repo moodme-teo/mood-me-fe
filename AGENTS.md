@@ -7,7 +7,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # mood-me
 
-테스트 답변을 Claude(텍스트)와 fal.ai(이미지)로 **나만의 AI 무드보드**로 바꿔 Konva 캔버스에서 꾸미고 SNS에 공유하는 웹 경험. Next.js 16 App Router · React 19 · TS · Tailwind v4 · Supabase. 제품/디자인 배경: `PRODUCT.md` / `DESIGN.md`.
+테스트 답변을 Elice AX 프록시(GPT-5 텍스트 + Gemini 이미지)로 **나만의 AI 무드보드**로 바꿔 Konva 캔버스에서 꾸미고 SNS에 공유하는 웹 경험. Next.js 16 App Router · React 19 · TS · Tailwind v4 · Supabase. 제품/디자인 배경: `PRODUCT.md` / `DESIGN.md`.
 
 # 컨벤션 — 구현 전 반드시 읽기
 
@@ -19,7 +19,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## 절대 규칙
 
-1. Claude(`lib/anthropic.ts`) · fal.ai(`lib/fal.ts`) · Supabase service role 코드는 **서버 전용** — 클라이언트 컴포넌트에서 import 금지
+1. AI(`lib/elice-ai.ts`) · Supabase service role 코드는 **서버 전용** — 클라이언트 컴포넌트에서 import 금지
 2. Konva 코드는 `components/canvas/` 안에서만 — 외부에서는 배럴(`@/components/canvas`)로만 import
 3. import는 절대 경로 `@/*` + 단방향(lib/types → components → app). **배럴 파일 금지** (canvas 예외)
 4. 커밋 메시지: `<prefix> : <메시지>` (Husky가 강제)
