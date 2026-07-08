@@ -100,7 +100,7 @@
 
 ### 제품 흐름 (파악된 것)
 
-테스트 답변 → Claude(Haiku)가 이미지 프롬프트 + 키워드 9개 + "무드 성향" 변환 → fal.ai(Flux schnell) 실시간 이미지 생성 → Konva 캔버스에서 편집 → PNG로 내보내 공유. 스택: Next.js 16 + React 19 + Tailwind v4 + framer-motion + Supabase.
+테스트 답변 → Elice AX GPT-5가 이미지 프롬프트 + 키워드 9개 + "무드 성향" 변환 → Elice AX Gemini 실시간 이미지 생성 → Konva 캔버스에서 편집 → PNG로 내보내 공유. 스택: Next.js 16 + React 19 + Tailwind v4 + framer-motion + Supabase.
 
 ### 5가지 디자인 원칙
 

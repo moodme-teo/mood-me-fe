@@ -11,7 +11,7 @@
 ## Konva 구조
 
 - Stage 아래 Layer는 역할별로 고정:
-  1. **base layer** — fal.ai 생성 베이스 이미지 (편집 불가)
+  1. **base layer** — Elice AX(Gemini) 생성 베이스 이미지 (편집 불가)
   2. **elements layer** — `MoodboardElement[]` 렌더 (펜/스티커/텍스트)
   3. **ui layer** — selection Transformer, 가이드 등 (export에서 제외)
 - Layer를 임의로 늘리지 않습니다 (Layer 하나 = 캔버스 하나의 그리기 비용).

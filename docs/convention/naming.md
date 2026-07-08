@@ -8,7 +8,7 @@
 | ---------------------------- | ----------------- | ------------------------------------------------------------ |
 | 컴포넌트 파일                | PascalCase.tsx    | `BoardCanvas.tsx`, `QuestionCard.tsx`                        |
 | 훅 파일                      | `use` + camelCase | `useGenerationJob.ts`                                        |
-| 그 외 모듈 (lib/utils/types) | lowercase(-kebab) | `anthropic.ts`, `api-client.ts`, `mood-test.ts`              |
+| 그 외 모듈 (lib/utils/types) | lowercase(-kebab) | `elice-ai.ts`, `api-client.ts`, `mood-test.ts`               |
 | 폴더 · 라우트 폴더           | kebab-case        | `components/mood-test/`, `app/test/[session-id]/generating/` |
 
 - ESLint `check-file` 룰로 강제합니다(후속 이슈) — 컴포넌트 파일만 PascalCase, 나머지는 kebab-case 패턴.
