@@ -14,7 +14,11 @@ export async function GET(request: Request) {
   });
 
   if (!parsedQuery.success) {
-    return apiError("INVALID_INPUT", "게스트 세션 형식이 올바르지 않아요.", 400);
+    return apiError(
+      "INVALID_INPUT",
+      "게스트 세션 형식이 올바르지 않아요.",
+      400,
+    );
   }
 
   const result = await getMoodboardSummaries(parsedQuery.data);
@@ -23,5 +27,5 @@ export async function GET(request: Request) {
     return apiError("INTERNAL_ERROR", result.error, 500);
   }
 
-  return apiSuccess({ items: result.value });
+  return apiSuccess(result.value);
 }

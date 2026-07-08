@@ -6,9 +6,12 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import ProfileMenu from "@/components/auth/ProfileMenu";
+import { listMoodboardDrafts } from "@/components/board/moodboard-draft-storage";
 import { getMoodboards } from "@/lib/api/get-moodboards";
 import { ApiClientError } from "@/lib/api-client";
 import { getStoredGuestSessionId } from "@/lib/auth/guest-session";
+import { loadMoodTestDraft } from "@/lib/mood-test/draft-storage";
+import type { MoodTestDraft } from "@/lib/mood-test/draft-storage";
 import type { MoodboardSummary } from "@/lib/moodboard/summary";
 
 type Props = {
@@ -21,6 +24,12 @@ type ExampleMoodboard = {
   alt: string;
   imageUrl: string;
   title: string;
+};
+
+type ContinueTarget = {
+  href: string;
+  label: string;
+  updatedAt: string;
 };
 
 const EXAMPLE_MOODBOARDS: ExampleMoodboard[] = [
@@ -47,6 +56,10 @@ function getErrorMessage(error: unknown) {
   }
 
   return "잠시 뒤 다시 시도해 주세요.";
+}
+
+function getDraftStepHref(draft: MoodTestDraft) {
+  return `/test/${draft.sessionId}?step=${draft.stepIndex}`;
 }
 
 function ExampleGrid() {
@@ -197,6 +210,20 @@ function RetryPanel({
   );
 }
 
+function ContinueDraftEntry({ target }: { target: ContinueTarget | null }) {
+  if (!target) return null;
+
+  return (
+    <Link
+      href={target.href}
+      className="flex items-center justify-between rounded-lg border border-[#2556d9]/35 bg-[#eef3ff] px-4 py-3 text-sm font-black text-[#163b98] ring-[#2556d9] outline-none focus-visible:ring-2"
+    >
+      <span>이어서 만들기</span>
+      <span className="text-xs font-bold">{target.label}</span>
+    </Link>
+  );
+}
+
 function LandingContent({ errorPanel }: { errorPanel: React.ReactNode }) {
   return (
     <main className="flex min-h-0 flex-1 flex-col gap-8 overflow-y-auto px-4 pt-2 pb-5">
@@ -221,10 +248,12 @@ function LandingContent({ errorPanel }: { errorPanel: React.ReactNode }) {
 
 function HistoryContent({
   errorPanel,
+  hasError,
   isLoading,
   moodboards,
 }: {
   errorPanel: React.ReactNode;
+  hasError: boolean;
   isLoading: boolean;
   moodboards: MoodboardSummary[];
 }) {
@@ -238,7 +267,9 @@ function HistoryContent({
           <p className="mt-2 text-base font-bold text-neutral-700">
             {isLoading
               ? "저장한 무드보드를 불러오고 있어요"
-              : `${moodboards.length}개의 무드보드를 모았어요`}
+              : hasError
+                ? "저장한 무드보드를 확인하지 못했어요"
+                : `${moodboards.length}개의 무드보드를 모았어요`}
           </p>
         </div>
         {errorPanel}
@@ -268,10 +299,51 @@ export default function HomeExperience({
   const [moodboards, setMoodboards] = useState(initialMoodboards);
   const [error, setError] = useState(initialError);
   const [isLoadingList, setIsLoadingList] = useState(false);
+  const [continueTarget, setContinueTarget] = useState<ContinueTarget | null>(
+    null,
+  );
 
   useEffect(() => {
     let isActive = true;
     const guestSessionId = isLoggedIn ? null : getStoredGuestSessionId();
+    const testDraft = loadMoodTestDraft();
+    const testTarget = testDraft
+      ? {
+          href: getDraftStepHref(testDraft),
+          label: `${testDraft.stepIndex + 1}단계`,
+          updatedAt: testDraft.updatedAt,
+        }
+      : null;
+
+    listMoodboardDrafts()
+      .then((drafts) => {
+        if (!isActive) return;
+
+        const editTarget = [...drafts].sort(
+          (a, b) =>
+            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+        )[0];
+        const candidates = [
+          testTarget,
+          editTarget
+            ? {
+                href: `/moodboard/${editTarget.moodboardId}/edit`,
+                label: "편집 중",
+                updatedAt: editTarget.updatedAt,
+              }
+            : null,
+        ].filter((target): target is ContinueTarget => target !== null);
+
+        setContinueTarget(
+          [...candidates].sort(
+            (a, b) =>
+              new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+          )[0] ?? null,
+        );
+      })
+      .catch(() => {
+        if (isActive) setContinueTarget(testTarget);
+      });
 
     if (!isLoggedIn && guestSessionId) {
       Promise.resolve()
@@ -279,7 +351,7 @@ export default function HomeExperience({
           if (isActive) setIsLoadingList(true);
           return getMoodboards({ guestSessionId });
         })
-        .then(({ items }) => {
+        .then((items) => {
           if (!isActive) return;
           setMoodboards(items);
           setError(null);
@@ -304,7 +376,7 @@ export default function HomeExperience({
   const handleRetry = useCallback(() => {
     setIsLoadingList(true);
     getMoodboards({ guestSessionId: getStoredGuestSessionId() })
-      .then(({ items }) => {
+      .then((items) => {
         setMoodboards(items);
         setError(null);
       })
@@ -325,7 +397,8 @@ export default function HomeExperience({
     [error, handleRetry, isLoadingList],
   );
   const hasMoodboards = moodboards.length > 0;
-  const shouldShowHistory = hasMoodboards || isLoadingList;
+  const hasError = error !== null;
+  const shouldShowHistory = hasMoodboards || isLoadingList || hasError;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#f7f7f8] text-neutral-950">
@@ -339,6 +412,7 @@ export default function HomeExperience({
       {shouldShowHistory ? (
         <HistoryContent
           errorPanel={errorPanel}
+          hasError={hasError}
           isLoading={isLoadingList}
           moodboards={moodboards}
         />
@@ -346,7 +420,8 @@ export default function HomeExperience({
         <LandingContent errorPanel={errorPanel} />
       )}
 
-      <footer className="mx-auto w-full max-w-[720px] border-t border-neutral-200 bg-[#f7f7f8] px-4 py-3">
+      <footer className="mx-auto w-full max-w-[720px] space-y-2 border-t border-neutral-200 bg-[#f7f7f8] px-4 py-3">
+        <ContinueDraftEntry target={continueTarget} />
         <button
           type="button"
           onClick={handleCreateMoodboard}

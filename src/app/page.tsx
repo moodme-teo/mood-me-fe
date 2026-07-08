@@ -30,8 +30,17 @@ export default async function HomePage() {
     initialError = moodboardsResult.error;
   }
 
+  const homeKey = [
+    isLoggedIn ? "member" : "guest",
+    initialError ?? "ok",
+    ...initialMoodboards.map(
+      (moodboard) => `${moodboard.id}:${moodboard.updatedAt}`,
+    ),
+  ].join("|");
+
   return (
     <HomeExperience
+      key={homeKey}
       initialError={initialError}
       initialMoodboards={initialMoodboards}
       isLoggedIn={isLoggedIn}

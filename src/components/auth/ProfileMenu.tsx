@@ -5,7 +5,7 @@
 // auth.getUser()로 확인해 내려준다 — 여기서 다시 확인하지 않는다.
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 
@@ -15,12 +15,14 @@ type Props = {
 
 export default function ProfileMenu({ isLoggedIn = false }: Props) {
   const router = useRouter();
+  const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
 
   const logout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
     setOpen(false);
+    router.push("/");
     router.refresh();
   };
 
@@ -33,29 +35,53 @@ export default function ProfileMenu({ isLoggedIn = false }: Props) {
     setOpen((prev) => !prev);
   };
 
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !containerRef.current?.contains(event.target)
+      ) {
+        setOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       <button
         type="button"
         onClick={handleProfileClick}
         aria-label={isLoggedIn ? "계정 메뉴 열기" : "로그인해서 보드 저장하기"}
         aria-expanded={open}
-        className="flex h-11 w-11 items-center justify-center rounded-full border border-neutral-300 bg-neutral-100 text-sm font-bold text-neutral-600"
+        className="flex h-11 w-11 items-center justify-center rounded-full border border-neutral-300 bg-neutral-100 text-sm font-bold text-neutral-600 ring-[#2556d9] outline-none focus-visible:ring-2"
       >
         {isLoggedIn ? "내" : "?"}
       </button>
 
       {open && isLoggedIn && (
         <div
-          role="menu"
           aria-label="계정 메뉴"
           className="absolute top-11 right-0 min-w-32 rounded-lg border border-neutral-200 bg-white py-1 shadow-md"
         >
           <button
             type="button"
-            role="menuitem"
             onClick={logout}
-            className="w-full px-4 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50"
+            className="w-full px-4 py-2 text-left text-sm text-neutral-700 ring-[#2556d9] outline-none hover:bg-neutral-50 focus-visible:ring-2"
           >
             로그아웃
           </button>
