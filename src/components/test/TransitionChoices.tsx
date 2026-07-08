@@ -10,7 +10,7 @@ export default function TransitionChoices({
       {choices.map((choice) => (
         <div
           key={choice.id}
-          className="rounded-lg border border-neutral-300 bg-neutral-100 px-4 py-3 text-sm text-neutral-600"
+          className="rounded-lg border border-gray-300 bg-surface-sunken px-4 py-3 text-sm text-muted-foreground"
         >
           {choice.isObviousAntonym && <span aria-hidden>★ </span>}
           {choice.label}

@@ -49,12 +49,12 @@ export default function GeneratingLayout({ sessionId }: { sessionId: string }) {
       <button
         type="button"
         onClick={() => setShowErrorPreview(true)}
-        className="text-xs text-neutral-400 underline"
+        className="text-xs text-muted-foreground underline"
       >
         (레이아웃 확인용) 실패 상태 미리보기
       </button>
 
-      <p className="text-xs text-neutral-400" role="status">
+      <p className="text-xs text-muted-foreground" role="status">
         세션 {sessionId} · 레이아웃 골격 — 실제 job 폴링 없음
       </p>
     </div>

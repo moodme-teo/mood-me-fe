@@ -6,7 +6,7 @@ export default function CardGrid({ cards }: { cards: MockCard[] }) {
       {cards.map((card) => (
         <div
           key={card.id}
-          className="flex aspect-square items-center justify-center rounded-lg border border-neutral-300 bg-neutral-100 p-2 text-center text-xs text-neutral-500"
+          className="flex aspect-square items-center justify-center rounded-lg border border-gray-300 bg-surface-sunken p-2 text-center text-xs text-muted-foreground"
         >
           {card.label}
         </div>

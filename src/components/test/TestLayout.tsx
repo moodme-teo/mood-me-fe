@@ -80,16 +80,18 @@ export default function TestLayout({ initialStepIndex = 0, sessionId }: Props) {
       <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 py-6">
         <section className="flex flex-col gap-4">
           <div>
-            <p className="text-xs font-medium text-neutral-400">{stage.step}</p>
-            <h2 className="mt-1 text-xl font-semibold text-neutral-900">
+            <p className="text-xs font-medium text-muted-foreground">
+              {stage.step}
+            </p>
+            <h2 className="mt-1 text-xl font-semibold text-foreground">
               {stage.title}
             </h2>
             {stage.hint && (
-              <p className="mt-1 text-sm text-neutral-500">{stage.hint}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{stage.hint}</p>
             )}
           </div>
           <StageBody stage={stage} />
-          <p className="text-xs text-neutral-400" role="status">
+          <p className="text-xs text-muted-foreground" role="status">
             세션 {sessionId} · 레이아웃 골격 — 선택 상태·검증 없음
           </p>
         </section>

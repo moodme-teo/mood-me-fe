@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+
 export default function TestFooter({
   label,
   onClick,
@@ -6,14 +8,16 @@ export default function TestFooter({
   onClick: () => void;
 }) {
   return (
-    <footer className="border-t border-neutral-200 px-4 py-4">
-      <button
+    <footer className="border-t border-gray-100 px-4 py-4">
+      <Button
         type="button"
+        tone="ink"
+        size="lg"
         onClick={onClick}
-        className="flex w-full items-center justify-center rounded-xl bg-neutral-900 py-4 text-base font-semibold text-white"
+        className="w-full"
       >
         {label}
-      </button>
+      </Button>
     </footer>
   );
 }

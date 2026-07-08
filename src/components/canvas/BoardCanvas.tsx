@@ -328,7 +328,10 @@ export default function BoardCanvas({
   const [isDrawing, setIsDrawing] = useState(false);
   const { image, status } = useCanvasImage(baseImageUrl, onBaseImageError);
 
-  const imageCrop = useMemo(() => (image ? getCoverCrop(image) : null), [image]);
+  const imageCrop = useMemo(
+    () => (image ? getCoverCrop(image) : null),
+    [image],
+  );
   const sortedElements = useMemo(
     () => [...elements].sort((a, b) => a.z_index - b.z_index),
     [elements],
@@ -429,7 +432,7 @@ export default function BoardCanvas({
         height={MOODBOARD_HEIGHT * scale}
         scaleX={scale}
         scaleY={scale}
-        className="overflow-hidden rounded-[22px] bg-neutral-950 shadow-[0_14px_30px_rgba(0,0,0,0.24)]"
+        className="overflow-hidden rounded-[22px] bg-surface-inverse shadow-[0_14px_30px_rgba(0,0,0,0.24)]"
         onMouseDown={handleStagePointerDown}
         onMouseMove={handleStagePointerMove}
         onMouseUp={handleStagePointerUp}

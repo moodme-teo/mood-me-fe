@@ -6,3 +6,8 @@ package-lock.json
 next-env.d.ts
 prototype
 supabase/migrations
+mood-me-design-system*
+.claude
+.cursor
+.agents
+.impeccable

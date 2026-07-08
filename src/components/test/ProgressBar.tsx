@@ -1,3 +1,5 @@
+import { Progress } from "@/components/ui/progress";
+
 export default function ProgressBar({
   current,
   total,
@@ -7,13 +9,13 @@ export default function ProgressBar({
 }) {
   return (
     <div className="flex flex-1 items-center gap-2">
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-neutral-200">
-        <div
-          className="h-full rounded-full bg-neutral-800 transition-all"
-          style={{ width: `${(current / total) * 100}%` }}
-        />
-      </div>
-      <span className="text-xs text-neutral-500">
+      <Progress
+        value={(current / total) * 100}
+        tone="violet"
+        size="sm"
+        className="flex-1"
+      />
+      <span className="text-xs text-muted-foreground">
         {current} / {total}
       </span>
     </div>

@@ -4,7 +4,7 @@ export default function BuildBoardPreview() {
   return (
     <div
       aria-label="완성되어 가는 추구미 무드보드"
-      className="flex aspect-square h-10 shrink-0 items-center justify-center rounded-md border border-dashed border-neutral-300 text-[9px] leading-tight text-neutral-400"
+      className="flex aspect-square h-10 shrink-0 items-center justify-center rounded-md border border-dashed border-gray-300 text-[9px] leading-tight text-muted-foreground"
     >
       보드
     </div>

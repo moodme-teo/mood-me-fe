@@ -6,7 +6,7 @@ export default function ShadowChips({ shadows }: { shadows: MockShadow[] }) {
       {shadows.map((shadow) => (
         <div
           key={shadow.id}
-          className="flex items-center justify-center rounded-full border border-neutral-300 bg-neutral-100 px-4 py-3 text-sm text-neutral-600"
+          className="flex items-center justify-center rounded-full border border-gray-300 bg-surface-sunken px-4 py-3 text-sm text-muted-foreground"
         >
           {shadow.label}
         </div>
