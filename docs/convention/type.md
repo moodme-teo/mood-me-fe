@@ -20,7 +20,7 @@
 
 ## Zod가 타입의 원천
 
-- 런타임 경계(API 요청/응답, Claude 출력)를 넘는 데이터는 **Zod 스키마를 먼저 정의**하고 타입은 `z.infer`로 뽑습니다 — 스키마와 타입이 어긋날 수 없게:
+- 런타임 경계(API 요청/응답, AI 출력)를 넘는 데이터는 **Zod 스키마를 먼저 정의**하고 타입은 `z.infer`로 뽑습니다 — 스키마와 타입이 어긋날 수 없게:
 
 ```ts
 const createJobSchema = z.object({ testSessionId: z.string().uuid() });

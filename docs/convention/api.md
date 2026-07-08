@@ -4,7 +4,7 @@
 
 ## 서버: Route Handler / Server Action
 
-- **비밀키를 쓰는 외부 호출(Claude · fal.ai · Supabase service role)은 반드시 서버에서** — Route Handler(`app/api/**/route.ts`) 또는 Server Action. `lib/anthropic.ts`, `lib/fal.ts`는 서버 전용, 클라이언트 import 금지
+- **비밀키를 쓰는 외부 호출(Elice AX · Supabase service role)은 반드시 서버에서** — Route Handler(`app/api/**/route.ts`) 또는 Server Action. `lib/elice-ai.ts`는 서버 전용, 클라이언트 import 금지
 - 구분 기준: 클라이언트가 **폴링·재호출하는 리소스는 Route Handler**(생성 job 등), 폼 제출형 **단순 mutation은 Server Action** 허용. 같은 작업에 두 방식을 섞지 않습니다
 - Route Handler는 얇게: 파싱 → Zod 검증 → 서비스 함수 호출 → 응답. 비즈니스 로직은 feature의 서버 코드/`lib/`에
 

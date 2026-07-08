@@ -40,7 +40,7 @@
 | -------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------ |
 | 커밋 메시지 형식                                         | Husky `commit-msg` 훅                                                         | ✅ 적용됨    |
 | import 규칙 (상대경로 금지 → `@/*` · 순서/정렬 · 확장자) | ESLint `eslint-plugin-import` + `no-restricted-imports` (`eslint.config.mjs`) | ✅ 적용됨    |
-| 서버 코드 클라이언트 유출 차단                           | `server-only` — `lib/anthropic.ts` · `lib/fal.ts` · `lib/supabase/server.ts`  | ✅ 적용됨    |
+| 서버 코드 클라이언트 유출 차단                           | `server-only` — `lib/elice-ai.ts` · `lib/supabase/server.ts`                  | ✅ 적용됨    |
 | 폴더 경계 (단방향 · Konva 격리 · 서버 lib)               | ESLint `import/no-restricted-paths` zones                                     | ✅ 적용됨    |
 | 파일명 규칙 (컴포넌트 PascalCase · 그 외 kebab)          | ESLint `check-file`                                                           | 🔜 후속 이슈 |
 | 포맷 논쟁 제거                                           | Prettier + VSCode formatOnSave                                                | ✅ 적용됨    |
@@ -52,6 +52,6 @@
 
 관련 문서:
 
-- [docs/adr/](../adr/README.md) — 기술 결정 기록(ADR): 왜 Konva·Claude Haiku·fal.ai인지, 왜 상태 라이브러리를 보류했는지
+- [docs/adr/](../adr/README.md) — 기술 결정 기록(ADR): 왜 Konva·Elice AX(GPT-5·Gemini)인지, 왜 상태 라이브러리를 보류했는지
 - [docs/work/README.md](../work/README.md) — 이슈 → 구현 → PR → 머지 워크플로우와 스킬 사용법
 - [PRODUCT.md](../../PRODUCT.md) / [DESIGN.md](../../DESIGN.md) — 제품 원칙과 디자인 시스템 (시드)

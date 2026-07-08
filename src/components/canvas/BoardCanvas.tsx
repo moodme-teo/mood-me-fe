@@ -213,6 +213,13 @@ function ElementNode({
   ) => void;
   registerNode: (id: string, node: Konva.Node | null) => void;
 }) {
+  // 타일/AI 컷 요소만 이미지를 로드한다 — 나머지 타입은 빈 src로 훅을 호출해
+  // Rules of Hooks를 지키면서 useCanvasImage 내부의 `if (!src) return`으로 스킵시킨다.
+  const { image: elementImage } = useCanvasImage(
+    element.type === "image" ? element.properties.src : "",
+    () => {},
+  );
+
   const commonProps = {
     id: element.id,
     x: element.x,
@@ -287,6 +294,23 @@ function ElementNode({
         shadowColor="rgba(0,0,0,0.42)"
         shadowBlur={8}
         shadowOffset={{ x: 0, y: 2 }}
+      />
+    );
+  }
+
+  if (element.type === "image") {
+    if (!elementImage) return null;
+    return (
+      <KonvaImage
+        {...commonProps}
+        ref={(node) => registerNode(element.id, node)}
+        image={elementImage}
+        width={element.properties.width}
+        height={element.properties.height}
+        cornerRadius={2}
+        shadowColor="rgba(0,0,0,0.28)"
+        shadowBlur={10}
+        shadowOffset={{ x: 0, y: 4 }}
       />
     );
   }

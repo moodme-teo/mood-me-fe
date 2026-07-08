@@ -1,8 +1,8 @@
 "use client";
 
-// 추구미 테스트 3막 6단계(A 담기 → B1·B2 덜어내기 → C 그림자 → D 전환 → E 최종 대결)의
-// 레이아웃 골격. mock 데이터(src/lib/mood-test/mock.ts)를 쓰고, "다음"은 검증 없이 단계만 넘긴다.
-// 실제 선택 상태·검증·여정 로깅·API 연동은 #35에서 구현한다.
+// 추구미 테스트 3막 6단계(A 담기 → B1·B2 덜어내기 → C 그림자 → D 전환×3 → E 최종 대결)의
+// 상태관리·검증·여정 로깅. 화면 골격은 #46, 상태 기계는 mood-test-flow.ts/useMoodTestFlow.ts.
+// E단계 완료 시 여정 JSON을 POST /api/mood-test-sessions로 1회 전송한다 (§5.7 저장 원칙).
 // 참고: docs/work/todo/mood-test-questions.md
 
 import { useRouter } from "next/navigation";
@@ -10,60 +10,71 @@ import { useEffect, useState } from "react";
 
 import BuildBoardPreview from "@/components/test/BuildBoardPreview";
 import StageBody from "@/components/test/StageBody";
-import { STAGES } from "@/components/test/stages";
 import TestFooter from "@/components/test/TestFooter";
 import TestHeader from "@/components/test/TestHeader";
+import { useMoodTestFlow } from "@/components/test/useMoodTestFlow";
+import { saveMoodTestSession } from "@/lib/api/save-mood-test-session";
+import { ApiClientError } from "@/lib/api-client";
+import { ensureGuestSessionId } from "@/lib/auth/guest-session";
 import {
   clearMoodTestDraft,
   saveMoodTestDraft,
 } from "@/lib/mood-test/draft-storage";
 
 type Props = {
+  // 홈 화면의 "이어하기" 딥링크(#84/#85)가 여전히 이 값을 넘긴다. 실제 선택 상태(카드 등)까지
+  // 복원하는 진짜 이어하기는 #68(autosave) 몫이라, 지금은 항상 첫 화면부터 다시 진행한다 —
+  // sessionId는 그대로 이어받으므로 완료 시 같은 세션에 upsert된다.
   initialStepIndex?: number;
   sessionId: string;
 };
 
-function clampStepIndex(stepIndex: number) {
-  return Math.max(0, Math.min(STAGES.length - 1, stepIndex));
-}
-
-export default function TestLayout({ initialStepIndex = 0, sessionId }: Props) {
+export default function TestLayout({ sessionId }: Props) {
   const router = useRouter();
-  const [stepIndex, setStepIndex] = useState(() =>
-    clampStepIndex(initialStepIndex),
-  );
-
-  const stage = STAGES[stepIndex];
-  const isFirst = stepIndex === 0;
-  const isLast = stepIndex === STAGES.length - 1;
+  const flow = useMoodTestFlow();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
-    saveMoodTestDraft({ sessionId, stepIndex });
-  }, [sessionId, stepIndex]);
+    saveMoodTestDraft({ sessionId, stepIndex: flow.screenIndex });
+  }, [sessionId, flow.screenIndex]);
 
-  const goBack = () => {
-    if (isFirst) {
+  const handleBack = () => {
+    if (flow.isFirstScreen) {
       router.push("/");
       return;
     }
-    setStepIndex((i) => i - 1);
+    flow.back();
   };
 
-  const goNext = () => {
-    if (isLast) return;
-    setStepIndex((i) => i + 1);
-  };
+  const handleNext = async () => {
+    if (!flow.canConfirm) return;
 
-  // 마지막(E. 최종 대결) 단계에서는 "다음"이 "무드보드 생성하기"로 전환된다 (PRD 5.3 동작).
-  // 실제 생성 요청·여정 저장(#34/#35)은 없고, 이미 존재하는 생성중 placeholder 라우트(#22)로만 이동한다.
-  const handleFooterClick = () => {
-    if (isLast) {
-      clearMoodTestDraft();
-      router.push(`/test/${sessionId}/generating`);
+    if (!flow.isLastScreen) {
+      flow.confirm();
       return;
     }
-    goNext();
+
+    setSubmitError(null);
+    const journey = flow.buildJourneyFromDraft();
+    flow.confirm();
+    setIsSubmitting(true);
+    try {
+      const guestSessionId = await ensureGuestSessionId();
+      await saveMoodTestSession({ sessionId, guestSessionId, journey });
+      clearMoodTestDraft();
+      router.push(`/test/${sessionId}/generating`);
+    } catch (error) {
+      const message =
+        error instanceof ApiClientError
+          ? error.message
+          : "저장에 실패했어요. 다시 시도해 주세요.";
+      setSubmitError(message);
+      setIsSubmitting(false);
+    }
   };
+
+  const { kicker, title, hint } = flow.copy;
 
   return (
     // min-h-0: flex 자식이 콘텐츠 크기만큼 늘어나지 않고 부모(뷰포트) 높이 안에서
@@ -71,35 +82,49 @@ export default function TestLayout({ initialStepIndex = 0, sessionId }: Props) {
     // "다음" 버튼이 하단에 붙지 않는다.
     <div className="flex min-h-0 flex-1 flex-col">
       <TestHeader
-        current={stepIndex + 1}
-        total={STAGES.length}
-        onBack={goBack}
-        preview={<BuildBoardPreview />}
+        current={flow.screenIndex + 1}
+        total={flow.totalScreens}
+        onBack={handleBack}
+        preview={<BuildBoardPreview cardIds={flow.previewCardIds} />}
       />
 
       <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 py-6">
         <section className="flex flex-col gap-4">
           <div>
             <p className="text-xs font-medium text-muted-foreground">
-              {stage.step}
+              {kicker}
             </p>
             <h2 className="mt-1 text-xl font-semibold text-foreground">
-              {stage.title}
+              {title}
             </h2>
-            {stage.hint && (
-              <p className="mt-1 text-sm text-muted-foreground">{stage.hint}</p>
+            {hint && (
+              <p className="mt-1 text-sm text-muted-foreground">{hint}</p>
             )}
           </div>
-          <StageBody stage={stage} />
+          <StageBody
+            screen={flow.screen}
+            poolIds={flow.poolIds}
+            draft={flow.draft}
+            target={flow.target}
+            onToggle={flow.toggle}
+          />
           <p className="text-xs text-muted-foreground" role="status">
-            세션 {sessionId} · 레이아웃 골격 — 선택 상태·검증 없음
+            {flow.draft.length} / {flow.target} 선택됨
           </p>
         </section>
       </div>
 
       <TestFooter
-        label={isLast ? "무드보드 생성하기 ✨" : "다음"}
-        onClick={handleFooterClick}
+        label={
+          flow.isLastScreen
+            ? isSubmitting
+              ? "생성 준비 중..."
+              : "무드보드 생성하기 ✨"
+            : "다음"
+        }
+        onClick={handleNext}
+        disabled={!flow.canConfirm || isSubmitting}
+        errorMessage={submitError}
       />
     </div>
   );

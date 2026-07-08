@@ -16,7 +16,7 @@ src/
 │   └── …                 # 도메인 단위로 폴더 추가
 ├── hooks/                # 공용 커스텀 훅 — 2곳 이상에서 쓰일 때 승격
 ├── lib/                  # 외부 서비스 래퍼 + 서버/공용 유틸
-│   ├── anthropic.ts  fal.ts  prompts.ts       # 서버 전용
+│   ├── elice-ai.ts  fal.ts  prompts.ts        # 서버 전용
 │   ├── supabase/                              # client.ts(브라우저) · server.ts(서버 전용)
 │   ├── api-client.ts                          # 클라이언트 fetch wrapper
 │   └── api/                                   # 요청 선언 (도메인별 파일) → convention/api.md
@@ -42,4 +42,4 @@ src/
 - 단방향: `lib`/`types`는 상위 레이어(app/components/hooks)를 import 못함, `hooks`는 app/components를 못함, `components`는 app을 못함
 - canvas 격리: 외부는 배럴(`index.ts`)로만 접근, canvas는 다른 컴포넌트(ui/도메인)를 역참조하지 않음
 
-서버 전용 lib(anthropic/fal/supabase-server)의 클라이언트 유출은 `server-only` 패키지가 빌드 타임에 막습니다.
+서버 전용 lib(elice-ai/fal/supabase-server)의 클라이언트 유출은 `server-only` 패키지가 빌드 타임에 막습니다.

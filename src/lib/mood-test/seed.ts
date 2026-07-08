@@ -348,7 +348,7 @@ export const TRANSITIONS: Transition[] = [
     id: "t2-3",
     shadowId: "s2",
     label: "나의 세계",
-    themeTag: "홈바디·취향",
+    themeTag: "코지 홈바디",
     isObviousAntonym: false,
   },
   {
@@ -370,7 +370,7 @@ export const TRANSITIONS: Transition[] = [
     id: "t3-2",
     shadowId: "s3",
     label: "가벼운 시작",
-    themeTag: "웰니스·루틴",
+    themeTag: "웰니스 러너",
     isObviousAntonym: false,
   },
   {
@@ -399,7 +399,7 @@ export const TRANSITIONS: Transition[] = [
     id: "t4-2",
     shadowId: "s4",
     label: "솔직함",
-    themeTag: "표현",
+    themeTag: "커리어 보스",
     isObviousAntonym: false,
   },
   {
@@ -413,7 +413,7 @@ export const TRANSITIONS: Transition[] = [
     id: "t4-4",
     shadowId: "s4",
     label: "쿨한 거리",
-    themeTag: "미니멀",
+    themeTag: "스피리추얼",
     isObviousAntonym: false,
   },
 
@@ -428,14 +428,14 @@ export const TRANSITIONS: Transition[] = [
     id: "t5-2",
     shadowId: "s5",
     label: "순간의 감각",
-    themeTag: "지금 여기",
+    themeTag: "웰니스 러너",
     isObviousAntonym: false,
   },
   {
     id: "t5-3",
     shadowId: "s5",
     label: "깊이",
-    themeTag: "탐구",
+    themeTag: "커리어 보스",
     isObviousAntonym: false,
   },
   {
@@ -471,7 +471,7 @@ export const TRANSITIONS: Transition[] = [
     id: "t6-4",
     shadowId: "s6",
     label: "손의 재미",
-    themeTag: "만들기·취향",
+    themeTag: "코지 홈바디",
     isObviousAntonym: false,
   },
 
@@ -486,14 +486,14 @@ export const TRANSITIONS: Transition[] = [
     id: "t7-2",
     shadowId: "s7",
     label: "대담함",
-    themeTag: "글램·표현",
+    themeTag: "러키걸",
     isObviousAntonym: false,
   },
   {
     id: "t7-3",
     shadowId: "s7",
     label: "나다움",
-    themeTag: "취향 확신",
+    themeTag: "스피리추얼",
     isObviousAntonym: false,
   },
   {
@@ -515,21 +515,21 @@ export const TRANSITIONS: Transition[] = [
     id: "t8-2",
     shadowId: "s8",
     label: "진짜 연결",
-    themeTag: "관계",
+    themeTag: "코지 홈바디",
     isObviousAntonym: false,
   },
   {
     id: "t8-3",
     shadowId: "s8",
     label: "완전한 몰입",
-    themeTag: "커리어·집중",
+    themeTag: "커리어 보스",
     isObviousAntonym: false,
   },
   {
     id: "t8-4",
     shadowId: "s8",
     label: "자연 속 리셋",
-    themeTag: "코스탈·코티지",
+    themeTag: "트래블러",
     isObviousAntonym: false,
   },
 ];
