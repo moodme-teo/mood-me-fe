@@ -29,7 +29,7 @@
 
 ## Streaming / 진행 표시
 
-- 이미지 생성은 Elice AX(Gemini) 실시간 미리보기를 활용해 **"채워지는" 과정을 보여줍니다** — 로딩은 기다림이 아니라 연출입니다 (DESIGN.md 북극성).
+- Elice AX(Gemini) 이미지 엔드포인트(`/images/generations`)는 **동기 호출**이다 — 완성된 이미지 하나가 한 번에 돌아오고 큐/스트리밍 이벤트가 없다(moodboard-library-collection.md 실측, ADR 002가 fal.ai를 선택했던 근거인 실시간 큐 API와 다름). "채워지는" 연출은 백엔드 스트리밍이 아니라 **클라이언트가 결과 이미지를 순차적으로 공개**하는 방식으로 구현한다 — 로딩은 기다림이 아니라 연출입니다 (DESIGN.md 북극성).
 - 진행 상태는 `MoodboardGenerationJob`(`queued → processing → completed | failed`, `progress_percent`)으로 클라이언트에 노출 — 폴링 규칙은 [state.md](./state.md).
 
 ## Error / Fallback
