@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import FirstEntryLanding, {
+  type ContinueTarget,
+} from "@/app/_components/FirstEntryLanding";
 import ProfileMenu from "@/components/auth/ProfileMenu";
 import { listMoodboardDrafts } from "@/components/board/moodboard-draft-storage";
 import { getMoodboards } from "@/lib/api/get-moodboards";
@@ -20,36 +23,6 @@ type Props = {
   isLoggedIn: boolean;
 };
 
-type ExampleMoodboard = {
-  alt: string;
-  imageUrl: string;
-  title: string;
-};
-
-type ContinueTarget = {
-  href: string;
-  label: string;
-  updatedAt: string;
-};
-
-const EXAMPLE_MOODBOARDS: ExampleMoodboard[] = [
-  {
-    imageUrl: "/test-image/board/b21.jpg",
-    title: "부드러운 활기",
-    alt: "초록과 햇빛 톤의 큐레이션 무드보드 예시",
-  },
-  {
-    imageUrl: "/test-image/board/b45.jpg",
-    title: "작은 확신",
-    alt: "푸른 오브제와 텍스처가 섞인 큐레이션 무드보드 예시",
-  },
-  {
-    imageUrl: "/test-image/board/b76.jpg",
-    title: "나만의 속도",
-    alt: "따뜻한 빛과 빈티지 장면이 놓인 큐레이션 무드보드 예시",
-  },
-];
-
 function getErrorMessage(error: unknown) {
   if (error instanceof ApiClientError) {
     return error.message;
@@ -60,53 +33,6 @@ function getErrorMessage(error: unknown) {
 
 function getDraftStepHref(draft: MoodTestDraft) {
   return `/test/${draft.sessionId}?step=${draft.stepIndex}`;
-}
-
-function ExampleGrid() {
-  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
-
-  return (
-    <section aria-label="무드보드 예시" className="grid grid-cols-3 gap-2">
-      {EXAMPLE_MOODBOARDS.map((example, index) => {
-        const hasFailed = failedImages.has(example.imageUrl);
-
-        return (
-          <article
-            key={example.imageUrl}
-            className={`relative overflow-hidden rounded-lg bg-gray-100 ${
-              index === 1 ? "mt-7" : ""
-            }`}
-          >
-            <div className="relative aspect-[3/4]">
-              {hasFailed ? (
-                <div className="flex h-full items-end bg-[#dfe8dd] p-2 text-xs font-black text-foreground">
-                  {example.title}
-                </div>
-              ) : (
-                <Image
-                  fill
-                  src={example.imageUrl}
-                  alt={example.alt}
-                  sizes="(max-width: 768px) 32vw, 160px"
-                  className="object-cover"
-                  onError={() => {
-                    setFailedImages((current) => {
-                      const next = new Set(current);
-                      next.add(example.imageUrl);
-                      return next;
-                    });
-                  }}
-                />
-              )}
-            </div>
-            <div className="absolute inset-x-0 bottom-0 bg-surface-inverse/82 px-2 py-2 text-[11px] font-black text-white">
-              {example.title}
-            </div>
-          </article>
-        );
-      })}
-    </section>
-  );
 }
 
 function MoodboardCard({ moodboard }: { moodboard: MoodboardSummary }) {
@@ -221,28 +147,6 @@ function ContinueDraftEntry({ target }: { target: ContinueTarget | null }) {
       <span>이어서 만들기</span>
       <span className="text-xs font-bold">{target.label}</span>
     </Link>
-  );
-}
-
-function LandingContent({ errorPanel }: { errorPanel: React.ReactNode }) {
-  return (
-    <main className="flex min-h-0 flex-1 flex-col gap-8 overflow-y-auto px-4 pt-2 pb-5">
-      <section className="mx-auto w-full max-w-[520px] space-y-6">
-        <div className="space-y-4">
-          <h1 className="text-[clamp(2.65rem,11vw,4.7rem)] leading-[0.96] font-black text-balance text-foreground">
-            <span className="block">오늘의 추구미를</span>
-            <span className="block">보드로 채워요</span>
-          </h1>
-          <p className="max-w-[34ch] text-base leading-7 font-semibold text-pretty text-gray-700">
-            짧게 고른 취향 답변이 AI 이미지와 키워드가 되고, 마지막에는 바로
-            공유하고 싶은 나만의 무드보드가 됩니다.
-          </p>
-        </div>
-
-        <ExampleGrid />
-        {errorPanel}
-      </section>
-    </main>
   );
 }
 
@@ -400,6 +304,18 @@ export default function HomeExperience({
   const hasError = error !== null;
   const shouldShowHistory = hasMoodboards || isLoadingList || hasError;
 
+  // 저장 보드 0개 → 메인(첫진입): 스플래시 → 첫진입 애니메이션 화면. 자체 크롬(아바타·CTA)을
+  // 가지므로 공용 헤더/푸터로 감싸지 않는다. History 상태만 공용 셸을 쓴다.
+  if (!shouldShowHistory) {
+    return (
+      <FirstEntryLanding
+        isLoggedIn={isLoggedIn}
+        continueTarget={continueTarget}
+        onCreate={handleCreateMoodboard}
+      />
+    );
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#f7f7f8] text-foreground">
       <header className="mx-auto flex w-full max-w-[720px] items-center justify-between px-4 py-3">
@@ -409,16 +325,12 @@ export default function HomeExperience({
         <ProfileMenu isLoggedIn={isLoggedIn} />
       </header>
 
-      {shouldShowHistory ? (
-        <HistoryContent
-          errorPanel={errorPanel}
-          hasError={hasError}
-          isLoading={isLoadingList}
-          moodboards={moodboards}
-        />
-      ) : (
-        <LandingContent errorPanel={errorPanel} />
-      )}
+      <HistoryContent
+        errorPanel={errorPanel}
+        hasError={hasError}
+        isLoading={isLoadingList}
+        moodboards={moodboards}
+      />
 
       <footer className="mx-auto w-full max-w-[720px] space-y-2 border-t border-gray-100 bg-[#f7f7f8] px-4 py-3">
         <ContinueDraftEntry target={continueTarget} />

@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
  * tone 은 그라디언트 fill·전경색·그림자 색을 함께 결정한다(primary 변형에서).
  */
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 cursor-pointer select-none items-center justify-center gap-2.5 whitespace-nowrap rounded-full border-0 font-body outline-none transition-[transform,box-shadow,opacity] duration-200 ease-spring hover:-translate-y-[3px] focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px active:scale-[0.97] disabled:pointer-events-none disabled:translate-y-0 disabled:opacity-40 disabled:shadow-none [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  "group/button inline-flex shrink-0 cursor-pointer select-none items-center justify-center gap-2.5 whitespace-nowrap rounded-full border-0 font-body outline-none transition-all duration-200 ease-spring will-change-transform hover:-translate-y-[3px] focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px active:scale-[0.97] active:duration-100 active:ease-standard motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 disabled:pointer-events-none disabled:translate-y-0 disabled:opacity-40 disabled:shadow-none [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
