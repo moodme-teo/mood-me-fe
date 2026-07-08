@@ -1,15 +1,21 @@
-import ProfileMenu from "@/components/auth/ProfileMenu";
+import HomeExperience from "@/app/_components/HomeExperience";
+import { getMoodboardSummaries } from "@/lib/moodboard/list";
+import type { MoodboardSummary } from "@/lib/moodboard/summary";
 import { createClient } from "@/lib/supabase/server";
 
-// 저장된 무드보드 유무에 따른 메인/홈(History) 분기는 후속 이슈에서 구현.
-// 지금은 라우트 골격 확인용으로 두 상태가 이 경로 하나를 공유한다는 것만 표시한다.
+function canUseSupabase() {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  );
+}
+
 export default async function HomePage() {
   let isLoggedIn = false;
+  let initialError: string | null = null;
+  let initialMoodboards: MoodboardSummary[] = [];
 
-  if (
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  ) {
+  if (canUseSupabase()) {
     const supabase = await createClient();
     const {
       data: { user },
@@ -17,14 +23,27 @@ export default async function HomePage() {
     isLoggedIn = !!user;
   }
 
+  const moodboardsResult = await getMoodboardSummaries();
+  if (moodboardsResult.ok) {
+    initialMoodboards = moodboardsResult.value;
+  } else {
+    initialError = moodboardsResult.error;
+  }
+
+  const homeKey = [
+    isLoggedIn ? "member" : "guest",
+    initialError ?? "ok",
+    ...initialMoodboards.map(
+      (moodboard) => `${moodboard.id}:${moodboard.updatedAt}`,
+    ),
+  ].join("|");
+
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="flex justify-end px-4 py-3">
-        <ProfileMenu isLoggedIn={isLoggedIn} />
-      </header>
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-2xl font-semibold">메인 / 홈(History)</p>
-      </div>
-    </div>
+    <HomeExperience
+      key={homeKey}
+      initialError={initialError}
+      initialMoodboards={initialMoodboards}
+      isLoggedIn={isLoggedIn}
+    />
   );
 }

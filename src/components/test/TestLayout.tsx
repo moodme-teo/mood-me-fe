@@ -6,7 +6,7 @@
 // 참고: docs/work/todo/mood-test-questions.md
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import BuildBoardPreview from "@/components/test/BuildBoardPreview";
 import StageBody from "@/components/test/StageBody";
@@ -16,12 +16,28 @@ import { useMoodTestFlow } from "@/components/test/useMoodTestFlow";
 import { saveMoodTestSession } from "@/lib/api/save-mood-test-session";
 import { ApiClientError } from "@/lib/api-client";
 import { ensureGuestSessionId } from "@/lib/auth/guest-session";
+import {
+  clearMoodTestDraft,
+  saveMoodTestDraft,
+} from "@/lib/mood-test/draft-storage";
 
-export default function TestLayout({ sessionId }: { sessionId: string }) {
+type Props = {
+  // 홈 화면의 "이어하기" 딥링크(#84/#85)가 여전히 이 값을 넘긴다. 실제 선택 상태(카드 등)까지
+  // 복원하는 진짜 이어하기는 #68(autosave) 몫이라, 지금은 항상 첫 화면부터 다시 진행한다 —
+  // sessionId는 그대로 이어받으므로 완료 시 같은 세션에 upsert된다.
+  initialStepIndex?: number;
+  sessionId: string;
+};
+
+export default function TestLayout({ sessionId }: Props) {
   const router = useRouter();
   const flow = useMoodTestFlow();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    saveMoodTestDraft({ sessionId, stepIndex: flow.screenIndex });
+  }, [sessionId, flow.screenIndex]);
 
   const handleBack = () => {
     if (flow.isFirstScreen) {
@@ -46,6 +62,7 @@ export default function TestLayout({ sessionId }: { sessionId: string }) {
     try {
       const guestSessionId = await ensureGuestSessionId();
       await saveMoodTestSession({ sessionId, guestSessionId, journey });
+      clearMoodTestDraft();
       router.push(`/test/${sessionId}/generating`);
     } catch (error) {
       const message =
