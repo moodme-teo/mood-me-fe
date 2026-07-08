@@ -22,6 +22,9 @@ import { updateMoodboard } from "@/lib/api/update-moodboard";
 type Props = {
   moodboardId: string;
   baseImageUrl: string;
+  // 생성 파이프라인(#37)이 조립한 초기 요소 — /test/[sessionId]/edit에서 처음 진입할 때만
+  // 넘어온다. /moodboard/[moodboardId]/edit(재편집)는 로컬 드래프트/서버 저장본을 쓰므로 생략.
+  initialElements?: MoodboardElement[];
 };
 
 const TOOL_ITEMS: { id: MoodboardTool; label: string; symbol: string }[] = [
@@ -362,7 +365,11 @@ function ContextPanel({
   );
 }
 
-export default function MoodboardEditor({ moodboardId, baseImageUrl }: Props) {
+export default function MoodboardEditor({
+  moodboardId,
+  baseImageUrl,
+  initialElements,
+}: Props) {
   const router = useRouter();
   const [tool, setTool] = useState<MoodboardTool>("move");
   const [toast, setToast] = useState<string | null>(null);
@@ -372,7 +379,7 @@ export default function MoodboardEditor({ moodboardId, baseImageUrl }: Props) {
   const exportRef = useRef<(() => string | null) | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
 
-  const moodboard = useMoodboard();
+  const moodboard = useMoodboard(initialElements);
   const { replaceElements } = moodboard;
 
   const showToast = useCallback((message: string) => {
