@@ -10,14 +10,14 @@
 | 답변              | `MoodTestAnswer`               | 문항 하나에 대한 응답 (`image \| keyword \| image_keyword`)                    |
 | 생성 작업         | `MoodboardGenerationJob`       | AI 생성 파이프라인의 작업 단위 (`queued \| processing \| completed \| failed`) |
 | 무드보드          | `Moodboard`                    | 최종 결과물. base image + elements + mood profile                              |
-| 베이스 이미지     | `baseImage` / `base_image_url` | fal.ai가 생성한 무드보드의 바탕 이미지                                         |
+| 베이스 이미지     | `baseImage` / `base_image_url` | Elice AX(Gemini)가 생성한 무드보드의 바탕 이미지                               |
 | 보드 요소         | `MoodboardElement`             | 캔버스 위에 얹는 요소 (`pen \| sticker \| text`)                               |
 | 스티커            | `sticker`                      | 보드 요소 타입 중 하나 — 이미지 기반 장식                                      |
 | 펜                | `pen`                          | 보드 요소 타입 중 하나 — 자유 드로잉                                           |
 | 무드 프로파일     | `moodProfile` / `mood_profile` | 축(axis)별 수치로 표현한 무드 성향 (그래프 시각화의 원천)                      |
-| 키워드            | `keyword`                      | Claude가 답변에서 추출한 무드 키워드 (9개)                                     |
-| 프롬프트          | `prompt`                       | Claude/fal.ai에 보내는 생성 지시문 — `lib/prompts.ts`에서만 관리               |
-| 생성              | `generation`                   | Claude(텍스트)와 fal.ai(이미지)를 거치는 AI 파이프라인 전체                    |
+| 키워드            | `keyword`                      | AI(GPT-5)가 답변에서 추출한 무드 키워드 (9개)                                  |
+| 프롬프트          | `prompt`                       | Elice AX(텍스트·이미지)에 보내는 생성 지시문 — `lib/prompts.ts`에서만 관리     |
+| 생성              | `generation`                   | GPT-5(텍스트)와 Gemini(이미지)를 거치는 AI 파이프라인 전체                     |
 | 캔버스            | `canvas`                       | Konva 기반 편집 화면. `components/canvas/` 격리 구역                           |
 | 스테이지 / 레이어 | `Stage` / `Layer`              | Konva 렌더 트리의 최상위/그룹 단위 — canvas.md 참고                            |
 | 게스트 세션       | `GuestSession`                 | 비로그인 사용자의 임시 세션 (client-issued, 만료 있음)                         |

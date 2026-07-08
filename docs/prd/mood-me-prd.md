@@ -112,7 +112,7 @@
 
 ### 5.3 추구미 테스트
 
-> 상세 스펙(카드 36장·그림자 8개·전환 32개·카피·로깅 스키마·Claude 해석 프레임): [docs/work/todo/mood-test-questions.md](../work/todo/mood-test-questions.md) — **7/7 확정, 이 문서가 구현 기준**
+> 상세 스펙(카드 36장·그림자 8개·전환 32개·카피·로깅 스키마·AI 해석 프레임): [docs/work/todo/mood-test-questions.md](../work/todo/mood-test-questions.md) — **7/7 확정, 이 문서가 구현 기준**
 
 * **경로:** `/test/:sessionId`
 * **구조:** 단발 객관식이 아닌 **3막 선택 메커니즘** (목표 2~3분) — 행동 데이터(무엇을 언제 버렸는지)가 곧 분석 재료
@@ -135,7 +135,7 @@
 * **선택 규칙(다중 선택):**
   * 문항마다 **최소/최대 선택 수**를 둔다(단일 선택 문항 포함). 최소 미충족 시 "N개 이상 골라주세요 (선택/최소)" 안내, 최대 초과 시 "최대 N개까지 고를 수 있어요" 안내.
   * 조건 충족 전에는 "다음"이 비활성이며, 충족 시 "N개 선택됨" 상태를 표시한다.
-* **여정 로깅:** `{selected, dropped_r1/r2, survivors, shadows, transitions, final, dropped_final, toggles}` — 전 과정이 세션에 저장되어 Claude 분석 입력이 된다
+* **여정 로깅:** `{selected, dropped_r1/r2, survivors, shadows, transitions, final, dropped_final, toggles}` — 전 과정이 세션에 저장되어 AI 분석 입력이 된다
 * **동작:**
   * 선택 완료 시 "다음" 활성화 → 프리뷰 안착 애니메이션 후 다음 질문으로 이동, 진척도·프리뷰 갱신
   * **마지막 질문**에서는 "다음" 버튼이 **"무드보드 생성하기"**(스파클)로 전환된다.
@@ -173,7 +173,7 @@
 * **경로:** `/moodboard/:moodboardId`
 * **구성:**
   * 상단: 완성된 무드보드 이미지(편집 요소 포함)
-  * **무드 성향 이름:** 테스트 여정을 바탕으로 부여되는 명명된 성향 — 성향 이름(한글) + 영문명 + 설명 문구. Claude 분석의 **유형명(미학 코어 × 인생 테마)**으로 결정된다(§9). 어느 조합에도 맞지 않으면 기본 성향으로 폴백.
+  * **무드 성향 이름:** 테스트 여정을 바탕으로 부여되는 명명된 성향 — 성향 이름(한글) + 영문명 + 설명 문구. AI 분석의 **유형명(미학 코어 × 인생 테마)**으로 결정된다(§9). 어느 조합에도 맞지 않으면 기본 성향으로 폴백.
   * **무드 성향 그래프:** 추구미 테스트 여정 기반 **5축 시각화** (고요↔활기 · 따뜻↔서늘 · 미니멀↔맥시멀 · 빈티지↔모던 · 현실↔몽환). 프로토타입에는 ① 레이더 차트, ② 막대 스펙트럼(축별 비중 % + 가장 강한/옅은 결 하이라이트)이 있으나, **그래프 표현 방식(종류·개수)은 아직 확정이 아님**(추후 확정).
   * SNS 공유 버튼 (카카오톡 공유, 링크 복사, 이미지 공유 등 — 지원 채널은 §13 Open Questions로 미확정)
   * 이미지 내보내기 버튼 (PNG 다운로드)
@@ -285,7 +285,7 @@ Moodboard
   - base_image_url (AI 생성 결과)
   - elements: [MoodboardElement]
   - mood_profile: {axis: value, ...}            # 축별 값
-  - mood_profile_name: {name, en, description}  # 명명된 성향 (Claude 유형명: 미학 코어 × 인생 테마)
+  - mood_profile_name: {name, en, description}  # 명명된 성향 (AI 유형명: 미학 코어 × 인생 테마)
   - created_at
   - updated_at
 
@@ -318,12 +318,12 @@ MoodboardElement
 
 ## 9. AI 생성 파이프라인 개요
 
-> 상세: [mood-test-questions.md](../work/todo/mood-test-questions.md)의 Claude 해석 프레임·부록(프롬프트 전문)
+> 상세: [mood-test-questions.md](../work/todo/mood-test-questions.md)의 AI 해석 프레임·부록(프롬프트 전문)
 
 1. 테스트 세션의 **여정 로그 전체**(선택·라운드별 탈락·그림자·전환·최종 대결·토글)를 취합
-2. 서버가 **Claude 페이로드로 변환** — id → 라벨·태그 조인, `not_picked`·`was_obvious_antonym` 포함
-3. **Claude 한 호출**로 무드 프로파일 산출: 타이틀 / 확신·열망 해석 / 무드 벡터 5축 / 키워드 9 / 스티커 문구 3 / 유형명(미학 코어 × 인생 테마) / 이미지 생성 프롬프트
-4. **보드 재료 매핑**: 확신 카드 → 큐레이션 타일(카드 이미지 그대로), 열망 → fal.ai 생성 컷(`image_prompt`)
+2. 서버가 **AI 페이로드로 변환** — id → 라벨·태그 조인, `not_picked`·`was_obvious_antonym` 포함
+3. **AI(GPT-5) 한 호출**로 무드 프로파일 산출: 타이틀 / 확신·열망 해석 / 무드 벡터 5축 / 키워드 9 / 스티커 문구 3 / 유형명(미학 코어 × 인생 테마) / 이미지 생성 프롬프트
+4. **보드 재료 매핑**: 확신 카드 → 큐레이션 타일(카드 이미지 그대로), 열망 → Elice AX(Gemini) 생성 컷(`image_prompt`)
 5. 진행률을 클라이언트에 전달 (폴링), 조립 완료 시 결과 이미지를 `Moodboard.base_image_url`로 저장, 편집 화면으로 전환
 
 ### 9.1 구현 단계 (빌더 — 담당: hyeon-aa)
@@ -332,8 +332,8 @@ MoodboardElement
 | --- | --- | --- | --- |
 | ③ | [#34](https://github.com/moodme-teo/mood-me-fe/issues/34) | 시드 데이터(카드 36·그림자 8·전환 32) + 세션 API + 불변식 검증 | — |
 | ④ | [#35](https://github.com/moodme-teo/mood-me-fe/issues/35) | 테스트 플로우 UI (3막 + 여정 로깅 + 프리뷰 연출) | ③과 일부 병행 |
-| ⑤ | [#36](https://github.com/moodme-teo/mood-me-fe/issues/36) | Claude 분석 Route Handler (페이로드 변환 → 프롬프트 → 출력 JSON) | ③ |
-| ⑥ | [#37](https://github.com/moodme-teo/mood-me-fe/issues/37) | 생성 파이프라인 (큐레이션 타일 + fal.ai 컷 → 보드 조립 → 폴링) | ⑤ |
+| ⑤ | [#36](https://github.com/moodme-teo/mood-me-fe/issues/36) | AI 분석 Route Handler (페이로드 변환 → 프롬프트 → 출력 JSON) | ③ |
+| ⑥ | [#37](https://github.com/moodme-teo/mood-me-fe/issues/37) | 생성 파이프라인 (큐레이션 타일 + AI 생성 컷 → 보드 조립 → 폴링) | ⑤ |
 
 ## 10. 엣지 케이스 및 에러 처리
 
