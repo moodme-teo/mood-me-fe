@@ -1,0 +1,56 @@
+"use client";
+
+// 로그인 화면의 3개 버튼. PRD 5.1 — 카카오/구글은 Supabase OAuth 시작, 게스트는
+// guest_session_id 발급 후 메인/홈으로 이동.
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+import { ensureGuestSessionId } from "@/lib/auth/guest-session";
+import { createClient } from "@/lib/supabase/client";
+
+export default function LoginActions() {
+  const router = useRouter();
+  const [isGuestLoading, setIsGuestLoading] = useState(false);
+
+  const startOAuth = async (provider: "kakao" | "google") => {
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+  };
+
+  const continueAsGuest = async () => {
+    setIsGuestLoading(true);
+    await ensureGuestSessionId();
+    router.push("/");
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <button
+        type="button"
+        onClick={() => startOAuth("kakao")}
+        className="w-full rounded-xl bg-[#FEE500] py-4 text-sm font-semibold text-neutral-900"
+      >
+        카카오로 시작하기
+      </button>
+      <button
+        type="button"
+        onClick={() => startOAuth("google")}
+        className="w-full rounded-xl border border-neutral-300 py-4 text-sm font-semibold text-neutral-900"
+      >
+        구글로 시작하기
+      </button>
+      <button
+        type="button"
+        onClick={continueAsGuest}
+        disabled={isGuestLoading}
+        className="w-full py-3 text-sm text-neutral-500 underline disabled:opacity-50"
+      >
+        로그인 없이 둘러보기
+      </button>
+    </div>
+  );
+}

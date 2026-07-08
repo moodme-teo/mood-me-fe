@@ -75,8 +75,8 @@ export function updateMoodboard(
   moodboardId: string,
   input: UpdateMoodboardRequest,
 ) {
-  return apiClient<UpdateMoodboardResponse>(`/api/moodboards/${moodboardId}`, {
-    method: "PATCH",
-    body: JSON.stringify(input),
-  });
+  return apiClient.patch<UpdateMoodboardResponse>(
+    `/api/moodboards/${moodboardId}`,
+    input,
+  );
 }

@@ -1,41 +1,43 @@
-import type { ApiError, ApiSuccess } from "@/types/api";
+import type { ApiErrorCode } from "@/types/api";
+
+// 클라이언트 fetch wrapper 단일 인스턴스. 컴포넌트 안에서 생 fetch() 대신 이걸 거친다.
+// (docs/convention/api.md) — {data}/{error} 파싱과 에러 변환을 한 곳에서 처리.
 
 export class ApiClientError extends Error {
-  code: ApiError["error"]["code"];
-  status: number;
+  code: ApiErrorCode;
 
-  constructor(code: ApiError["error"]["code"], message: string, status: number) {
+  constructor(code: ApiErrorCode, message: string) {
     super(message);
-    this.name = "ApiClientError";
     this.code = code;
-    this.status = status;
   }
 }
 
-export async function apiClient<T>(
-  input: RequestInfo | URL,
-  init?: RequestInit,
-): Promise<T> {
-  const response = await fetch(input, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...init?.headers,
-    },
-  });
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(path, init);
+  const json = await res.json();
 
-  const payload = (await response.json()) as ApiSuccess<T> | ApiError;
-
-  if (!response.ok || "error" in payload) {
-    const error =
-      "error" in payload
-        ? payload.error
-        : {
-            code: "INTERNAL_ERROR" as const,
-            message: "요청을 처리하지 못했어요.",
-          };
-    throw new ApiClientError(error.code, error.message, response.status);
+  if (!res.ok) {
+    const { code, message } = json.error as {
+      code: ApiErrorCode;
+      message: string;
+    };
+    throw new ApiClientError(code, message);
   }
 
-  return payload.data;
+  return (json as { data: T }).data;
 }
+
+function withBody(method: string) {
+  return <T>(path: string, body?: unknown) =>
+    request<T>(path, {
+      method,
+      headers: body ? { "Content-Type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+}
+
+export const apiClient = {
+  get: <T>(path: string) => request<T>(path),
+  post: withBody("POST"),
+  patch: withBody("PATCH"),
+};

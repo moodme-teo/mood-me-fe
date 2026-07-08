@@ -36,7 +36,7 @@ gh auth status >/dev/null 2>&1 || echo "NO_AUTH"
 - **역할**: `프로토타이퍼 | 빌더 | 스위퍼 | 그로워 | 메인테이너 | UXUI Leader | PM | 다같이`
 - **작업이름**: 자유 텍스트
 - **일정**: `26.07.06~26.07.12` 형식 (`YY.MM.DD~YY.MM.DD`). 하루짜리면 `26.07.06~26.07.06`.
-- **페이지**: `로그인 | 메인 | 보드생성 | 보드완성 | 보드편집 | 테스트 | 공통`
+- **페이지/범위**: `로그인 | 메인 | 보드생성 | 보드완성 | 보드편집 | 테스트 | 전역 | 운영 | 품질 | 디자인`
 - **`--assignee <값>`** (선택): 담당자 지정.
   - 생략 → **실행한 본인**(`@me`)에게 배정 (기본값)
   - GitHub 로그인명 → 그 사람에게 배정
@@ -71,13 +71,14 @@ gh issue list --state open --search "<작업이름 핵심 키워드> in:title" -
 
 > `/work-work` 는 이 브래킷에서 type을 역산해(`[Feat]` → `feat`) 브랜치명·커밋 prefix에 사용한다. 브래킷 형식을 지킬 것.
 
-## 5. 라벨 준비 (페이지 단위)
+## 5. 라벨 준비 (페이지/범위 단위)
 
-라벨은 **타입이 아니라 페이지** 로 붙인다. 허용 라벨은 아래 7개로 고정:
+라벨은 **타입이 아니라 페이지/범위** 로 붙인다. 허용 라벨은 아래 10개로 고정 — 페이지 6개 + 범위 4개:
 
-`로그인` · `메인` · `테스트` · `보드생성` · `보드편집` · `보드완성` · `공통`
+- 페이지: `로그인` · `메인` · `테스트` · `보드생성` · `보드편집` · `보드완성`
+- 범위: `전역`(여러 페이지에 걸친 기능 코드) · `운영`(프로세스·세팅·릴리즈·데모·라이선스) · `품질`(버그·접근성·반응형·리팩토링) · `디자인`(디자인 시스템·토큰·시안)
 
-- 페이지 값이 위 7개 중 하나인지 확인한다. 아니거나 비어있으면 `AskUserQuestion` 으로 확정한다.
+- 페이지 값이 위 10개 중 하나인지 확인한다. 아니거나 비어있으면 `AskUserQuestion` 으로 확정한다.
 - 라벨이 레포에 없으면 아래로 보강(있으면 무시):
 
 ```bash
@@ -87,10 +88,13 @@ gh label create "테스트"   --color 5319E7 --description "추구미 테스트 
 gh label create "보드생성" --color D93F0B --description "무드보드 생성(AI 생성중) 관련"   --force 2>/dev/null || true
 gh label create "보드편집" --color FBCA04 --description "무드보드 편집 관련"              --force 2>/dev/null || true
 gh label create "보드완성" --color 006B75 --description "최종 결과물 페이지 관련"         --force 2>/dev/null || true
-gh label create "공통"     --color BFDADC --description "여러 페이지에 걸친 공통 작업"    --force 2>/dev/null || true
+gh label create "전역"     --color BFDADC --description "여러 페이지에 걸친 기능 코드 작업" --force 2>/dev/null || true
+gh label create "운영"     --color 6E7781 --description "프로세스·세팅·릴리즈·데모·라이선스 등 프로젝트 운영 작업" --force 2>/dev/null || true
+gh label create "품질"     --color B60205 --description "버그·접근성·반응형·리팩토링 등 횡단 품질 작업" --force 2>/dev/null || true
+gh label create "디자인"   --color D876E3 --description "디자인 시스템·토큰·시안 작업"      --force 2>/dev/null || true
 ```
 
-> 페이지 라벨 목록을 바꿀 때는 이 스킬, `/work-work` 스킬, `docs/work/ISSUE_TEMPLATE.md`, `docs/work/README.md` 를 함께 맞춘다.
+> 라벨 목록을 바꿀 때는 이 스킬, `/work-work` 스킬, `docs/work/ISSUE_TEMPLATE.md`, `docs/work/README.md`, `docs/convention/branch-pr-convention.md` 를 함께 맞춘다.
 
 ## 6. 이슈 생성 + 배정 + 보드 등록 + 일정·역할 기록
 
