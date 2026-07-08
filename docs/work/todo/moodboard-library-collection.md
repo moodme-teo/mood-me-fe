@@ -232,9 +232,24 @@
 - **중앙 타이틀 방사형**: 타이틀 카드는 s07(리본 배너)·s08(금박 라벨) + Konva Text 조합 — 사진 수집 불필요.
 - **매거진 그리드**: 컬러칩은 무드 벡터에서 Konva `Rect`로 그린다 — 에셋 수집 없음.
 
+## AI 생성 방법 (Gemini 2.5 Flash Image · Elice 프록시) — 7/8 확정·실측
+
+스톡 보완 및 오브제 컷아웃은 **Elice AX 프록시의 Gemini 2.5 Flash Image**로 생성한다 (fal.ai FLUX schnell 대체, 스펙 생성 확정안 반영). 엔드포인트는 문서 placeholder(`your-proxy-domain.com`)가 아니라 실측 확정값:
+
+- **base_url**: `https://api-cloud-function.elice.io/v1` (경로에 api-id 없음 — Bearer 키로 계정 식별)
+- **엔드포인트**: `POST /images/generations` (OpenAI 호환)
+- **model**: `google/gemini-2.5-flash-image` (이 정확한 문자열이어야 통과)
+- **auth**: `Authorization: Bearer $ELICE_MODEL_API_KEY` · env: `ELICE_BASE_URL`·`ELICE_IMAGE_MODEL`·`ELICE_MODEL_API_KEY` (`.env.local`, git 무시)
+- **응답**: `data[0].url`은 `null`, **`data[0].b64_json`에 base64 PNG**
+- **주의**: ① urllib 기본 UA는 Cloudflare 1010 차단 → 브라우저 UA 헤더 필요 ② **`aspect_ratio` 파라미터 무시됨 — 항상 1024×1024 정방 반환**. 비율 믹스는 조립 단계 크롭으로 처리 ③ 간헐적 500(`NoneType parts`, 빈 응답) → 재시도
+
+**프롬프트 방침 (스펙)**: 질감/필름그레인/빈티지 지시 금지, 얼굴·텍스트·로고 배제, "감성 디테일 컷 — 한 장면·한 사물". 실측 결과 **질감 지시 없이도 slop 안 나옴**(파일럿 15장 확인). 오브제는 `단색 순백 배경 생성 → 배경 제거 → 투명 PNG`.
+
+**배경 제거**: rembg 미사용(Python 3.14 휠 부재). **Pillow 코너 seed flood-fill**(thresh 36 + 1px 침식 + 알파 블러 0.6)로 처리 — 클로버·만년필·나비는 깨끗, **밝은 피사체(책·수정)는 옅은 흰 halo**. 실물 수집 땐 rembg 또는 "그림자 없음" 프롬프트 강화 권장.
+
 ## 수집 순서 (우선순위)
 
-1. **조립 목업 최소 세트** (#41 구간 3에 필요): 페르소나 결이 다른 여정 3개를 커버하는 타일 15장 + 오브제 5개 + 스티커 프레임 3종 + 데코 6종 + 텍스처 1종(t01)
+1. **조립 목업 최소 세트** (#41 구간 3에 필요): 페르소나 결이 다른 여정 3개를 커버하는 타일 15장 + 오브제 5개 + 스티커 프레임 3종 + 데코 6종 + 텍스처 1종(t01) — ✅ **7/8 생성 완료**. 여정 A 코지×코티지(b30·b32·b77·b78·b80), B 다크아카×커리어(b21·b22·b23·b45·b61), C 페어리×네오로맨틱(b33·b35·b53·b54·b76) / 오브제 o01·o04·o08·o18·o19 / 스티커 s01·s05·s06 / 데코 d01·d05·d07·d11·d12·d17 / t01. 조립 목업: [moodboard-assembly-mockup.html](./moodboard-assembly-mockup.html)
 2. A계층 나머지 — 페르소나당 앵커 2장 먼저(40장) → 잔여 40장
 3. B·C·D 잔여 + 텍스처 t02~t04
 4. 태깅 재검수: 실물 기준 무드 벡터 조정 + 혼동 쌍 질문 + 밸런스 표 갱신

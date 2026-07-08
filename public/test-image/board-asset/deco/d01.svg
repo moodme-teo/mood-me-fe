@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 44" width="140" height="44">
+  <!-- d01 마스킹테이프 크라프트 무지 -->
+  <polygon points="2,8 138,4 136,38 4,42" fill="#d9c8a0" opacity="0.82"/>
+  <polygon points="2,8 138,4 136,38 4,42" fill="none" stroke="#c7b485" stroke-width="0.8" opacity="0.5"/>
+</svg>
