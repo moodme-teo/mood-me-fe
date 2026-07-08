@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { BoardCanvas } from "@/components/canvas";
+import { BoardPreview } from "@/components/canvas";
 import { getMoodboard } from "@/lib/api/get-moodboard";
 import { ApiClientError } from "@/lib/api-client";
 import type { Moodboard, MoodVector } from "@/types/moodboard";
@@ -365,7 +365,7 @@ export default function MoodboardResult({ moodboardId }: Props) {
         </header>
 
         <section className="mx-auto w-[360px] max-w-full overflow-hidden rounded-2xl bg-neutral-950">
-          <BoardCanvas
+          <BoardPreview
             width={MOODBOARD_WIDTH}
             height={MOODBOARD_HEIGHT}
             baseImageUrl={moodboard.baseImageUrl}

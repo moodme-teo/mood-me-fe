@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 70" width="300" height="70">
+  <!-- s06 마스킹테이프 라벨 (가로 띠) · 웜 크래프트 -->
+  <rect x="4" y="16" width="292" height="38" fill="#e7d9b0" opacity="0.9"/>
+  <rect x="4" y="16" width="292" height="38" fill="none" stroke="#d8c690" stroke-width="1" opacity="0.6"/>
+</svg>

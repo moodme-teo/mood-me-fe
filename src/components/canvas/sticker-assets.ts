@@ -1,4 +1,6 @@
-import type { StickerAssetId } from "@/types/moodboard";
+"use client";
+
+import type { StickerAssetId } from "@/components/canvas/types";
 
 export type StickerAsset = {
   id: StickerAssetId;

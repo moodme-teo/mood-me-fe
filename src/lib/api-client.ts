@@ -27,12 +27,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (json as { data: T }).data;
 }
 
-export const apiClient = {
-  get: <T>(path: string) => request<T>(path),
-  post: <T>(path: string, body?: unknown) =>
+function withBody(method: string) {
+  return <T>(path: string, body?: unknown) =>
     request<T>(path, {
-      method: "POST",
+      method,
       headers: body ? { "Content-Type": "application/json" } : undefined,
       body: body ? JSON.stringify(body) : undefined,
-    }),
+    });
+}
+
+export const apiClient = {
+  get: <T>(path: string) => request<T>(path),
+  post: withBody("POST"),
+  patch: withBody("PATCH"),
 };
