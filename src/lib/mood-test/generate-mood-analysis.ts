@@ -1,6 +1,6 @@
 import "server-only";
 
-import { elice, GPT_MODEL } from "@/lib/elice-ai";
+import { getEliceClient, GPT_MODEL } from "@/lib/elice-ai";
 import { buildMoodAnalysisPayload } from "@/lib/mood-test/build-analysis-payload";
 import { getCompletedMoodTestSession } from "@/lib/mood-test/get-completed-session";
 import {
@@ -26,7 +26,7 @@ export type GenerateMoodAnalysisResult =
     };
 
 async function callGpt(userMessage: string): Promise<string> {
-  const response = await elice.chat.completions.create(
+  const response = await getEliceClient().chat.completions.create(
     {
       model: GPT_MODEL,
       max_completion_tokens: GPT_MAX_COMPLETION_TOKENS,
