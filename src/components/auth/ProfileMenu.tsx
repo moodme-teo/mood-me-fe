@@ -40,7 +40,7 @@ export default function ProfileMenu({ isLoggedIn = false }: Props) {
         onClick={handleProfileClick}
         aria-label={isLoggedIn ? "계정 메뉴 열기" : "로그인해서 보드 저장하기"}
         aria-expanded={open}
-        className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-300 bg-neutral-100 text-sm text-neutral-600"
+        className="flex h-11 w-11 items-center justify-center rounded-full border border-neutral-300 bg-neutral-100 text-sm font-bold text-neutral-600"
       >
         {isLoggedIn ? "내" : "?"}
       </button>

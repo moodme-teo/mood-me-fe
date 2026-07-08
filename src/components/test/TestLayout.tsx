@@ -6,21 +6,40 @@
 // 참고: docs/work/todo/mood-test-questions.md
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import BuildBoardPreview from "@/components/test/BuildBoardPreview";
 import StageBody from "@/components/test/StageBody";
 import { STAGES } from "@/components/test/stages";
 import TestFooter from "@/components/test/TestFooter";
 import TestHeader from "@/components/test/TestHeader";
+import {
+  clearMoodTestDraft,
+  saveMoodTestDraft,
+} from "@/lib/mood-test/draft-storage";
 
-export default function TestLayout({ sessionId }: { sessionId: string }) {
+type Props = {
+  initialStepIndex?: number;
+  sessionId: string;
+};
+
+function clampStepIndex(stepIndex: number) {
+  return Math.max(0, Math.min(STAGES.length - 1, stepIndex));
+}
+
+export default function TestLayout({ initialStepIndex = 0, sessionId }: Props) {
   const router = useRouter();
-  const [stepIndex, setStepIndex] = useState(0);
+  const [stepIndex, setStepIndex] = useState(() =>
+    clampStepIndex(initialStepIndex),
+  );
 
   const stage = STAGES[stepIndex];
   const isFirst = stepIndex === 0;
   const isLast = stepIndex === STAGES.length - 1;
+
+  useEffect(() => {
+    saveMoodTestDraft({ sessionId, stepIndex });
+  }, [sessionId, stepIndex]);
 
   const goBack = () => {
     if (isFirst) {
@@ -39,6 +58,7 @@ export default function TestLayout({ sessionId }: { sessionId: string }) {
   // 실제 생성 요청·여정 저장(#34/#35)은 없고, 이미 존재하는 생성중 placeholder 라우트(#22)로만 이동한다.
   const handleFooterClick = () => {
     if (isLast) {
+      clearMoodTestDraft();
       router.push(`/test/${sessionId}/generating`);
       return;
     }

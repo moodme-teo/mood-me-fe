@@ -41,9 +41,23 @@ export async function loadMoodboardDraft(moodboardId: string) {
   const draft = await new Promise<MoodboardDraft | null>((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, "readonly");
     const request = transaction.objectStore(STORE_NAME).get(moodboardId);
-    request.onsuccess = () => resolve((request.result as MoodboardDraft) ?? null);
+    request.onsuccess = () =>
+      resolve((request.result as MoodboardDraft) ?? null);
     request.onerror = () => reject(request.error);
   });
   db.close();
   return draft;
+}
+
+export async function listMoodboardDrafts() {
+  const db = await openDraftDb();
+  const drafts = await new Promise<MoodboardDraft[]>((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readonly");
+    const request = transaction.objectStore(STORE_NAME).getAll();
+    request.onsuccess = () =>
+      resolve((request.result as MoodboardDraft[]) ?? []);
+    request.onerror = () => reject(request.error);
+  });
+  db.close();
+  return drafts;
 }
