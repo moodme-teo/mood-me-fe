@@ -24,7 +24,7 @@ export default function GeneratingMessages() {
   }, []);
 
   return (
-    <p role="status" className="text-sm text-neutral-500">
+    <p role="status" className="text-sm text-muted-foreground">
       {MESSAGES[index]}
     </p>
   );

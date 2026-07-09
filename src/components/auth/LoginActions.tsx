@@ -32,14 +32,14 @@ export default function LoginActions() {
       <button
         type="button"
         onClick={() => startOAuth("kakao")}
-        className="w-full rounded-xl bg-[#FEE500] py-4 text-sm font-semibold text-neutral-900"
+        className="w-full rounded-full bg-[#FEE500] py-4 text-sm font-semibold text-foreground shadow-card ring-ring transition-colors duration-200 ease-standard outline-none hover:bg-[#ffeb33] focus-visible:ring-2 active:bg-[#f4dc00]"
       >
         카카오로 시작하기
       </button>
       <button
         type="button"
         onClick={() => startOAuth("google")}
-        className="w-full rounded-xl border border-neutral-300 py-4 text-sm font-semibold text-neutral-900"
+        className="w-full rounded-full border border-gray-300 bg-card py-4 text-sm font-semibold text-foreground ring-ring transition-colors duration-200 ease-standard outline-none hover:bg-surface-sunken focus-visible:ring-2 active:bg-gray-100"
       >
         구글로 시작하기
       </button>
@@ -47,7 +47,7 @@ export default function LoginActions() {
         type="button"
         onClick={continueAsGuest}
         disabled={isGuestLoading}
-        className="w-full py-3 text-sm text-neutral-500 underline disabled:opacity-50"
+        className="w-full py-3 text-sm text-muted-foreground underline disabled:opacity-50"
       >
         로그인 없이 둘러보기
       </button>

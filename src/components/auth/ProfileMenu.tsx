@@ -68,7 +68,7 @@ export default function ProfileMenu({ isLoggedIn = false }: Props) {
         onClick={handleProfileClick}
         aria-label={isLoggedIn ? "계정 메뉴 열기" : "로그인해서 보드 저장하기"}
         aria-expanded={open}
-        className="flex h-11 w-11 items-center justify-center rounded-full border border-neutral-300 bg-neutral-100 text-sm font-bold text-neutral-600 ring-[#2556d9] outline-none focus-visible:ring-2"
+        className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-300 bg-surface-sunken text-sm font-bold text-muted-foreground ring-ring outline-none focus-visible:ring-2"
       >
         {isLoggedIn ? "내" : "?"}
       </button>
@@ -76,12 +76,12 @@ export default function ProfileMenu({ isLoggedIn = false }: Props) {
       {open && isLoggedIn && (
         <div
           aria-label="계정 메뉴"
-          className="absolute top-11 right-0 min-w-32 rounded-lg border border-neutral-200 bg-white py-1 shadow-md"
+          className="absolute top-11 right-0 min-w-32 rounded-lg border border-gray-100 bg-card py-1 shadow-md"
         >
           <button
             type="button"
             onClick={logout}
-            className="w-full px-4 py-2 text-left text-sm text-neutral-700 ring-[#2556d9] outline-none hover:bg-neutral-50 focus-visible:ring-2"
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 ring-ring outline-none hover:bg-surface-sunken focus-visible:ring-2"
           >
             로그아웃
           </button>

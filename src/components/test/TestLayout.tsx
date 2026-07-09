@@ -91,11 +91,15 @@ export default function TestLayout({ sessionId }: Props) {
       <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 py-6">
         <section className="flex flex-col gap-4">
           <div>
-            <p className="text-xs font-medium text-neutral-400">{kicker}</p>
-            <h2 className="mt-1 text-xl font-semibold text-neutral-900">
+            <p className="text-xs font-medium text-muted-foreground">
+              {kicker}
+            </p>
+            <h2 className="mt-1 text-xl font-semibold text-foreground">
               {title}
             </h2>
-            {hint && <p className="mt-1 text-sm text-neutral-500">{hint}</p>}
+            {hint && (
+              <p className="mt-1 text-sm text-muted-foreground">{hint}</p>
+            )}
           </div>
           <StageBody
             screen={flow.screen}
@@ -104,7 +108,7 @@ export default function TestLayout({ sessionId }: Props) {
             target={flow.target}
             onToggle={flow.toggle}
           />
-          <p className="text-xs text-neutral-400" role="status">
+          <p className="text-xs text-muted-foreground" role="status">
             {flow.draft.length} / {flow.target} 선택됨
           </p>
         </section>

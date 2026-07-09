@@ -5,8 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import FirstEntryLanding, {
+  type ContinueTarget,
+} from "@/app/_components/FirstEntryLanding";
 import ProfileMenu from "@/components/auth/ProfileMenu";
 import { listMoodboardDrafts } from "@/components/board/moodboard-draft-storage";
+import { Button } from "@/components/ui/button";
 import { getMoodboards } from "@/lib/api/get-moodboards";
 import { ApiClientError } from "@/lib/api-client";
 import { getStoredGuestSessionId } from "@/lib/auth/guest-session";
@@ -20,36 +24,6 @@ type Props = {
   isLoggedIn: boolean;
 };
 
-type ExampleMoodboard = {
-  alt: string;
-  imageUrl: string;
-  title: string;
-};
-
-type ContinueTarget = {
-  href: string;
-  label: string;
-  updatedAt: string;
-};
-
-const EXAMPLE_MOODBOARDS: ExampleMoodboard[] = [
-  {
-    imageUrl: "/test-image/board/b21.jpg",
-    title: "부드러운 활기",
-    alt: "초록과 햇빛 톤의 큐레이션 무드보드 예시",
-  },
-  {
-    imageUrl: "/test-image/board/b45.jpg",
-    title: "작은 확신",
-    alt: "푸른 오브제와 텍스처가 섞인 큐레이션 무드보드 예시",
-  },
-  {
-    imageUrl: "/test-image/board/b76.jpg",
-    title: "나만의 속도",
-    alt: "따뜻한 빛과 빈티지 장면이 놓인 큐레이션 무드보드 예시",
-  },
-];
-
 function getErrorMessage(error: unknown) {
   if (error instanceof ApiClientError) {
     return error.message;
@@ -60,53 +34,6 @@ function getErrorMessage(error: unknown) {
 
 function getDraftStepHref(draft: MoodTestDraft) {
   return `/test/${draft.sessionId}?step=${draft.stepIndex}`;
-}
-
-function ExampleGrid() {
-  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
-
-  return (
-    <section aria-label="무드보드 예시" className="grid grid-cols-3 gap-2">
-      {EXAMPLE_MOODBOARDS.map((example, index) => {
-        const hasFailed = failedImages.has(example.imageUrl);
-
-        return (
-          <article
-            key={example.imageUrl}
-            className={`relative overflow-hidden rounded-lg bg-neutral-200 ${
-              index === 1 ? "mt-7" : ""
-            }`}
-          >
-            <div className="relative aspect-[3/4]">
-              {hasFailed ? (
-                <div className="flex h-full items-end bg-[#dfe8dd] p-2 text-xs font-black text-neutral-950">
-                  {example.title}
-                </div>
-              ) : (
-                <Image
-                  fill
-                  src={example.imageUrl}
-                  alt={example.alt}
-                  sizes="(max-width: 768px) 32vw, 160px"
-                  className="object-cover"
-                  onError={() => {
-                    setFailedImages((current) => {
-                      const next = new Set(current);
-                      next.add(example.imageUrl);
-                      return next;
-                    });
-                  }}
-                />
-              )}
-            </div>
-            <div className="absolute inset-x-0 bottom-0 bg-neutral-950/82 px-2 py-2 text-[11px] font-black text-white">
-              {example.title}
-            </div>
-          </article>
-        );
-      })}
-    </section>
-  );
 }
 
 function MoodboardCard({ moodboard }: { moodboard: MoodboardSummary }) {
@@ -120,11 +47,11 @@ function MoodboardCard({ moodboard }: { moodboard: MoodboardSummary }) {
     <Link
       href={`/moodboard/${moodboard.id}`}
       aria-label={`${cardTitle} 결과 열람하기`}
-      className="group block overflow-hidden rounded-lg bg-white text-neutral-950 ring-[#2556d9] transition outline-none focus-visible:ring-2"
+      className="group block overflow-hidden rounded-lg bg-card text-foreground ring-ring transition outline-none focus-visible:ring-2"
     >
       <div className="relative aspect-[3/4] bg-[#dfe8dd]">
         {hasImageFailed ? (
-          <div className="flex h-full items-end p-3 text-sm font-black">
+          <div className="flex h-full items-end p-3 text-sm font-bold">
             {moodboard.typeName}
           </div>
         ) : (
@@ -139,15 +66,15 @@ function MoodboardCard({ moodboard }: { moodboard: MoodboardSummary }) {
           />
         )}
         {moodboard.isGuest ? (
-          <span className="absolute top-2 left-2 rounded-full bg-neutral-950/82 px-2 py-1 text-[11px] font-black text-white">
+          <span className="absolute top-2 left-2 rounded-full bg-surface-inverse/82 px-2 py-1 text-[11px] font-bold text-white">
             임시
           </span>
         ) : null}
       </div>
       <div className="min-h-16 p-3">
-        <p className="line-clamp-2 text-sm font-black">{moodboard.typeName}</p>
+        <p className="line-clamp-2 text-sm font-bold">{moodboard.typeName}</p>
         {moodboard.title !== moodboard.typeName ? (
-          <p className="mt-1 line-clamp-1 text-xs font-bold text-neutral-600">
+          <p className="mt-1 line-clamp-1 text-xs font-bold text-muted-foreground">
             {moodboard.title}
           </p>
         ) : null}
@@ -166,13 +93,13 @@ function MoodboardSkeletonGrid() {
       {Array.from({ length: 6 }).map((_, index) => (
         <div
           key={index}
-          className="overflow-hidden rounded-lg bg-white"
+          className="overflow-hidden rounded-lg bg-card"
           role="status"
         >
-          <div className="aspect-[3/4] animate-pulse bg-neutral-200 motion-reduce:animate-none" />
+          <div className="aspect-[3/4] animate-pulse bg-gray-100 motion-reduce:animate-none" />
           <div className="space-y-2 p-3">
-            <div className="h-3 w-4/5 animate-pulse rounded-full bg-neutral-200 motion-reduce:animate-none" />
-            <div className="h-3 w-1/2 animate-pulse rounded-full bg-neutral-200 motion-reduce:animate-none" />
+            <div className="h-3 w-4/5 animate-pulse rounded-full bg-gray-100 motion-reduce:animate-none" />
+            <div className="h-3 w-1/2 animate-pulse rounded-full bg-gray-100 motion-reduce:animate-none" />
           </div>
         </div>
       ))}
@@ -194,15 +121,15 @@ function RetryPanel({
   return (
     <section
       aria-live="polite"
-      className="rounded-lg border border-[#f1b2a7] bg-[#fff0ed] p-4 text-neutral-950"
+      className="rounded-lg border border-[#f1b2a7] bg-[#fff0ed] p-4 text-foreground"
     >
-      <p className="text-sm font-black">저장한 보드를 불러오지 못했어요.</p>
-      <p className="mt-1 text-sm leading-6 text-neutral-700">{error}</p>
+      <p className="text-sm font-bold">저장한 보드를 불러오지 못했어요.</p>
+      <p className="mt-1 text-sm leading-6 text-gray-700">{error}</p>
       <button
         type="button"
         onClick={onRetry}
         disabled={isRetrying}
-        className="mt-3 min-h-11 rounded-full bg-neutral-950 px-4 py-2 text-sm font-black text-white disabled:opacity-55"
+        className="mt-3 min-h-11 rounded-full bg-surface-inverse px-4 py-2 text-sm font-bold text-white disabled:opacity-55"
       >
         {isRetrying ? "다시 불러오는 중" : "다시 시도"}
       </button>
@@ -216,33 +143,11 @@ function ContinueDraftEntry({ target }: { target: ContinueTarget | null }) {
   return (
     <Link
       href={target.href}
-      className="flex items-center justify-between rounded-lg border border-[#2556d9]/35 bg-[#eef3ff] px-4 py-3 text-sm font-black text-[#163b98] ring-[#2556d9] outline-none focus-visible:ring-2"
+      className="flex items-center justify-between rounded-lg border border-[#2556d9]/35 bg-[#eef3ff] px-4 py-3 text-sm font-bold text-[#163b98] ring-ring outline-none focus-visible:ring-2"
     >
       <span>이어서 만들기</span>
       <span className="text-xs font-bold">{target.label}</span>
     </Link>
-  );
-}
-
-function LandingContent({ errorPanel }: { errorPanel: React.ReactNode }) {
-  return (
-    <main className="flex min-h-0 flex-1 flex-col gap-8 overflow-y-auto px-4 pt-2 pb-5">
-      <section className="mx-auto w-full max-w-[520px] space-y-6">
-        <div className="space-y-4">
-          <h1 className="text-[clamp(2.65rem,11vw,4.7rem)] leading-[0.96] font-black text-balance text-neutral-950">
-            <span className="block">오늘의 추구미를</span>
-            <span className="block">보드로 채워요</span>
-          </h1>
-          <p className="max-w-[34ch] text-base leading-7 font-semibold text-pretty text-neutral-700">
-            짧게 고른 취향 답변이 AI 이미지와 키워드가 되고, 마지막에는 바로
-            공유하고 싶은 나만의 무드보드가 됩니다.
-          </p>
-        </div>
-
-        <ExampleGrid />
-        {errorPanel}
-      </section>
-    </main>
   );
 }
 
@@ -261,10 +166,10 @@ function HistoryContent({
     <main className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 pt-2 pb-5">
       <section className="mx-auto w-full max-w-[680px] space-y-5">
         <div>
-          <h1 className="text-4xl leading-tight font-black text-neutral-950">
+          <h1 className="text-4xl leading-tight font-bold text-foreground">
             History
           </h1>
-          <p className="mt-2 text-base font-bold text-neutral-700">
+          <p className="mt-2 text-base font-bold text-gray-700">
             {isLoading
               ? "저장한 무드보드를 불러오고 있어요"
               : hasError
@@ -400,35 +305,45 @@ export default function HomeExperience({
   const hasError = error !== null;
   const shouldShowHistory = hasMoodboards || isLoadingList || hasError;
 
+  // 저장 보드 0개 → 메인(첫진입): 스플래시 → 첫진입 애니메이션 화면. 자체 크롬(아바타·CTA)을
+  // 가지므로 공용 헤더/푸터로 감싸지 않는다. History 상태만 공용 셸을 쓴다.
+  if (!shouldShowHistory) {
+    return (
+      <FirstEntryLanding
+        isLoggedIn={isLoggedIn}
+        continueTarget={continueTarget}
+        onCreate={handleCreateMoodboard}
+      />
+    );
+  }
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-[#f7f7f8] text-neutral-950">
+    <div className="flex min-h-0 flex-1 flex-col bg-background text-foreground">
       <header className="mx-auto flex w-full max-w-[720px] items-center justify-between px-4 py-3">
-        <Link href="/" className="text-sm font-black tracking-normal">
+        <Link href="/" className="text-sm font-bold tracking-normal">
           mood·me
         </Link>
         <ProfileMenu isLoggedIn={isLoggedIn} />
       </header>
 
-      {shouldShowHistory ? (
-        <HistoryContent
-          errorPanel={errorPanel}
-          hasError={hasError}
-          isLoading={isLoadingList}
-          moodboards={moodboards}
-        />
-      ) : (
-        <LandingContent errorPanel={errorPanel} />
-      )}
+      <HistoryContent
+        errorPanel={errorPanel}
+        hasError={hasError}
+        isLoading={isLoadingList}
+        moodboards={moodboards}
+      />
 
-      <footer className="mx-auto w-full max-w-[720px] space-y-2 border-t border-neutral-200 bg-[#f7f7f8] px-4 py-3">
+      <footer className="mx-auto w-full max-w-[720px] space-y-2 border-t border-gray-100 bg-background px-4 py-3">
         <ContinueDraftEntry target={continueTarget} />
-        <button
+        <Button
           type="button"
+          tone="ink"
+          size="md"
           onClick={handleCreateMoodboard}
-          className="h-[52px] w-full rounded-full bg-neutral-950 px-5 text-base font-black text-white ring-[#2556d9] transition outline-none focus-visible:ring-2 active:scale-[0.99]"
+          className="h-[52px] w-full text-base font-bold"
         >
           무드보드 만들기
-        </button>
+        </Button>
       </footer>
     </div>
   );

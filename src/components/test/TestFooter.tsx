@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+
 export default function TestFooter({
   label,
   onClick,
@@ -10,20 +12,22 @@ export default function TestFooter({
   errorMessage?: string | null;
 }) {
   return (
-    <footer className="border-t border-neutral-200 px-4 py-4">
+    <footer className="border-t border-gray-100 px-4 py-4">
       {errorMessage && (
         <p role="alert" className="mb-2 text-center text-sm text-red-600">
           {errorMessage}
         </p>
       )}
-      <button
+      <Button
         type="button"
+        tone="ink"
+        size="lg"
         onClick={onClick}
         disabled={disabled}
-        className="flex w-full items-center justify-center rounded-xl bg-neutral-900 py-4 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+        className="w-full"
       >
         {label}
-      </button>
+      </Button>
     </footer>
   );
 }

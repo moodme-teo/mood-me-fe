@@ -456,7 +456,7 @@ export default function BoardCanvas({
         height={MOODBOARD_HEIGHT * scale}
         scaleX={scale}
         scaleY={scale}
-        className="overflow-hidden rounded-[22px] bg-neutral-950 shadow-[0_14px_30px_rgba(0,0,0,0.24)]"
+        className="overflow-hidden rounded-[22px] bg-surface-inverse shadow-[0_14px_30px_rgba(0,0,0,0.24)]"
         onMouseDown={handleStagePointerDown}
         onMouseMove={handleStagePointerMove}
         onMouseUp={handleStagePointerUp}

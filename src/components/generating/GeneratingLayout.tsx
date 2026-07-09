@@ -33,7 +33,7 @@ export default function GeneratingLayout({ sessionId }: { sessionId: string }) {
         <GenerationProgressBar percent={percent} />
       </div>
 
-      <p className="text-xs text-neutral-400" role="status">
+      <p className="text-xs text-muted-foreground" role="status">
         세션 {sessionId}
       </p>
     </div>

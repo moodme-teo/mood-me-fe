@@ -1,26 +1,601 @@
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Nanum+Myeongjo:wght@700&display=swap");
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* dark 변형을 클래스 기반으로 고정 — mood me는 화이트 캔버스 단일 테마라
+   OS의 prefers-color-scheme dark가 자동 발동하지 않도록 `.dark` 클래스에만 묶는다.
+   (.dark 는 어디에도 부착하지 않는다) */
+@custom-variant dark (&:is(.dark *));
+
+/* ==========================================================================
+   Fonts — mood me
+   본문/UI 텍스트는 언어 혼합 스택 없이 Pretendard 하나만 사용한다.
+   한글 display 계층은 Nanum Myeongjo, 영문 display 계층은 Instrument
+   Serif를 사용한다.
+   ========================================================================== */
+@font-face {
+  font-family: "Pretendard";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("https://unpkg.com/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Medium.woff2")
+    format("woff2");
 }
 
+@font-face {
+  font-family: "Pretendard";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url("https://unpkg.com/pretendard@1.3.9/dist/web/static/woff2/Pretendard-SemiBold.woff2")
+    format("woff2");
+}
+
+@font-face {
+  font-family: "Pretendard";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("https://unpkg.com/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Bold.woff2")
+    format("woff2");
+}
+
+/* ==========================================================================
+   Design tokens — mood me (핸드오프 번들 원본값)
+   ========================================================================== */
+:root {
+  /* ---- Fonts ---- */
+  --font-body: "Pretendard";
+  --font-display-kr: "Nanum Myeongjo";
+  --font-display-en: "Instrument Serif";
+
+  /* ---- Neutral scale (moody warm gray, not cream paper) ---- */
+  --gray-900: #1b1715;
+  --gray-700: #463f3b;
+  --gray-500: #6d645f;
+  --gray-300: #d4ceca;
+  --gray-100: #ece8e5;
+  --gray-050: #f6f4f2;
+
+  /* ---- Bright palette (deep 700 / base 500 / tint 300) ---- */
+  --pink-700: #c21e74;
+  --pink-500: #ff4fa3;
+  --pink-300: #ffb3d9;
+
+  --violet-700: #5b21b6;
+  --violet-500: #8b5cf6;
+  --violet-300: #cabdfb;
+
+  --cyan-700: #0e7fa3;
+  --cyan-500: #22d3ee;
+  --cyan-300: #a6ecf9;
+
+  --green-700: #4f9e12;
+  --green-500: #8cff3d;
+  --green-300: #cdffa8;
+
+  --mustard-700: #b8790a;
+  --mustard-500: #ffc933;
+  --mustard-300: #ffe49e;
+
+  /* ---- Glow gradients — hue+명도 대비를 가로지르는 4-stop 가로(36deg)
+     그라디언트. 단일 hue flat fill 금지(브랜드 규칙). ---- */
+  --gradient-pink: linear-gradient(
+    36deg,
+    #fdd1a1 var(--mood-gradient-stop-1, 0%),
+    #fcac9e var(--mood-gradient-stop-2, 21%),
+    #fc507e var(--mood-gradient-stop-3, 54%),
+    #fda8b6 var(--mood-gradient-stop-4, 95%),
+    #fda8b6 100%
+  );
+  --gradient-violet: linear-gradient(
+    36deg,
+    #fba6e9 var(--mood-gradient-stop-1, 0%),
+    #c8bffe var(--mood-gradient-stop-2, 21%),
+    #b9b5ff var(--mood-gradient-stop-3, 54%),
+    #eccdfe var(--mood-gradient-stop-4, 95%),
+    #eccdfe 100%
+  );
+  --gradient-cyan: linear-gradient(
+    36deg,
+    #b7fbe3 var(--mood-gradient-stop-1, 0%),
+    #06f9fc var(--mood-gradient-stop-2, 21%),
+    #279bfb var(--mood-gradient-stop-3, 54%),
+    #6b87fb var(--mood-gradient-stop-4, 95%),
+    #6b87fb 100%
+  );
+  --gradient-green: linear-gradient(
+    36deg,
+    #e0cdb3 var(--mood-gradient-stop-1, 0%),
+    #f96d42 var(--mood-gradient-stop-2, 21%),
+    #f8502f var(--mood-gradient-stop-3, 54%),
+    #798848 var(--mood-gradient-stop-4, 95%),
+    #798848 100%
+  );
+  --gradient-mustard: linear-gradient(
+    36deg,
+    #fdb98d var(--mood-gradient-stop-1, 0%),
+    #ffac3a var(--mood-gradient-stop-2, 21%),
+    #fd8d29 var(--mood-gradient-stop-3, 54%),
+    #fef403 var(--mood-gradient-stop-4, 95%),
+    #fef403 100%
+  );
+  --gradient-ink: linear-gradient(
+    36deg,
+    #606060 var(--mood-gradient-stop-1, 0%),
+    #300018 var(--mood-gradient-stop-2, 21%),
+    #290009 var(--mood-gradient-stop-3, 54%),
+    #0d0d98 var(--mood-gradient-stop-4, 95%),
+    #0d0d98 100%
+  );
+  --gradient-pastel: linear-gradient(
+    36deg,
+    #f3d3c5 var(--mood-gradient-stop-1, 0%),
+    #99e8ff var(--mood-gradient-stop-2, 21%),
+    #a4ddf9 var(--mood-gradient-stop-3, 54%),
+    #f0e3af var(--mood-gradient-stop-4, 95%),
+    #f0e3af 100%
+  );
+
+  /* Softer/lighter — compact fill(badge/chip)용, 텍스트 가독성 유지 */
+  --gradient-pink-soft: linear-gradient(
+    36deg,
+    #fee6cb 0%,
+    #fdd1ca 21%,
+    #fd9fb8 54%,
+    #fecfd7 95%
+  );
+  --gradient-violet-soft: linear-gradient(
+    36deg,
+    #fdcef3 0%,
+    #e1dcfe 21%,
+    #d9d6ff 54%,
+    #f5e4fe 95%
+  );
+  --gradient-cyan-soft: linear-gradient(
+    36deg,
+    #d7fdf0 0%,
+    #76fcfd 21%,
+    #88c8fd 54%,
+    #aebdfd 95%
+  );
+  --gradient-green-soft: linear-gradient(
+    36deg,
+    #eee4d5 0%,
+    #fcaf97 21%,
+    #fb9f8d 54%,
+    #b5be9a 95%
+  );
+  --gradient-mustard-soft: linear-gradient(
+    36deg,
+    #fed9c0 0%,
+    #ffd193 21%,
+    #fec089 54%,
+    #fef974 95%
+  );
+  --gradient-ink-soft: linear-gradient(
+    36deg,
+    #989898 0%,
+    #785969 21%,
+    #74595f 54%,
+    #6262bc 95%
+  );
+  --gradient-pastel-soft: linear-gradient(
+    36deg,
+    #f8e5dc 0%,
+    #c2f1ff 21%,
+    #c8ebfb 54%,
+    #f6eecf 95%
+  );
+
+  /* ---- Surface / text 시맨틱 별칭 ---- */
+  --surface-page: var(--gray-050);
+  --surface-card: #fffdfa;
+  --surface-sunken: var(--gray-100);
+  --surface-inverse: var(--gray-900);
+
+  --text-primary: var(--gray-900);
+  --text-secondary: var(--gray-500);
+  --text-muted: var(--gray-300);
+  --text-on-inverse: #ffffff;
+  --text-on-accent: var(--gray-900);
+
+  --accent-pink: var(--pink-500);
+  --accent-violet: var(--violet-500);
+  --accent-cyan: var(--cyan-500);
+  --accent-green: var(--green-500);
+  --accent-mustard: var(--mustard-500);
+
+  --placeholder-fill: var(--gray-100);
+
+  /* ---- Typography (font shorthand) ---- */
+  --text-display-xl: 700 84px/1.02 var(--font-display-kr);
+  --text-display-lg: 700 60px/1.04 var(--font-display-kr);
+  --text-display-md: 700 44px/1.08 var(--font-display-kr);
+  --text-display-sm: 700 32px/1.14 var(--font-display-kr);
+
+  --text-display-en-xl: italic 400 88px/0.95 var(--font-display-en);
+  --text-display-en-lg: italic 400 64px/0.98 var(--font-display-en);
+  --text-display-en-md: 400 48px/1 var(--font-display-en);
+  --text-display-en-sm: italic 400 34px/1.05 var(--font-display-en);
+
+  --text-heading-lg: 700 28px/1.25 var(--font-body);
+  --text-heading-md: 600 22px/1.3 var(--font-body);
+  --text-body-lg: 500 18px/1.5 var(--font-body);
+  --text-body-md: 500 16px/1.55 var(--font-body);
+  --text-body-sm: 500 14px/1.5 var(--font-body);
+  --text-label: 600 13px/1.3 var(--font-body);
+  --text-caption: 500 12px/1.4 var(--font-body);
+
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+
+  /* ---- Spacing (4px base) ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* ---- Radius (rounded cards → full pill CTAs) ---- */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+  --radius: var(--radius-md); /* shadcn 기본 참조값 */
+
+  /* ---- Shadows — depth 는 전부 색조 그림자(never flat black) ---- */
+  --shadow-card:
+    0 1px 3px rgba(84, 64, 56, 0.08), 0 6px 16px rgba(84, 64, 56, 0.1);
+  --shadow-card-hover:
+    0 3px 6px rgba(84, 64, 56, 0.1), 0 16px 32px rgba(84, 64, 56, 0.16);
+
+  --shadow-ink: 0 3px 6px -4px rgba(52, 38, 34, 0.45);
+  --shadow-ink-hover: 0 5px 10px -4px rgba(52, 38, 34, 0.55);
+  --shadow-ink-press: 0 1px 3px -2px rgba(52, 38, 34, 0.4);
+
+  --shadow-pink: 0 3px 6px -4px rgba(196, 108, 153, 0.45);
+  --shadow-pink-hover: 0 5px 10px -4px rgba(196, 108, 153, 0.55);
+  --shadow-pink-press: 0 1px 3px -2px rgba(196, 108, 153, 0.4);
+
+  --shadow-violet: 0 3px 6px -4px rgba(138, 115, 195, 0.45);
+  --shadow-violet-hover: 0 5px 10px -4px rgba(138, 115, 195, 0.55);
+  --shadow-violet-press: 0 1px 3px -2px rgba(138, 115, 195, 0.4);
+
+  --shadow-cyan: 0 3px 6px -4px rgba(86, 174, 191, 0.45);
+  --shadow-cyan-hover: 0 5px 10px -4px rgba(86, 174, 191, 0.55);
+  --shadow-cyan-press: 0 1px 3px -2px rgba(86, 174, 191, 0.4);
+
+  --shadow-green: 0 3px 6px -4px rgba(139, 196, 102, 0.45);
+  --shadow-green-hover: 0 5px 10px -4px rgba(139, 196, 102, 0.55);
+  --shadow-green-press: 0 1px 3px -2px rgba(139, 196, 102, 0.4);
+
+  --shadow-mustard: 0 3px 6px -4px rgba(196, 169, 97, 0.45);
+  --shadow-mustard-hover: 0 5px 10px -4px rgba(196, 169, 97, 0.55);
+  --shadow-mustard-press: 0 1px 3px -2px rgba(196, 169, 97, 0.4);
+
+  /* ---- Motion ---- */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 360ms;
+
+  /* ==========================================================================
+     shadcn 시맨틱 변수 → mood me 토큰 매핑
+     (shadcn/ui 컴포넌트가 참조하는 --background/--primary/... 를 DS 값으로 재정의)
+     ========================================================================== */
+  --background: var(--surface-page);
+  --foreground: var(--text-primary);
+  --card: var(--surface-card);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface-card);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--accent-violet);
+  --primary-foreground: #ffffff;
+  --secondary: var(--surface-sunken);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--surface-sunken);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--surface-sunken);
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--pink-700);
+  --border: var(--gray-100);
+  --input: var(--gray-100);
+  --ring: var(--accent-violet);
+}
+
+/* ==========================================================================
+   Tailwind theme 매핑 — 토큰을 유틸리티로 노출
+   ========================================================================== */
 @theme inline {
+  /* fonts */
+  --font-sans: var(--font-body);
+  --font-body: var(--font-body);
+  --font-display-kr: var(--font-display-kr);
+  --font-display-en: var(--font-display-en);
+
+  /* neutral scale (DS warm gray 가 Tailwind 기본 gray 를 대체) */
+  --color-gray-050: var(--gray-050);
+  --color-gray-100: var(--gray-100);
+  --color-gray-300: var(--gray-300);
+  --color-gray-500: var(--gray-500);
+  --color-gray-700: var(--gray-700);
+  --color-gray-900: var(--gray-900);
+
+  /* bright palette */
+  --color-pink-300: var(--pink-300);
+  --color-pink-500: var(--pink-500);
+  --color-pink-700: var(--pink-700);
+  --color-violet-300: var(--violet-300);
+  --color-violet-500: var(--violet-500);
+  --color-violet-700: var(--violet-700);
+  --color-cyan-300: var(--cyan-300);
+  --color-cyan-500: var(--cyan-500);
+  --color-cyan-700: var(--cyan-700);
+  --color-green-300: var(--green-300);
+  --color-green-500: var(--green-500);
+  --color-green-700: var(--green-700);
+  --color-mustard-300: var(--mustard-300);
+  --color-mustard-500: var(--mustard-500);
+  --color-mustard-700: var(--mustard-700);
+
+  /* surface / accent 시맨틱 */
+  --color-surface-page: var(--surface-page);
+  --color-surface-card: var(--surface-card);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-inverse: var(--surface-inverse);
+  --color-on-inverse: var(--text-on-inverse);
+  --color-accent-pink: var(--accent-pink);
+  --color-accent-violet: var(--accent-violet);
+  --color-accent-cyan: var(--accent-cyan);
+  --color-accent-green: var(--accent-green);
+  --color-accent-mustard: var(--accent-mustard);
+
+  /* shadcn 시맨틱 색 */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* radius (DS 스케일) */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+
+  /* shadows (색조) */
+  --shadow-card: var(--shadow-card);
+  --shadow-card-hover: var(--shadow-card-hover);
+  --shadow-ink: var(--shadow-ink);
+  --shadow-ink-hover: var(--shadow-ink-hover);
+  --shadow-ink-press: var(--shadow-ink-press);
+  --shadow-pink: var(--shadow-pink);
+  --shadow-pink-hover: var(--shadow-pink-hover);
+  --shadow-pink-press: var(--shadow-pink-press);
+  --shadow-violet: var(--shadow-violet);
+  --shadow-violet-hover: var(--shadow-violet-hover);
+  --shadow-violet-press: var(--shadow-violet-press);
+  --shadow-cyan: var(--shadow-cyan);
+  --shadow-cyan-hover: var(--shadow-cyan-hover);
+  --shadow-cyan-press: var(--shadow-cyan-press);
+  --shadow-green: var(--shadow-green);
+  --shadow-green-hover: var(--shadow-green-hover);
+  --shadow-green-press: var(--shadow-green-press);
+  --shadow-mustard: var(--shadow-mustard);
+  --shadow-mustard-hover: var(--shadow-mustard-hover);
+  --shadow-mustard-press: var(--shadow-mustard-press);
+
+  /* motion */
+  --ease-standard: var(--ease-standard);
+  --ease-spring: var(--ease-spring);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ==========================================================================
+   Typography 유틸리티 — font shorthand 토큰은 text-* 로 안 맞으므로 클래스로 노출
+   ========================================================================== */
+@utility text-display-xl {
+  font: var(--text-display-xl);
+  letter-spacing: var(--tracking-tight);
+}
+@utility text-display-lg {
+  font: var(--text-display-lg);
+  letter-spacing: var(--tracking-tight);
+}
+@utility text-display-md {
+  font: var(--text-display-md);
+  letter-spacing: var(--tracking-tight);
+}
+@utility text-display-sm {
+  font: var(--text-display-sm);
+  letter-spacing: var(--tracking-tight);
+}
+@utility text-display-en-xl {
+  font: var(--text-display-en-xl);
+}
+@utility text-display-en-lg {
+  font: var(--text-display-en-lg);
+}
+@utility text-display-en-md {
+  font: var(--text-display-en-md);
+}
+@utility text-display-en-sm {
+  font: var(--text-display-en-sm);
+}
+@utility text-heading-lg {
+  font: var(--text-heading-lg);
+}
+@utility text-heading-md {
+  font: var(--text-heading-md);
+}
+@utility text-body-lg {
+  font: var(--text-body-lg);
+}
+@utility text-body-md {
+  font: var(--text-body-md);
+}
+@utility text-body-sm {
+  font: var(--text-body-sm);
+}
+@utility text-label {
+  font: var(--text-label);
+}
+@utility text-caption {
+  font: var(--text-caption);
+}
+
+/* ==========================================================================
+   Base layer
+   ========================================================================== */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font: var(--text-body-md);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@property --mood-gradient-stop-1 {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 0%;
+}
+
+@property --mood-gradient-stop-2 {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 21%;
+}
+
+@property --mood-gradient-stop-3 {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 54%;
+}
+
+@property --mood-gradient-stop-4 {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 95%;
+}
+
+@keyframes mood-button-gradient-stops-in {
+  from {
+    --mood-gradient-stop-1: 0%;
+    --mood-gradient-stop-2: 21%;
+    --mood-gradient-stop-3: 54%;
+    --mood-gradient-stop-4: 95%;
+  }
+  to {
+    --mood-gradient-stop-1: 0%;
+    --mood-gradient-stop-2: 12%;
+    --mood-gradient-stop-3: 28%;
+    --mood-gradient-stop-4: 48%;
+  }
+}
+
+@layer components {
+  .mood-button-gradient {
+    --mood-gradient-stop-1: 0%;
+    --mood-gradient-stop-2: 21%;
+    --mood-gradient-stop-3: 54%;
+    --mood-gradient-stop-4: 95%;
+
+    /* 등록된(@property) stop var()는 그라디언트가 "선언된 요소" 스코프에서 즉시
+       치환된다. :root 정의를 그대로 쓰면 stop 이 :root 초기값으로 구워져 hover
+       변화가 그라디언트에 반영되지 않으므로, 버튼 요소 스코프에서 재선언해
+       stop 변수가 여기서(=애니메이팅 값으로) 해석되게 한다. */
+    --gradient-pink: linear-gradient(
+      36deg,
+      #fdd1a1 var(--mood-gradient-stop-1, 0%),
+      #fcac9e var(--mood-gradient-stop-2, 21%),
+      #fc507e var(--mood-gradient-stop-3, 54%),
+      #fda8b6 var(--mood-gradient-stop-4, 95%),
+      #fda8b6 100%
+    );
+    --gradient-violet: linear-gradient(
+      36deg,
+      #fba6e9 var(--mood-gradient-stop-1, 0%),
+      #c8bffe var(--mood-gradient-stop-2, 21%),
+      #b9b5ff var(--mood-gradient-stop-3, 54%),
+      #eccdfe var(--mood-gradient-stop-4, 95%),
+      #eccdfe 100%
+    );
+    --gradient-cyan: linear-gradient(
+      36deg,
+      #b7fbe3 var(--mood-gradient-stop-1, 0%),
+      #06f9fc var(--mood-gradient-stop-2, 21%),
+      #279bfb var(--mood-gradient-stop-3, 54%),
+      #6b87fb var(--mood-gradient-stop-4, 95%),
+      #6b87fb 100%
+    );
+    --gradient-green: linear-gradient(
+      36deg,
+      #e0cdb3 var(--mood-gradient-stop-1, 0%),
+      #f96d42 var(--mood-gradient-stop-2, 21%),
+      #f8502f var(--mood-gradient-stop-3, 54%),
+      #798848 var(--mood-gradient-stop-4, 95%),
+      #798848 100%
+    );
+    --gradient-mustard: linear-gradient(
+      36deg,
+      #fdb98d var(--mood-gradient-stop-1, 0%),
+      #ffac3a var(--mood-gradient-stop-2, 21%),
+      #fd8d29 var(--mood-gradient-stop-3, 54%),
+      #fef403 var(--mood-gradient-stop-4, 95%),
+      #fef403 100%
+    );
+    --gradient-ink: linear-gradient(
+      36deg,
+      #606060 var(--mood-gradient-stop-1, 0%),
+      #300018 var(--mood-gradient-stop-2, 21%),
+      #290009 var(--mood-gradient-stop-3, 54%),
+      #0d0d98 var(--mood-gradient-stop-4, 95%),
+      #0d0d98 100%
+    );
+  }
+
+  .mood-button-gradient:hover {
+    --mood-gradient-stop-2: 12%;
+    --mood-gradient-stop-3: 28%;
+    --mood-gradient-stop-4: 48%;
+    animation: mood-button-gradient-stops-in 420ms
+      cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mood-button-gradient,
+    .mood-button-gradient:hover {
+      animation: none;
+    }
+  }
 }

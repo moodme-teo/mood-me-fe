@@ -37,7 +37,7 @@ function Toast({ message }: { message: string | null }) {
   return (
     <div
       role="status"
-      className="fixed left-1/2 top-4 z-40 w-[calc(100%-32px)] max-w-sm -translate-x-1/2 rounded-xl bg-neutral-950 px-4 py-3 text-sm font-bold text-white"
+      className="fixed top-4 left-1/2 z-40 w-[calc(100%-32px)] max-w-sm -translate-x-1/2 rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
     >
       {message}
     </div>
@@ -46,12 +46,12 @@ function Toast({ message }: { message: string | null }) {
 
 function LoadingView() {
   return (
-    <main className="flex flex-1 justify-center overflow-y-auto bg-[#f7f7f8] px-4 py-5 text-neutral-950">
+    <main className="flex flex-1 justify-center overflow-y-auto bg-background px-4 py-5 text-foreground">
       <div className="w-full max-w-[430px] animate-pulse space-y-4">
-        <div className="h-12 rounded-2xl bg-neutral-200" />
-        <div className="mx-auto h-[520px] w-full max-w-[360px] rounded-2xl bg-neutral-200" />
-        <div className="h-28 rounded-2xl bg-neutral-200" />
-        <div className="h-44 rounded-2xl bg-neutral-200" />
+        <div className="h-12 rounded-2xl bg-gray-100" />
+        <div className="mx-auto h-[520px] w-full max-w-[360px] rounded-2xl bg-gray-100" />
+        <div className="h-28 rounded-2xl bg-gray-100" />
+        <div className="h-44 rounded-2xl bg-gray-100" />
       </div>
     </main>
   );
@@ -65,21 +65,21 @@ function ErrorView({
   onRetry: () => void;
 }) {
   return (
-    <main className="flex flex-1 items-center justify-center bg-[#f7f7f8] px-4 text-neutral-950">
-      <section className="w-full max-w-sm rounded-2xl bg-white p-5 text-center">
-        <h1 className="text-xl font-black">결과를 불러오지 못했어요.</h1>
-        <p className="mt-3 text-sm leading-6 text-neutral-700">{message}</p>
+    <main className="flex flex-1 items-center justify-center bg-background px-4 text-foreground">
+      <section className="w-full max-w-sm rounded-2xl bg-card p-5 text-center">
+        <h1 className="text-xl font-bold">결과를 불러오지 못했어요.</h1>
+        <p className="mt-3 text-sm leading-6 text-gray-700">{message}</p>
         <div className="mt-5 grid grid-cols-2 gap-2">
           <Link
             href="/"
-            className="rounded-xl border border-neutral-300 px-4 py-3 text-sm font-bold"
+            className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-bold"
           >
             홈으로
           </Link>
           <button
             type="button"
             onClick={onRetry}
-            className="rounded-xl bg-neutral-950 px-4 py-3 text-sm font-bold text-white"
+            className="rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
           >
             다시 시도
           </button>
@@ -91,8 +91,8 @@ function ErrorView({
 
 function MoodSpectrum({ vector }: { vector: MoodVector }) {
   return (
-    <section className="rounded-2xl bg-white p-4">
-      <h2 className="text-lg font-black">무드 성향 5축</h2>
+    <section className="rounded-2xl bg-card p-4">
+      <h2 className="text-lg font-bold">무드 성향 5축</h2>
       <div className="mt-4 space-y-4">
         {MOOD_AXES.map((axis) => {
           const value = vector[axis.key];
@@ -100,17 +100,17 @@ function MoodSpectrum({ vector }: { vector: MoodVector }) {
 
           return (
             <div key={axis.key}>
-              <div className="flex items-center justify-between text-xs font-bold text-neutral-700">
+              <div className="flex items-center justify-between text-xs font-bold text-gray-700">
                 <span>{axis.left}</span>
                 <span>{axis.right}</span>
               </div>
-              <div className="mt-2 h-3 rounded-full bg-neutral-200">
+              <div className="mt-2 h-3 rounded-full bg-gray-100">
                 <div
                   className="h-3 rounded-full bg-[#2556d9]"
                   style={{ width: `${percent}%` }}
                 />
               </div>
-              <p className="mt-1 text-right text-xs font-bold text-neutral-500">
+              <p className="mt-1 text-right text-xs font-bold text-muted-foreground">
                 {percent}%
               </p>
             </div>
@@ -127,14 +127,14 @@ function ReadingBlock({ moodboard }: { moodboard: Moodboard }) {
   return (
     <section className="space-y-4">
       <div>
-        <h1 className="text-4xl font-black leading-tight text-neutral-950">
+        <h1 className="text-4xl leading-tight font-bold text-foreground">
           {moodProfile.title}
         </h1>
         <p className="mt-2 text-base font-bold text-[#2556d9]">
           {moodProfile.type_name}
         </p>
       </div>
-      <div className="space-y-3 rounded-2xl bg-white p-4 text-[15px] font-medium leading-7 text-neutral-800">
+      <div className="space-y-3 rounded-2xl bg-card p-4 text-[15px] leading-7 font-medium text-gray-700">
         <p>{moodProfile.reading.conviction}</p>
         <p>{moodProfile.reading.desire}</p>
         <p>{moodProfile.reading.showdown}</p>
@@ -155,7 +155,7 @@ function KeywordCloud({ moodboard }: { moodboard: Moodboard }) {
           {keywords.map((keyword) => (
             <span
               key={keyword}
-              className="rounded-full bg-white px-3 py-2 text-xs font-bold text-neutral-800"
+              className="rounded-full bg-card px-3 py-2 text-xs font-bold text-gray-700"
             >
               {keyword}
             </span>
@@ -167,7 +167,7 @@ function KeywordCloud({ moodboard }: { moodboard: Moodboard }) {
           {stickerPhrases.map((phrase) => (
             <p
               key={phrase}
-              className="rounded-2xl bg-neutral-950 px-4 py-3 text-center text-sm font-black text-white"
+              className="rounded-2xl bg-surface-inverse px-4 py-3 text-center text-sm font-bold text-white"
             >
               {phrase}
             </p>
@@ -180,14 +180,14 @@ function KeywordCloud({ moodboard }: { moodboard: Moodboard }) {
 
 function GuestBanner() {
   return (
-    <section className="rounded-2xl bg-[#e8eeff] p-4 text-neutral-950">
-      <p className="text-sm font-black">로그인하면 언제든 다시 볼 수 있어요.</p>
-      <p className="mt-1 text-sm leading-6 text-neutral-700">
+    <section className="rounded-2xl bg-[#e8eeff] p-4 text-foreground">
+      <p className="text-sm font-bold">로그인하면 언제든 다시 볼 수 있어요.</p>
+      <p className="mt-1 text-sm leading-6 text-gray-700">
         지금은 게스트로도 열람, 공유, 이미지 내보내기를 모두 사용할 수 있습니다.
       </p>
       <Link
         href="/login"
-        className="mt-3 inline-flex rounded-xl bg-neutral-950 px-4 py-3 text-sm font-bold text-white"
+        className="mt-3 inline-flex rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
       >
         로그인하고 보관하기
       </Link>
@@ -212,14 +212,14 @@ function ResultActions({
         <button
           type="button"
           onClick={onShare}
-          className="rounded-xl bg-[#2556d9] px-4 py-3 text-sm font-black text-white"
+          className="rounded-xl bg-[#2556d9] px-4 py-3 text-sm font-bold text-white"
         >
           SNS 공유
         </button>
         <button
           type="button"
           onClick={onDownload}
-          className="rounded-xl bg-neutral-950 px-4 py-3 text-sm font-black text-white"
+          className="rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
         >
           이미지 내보내기
         </button>
@@ -227,7 +227,7 @@ function ResultActions({
       <div className="grid grid-cols-3 gap-2">
         <Link
           href={`/moodboard/${moodboard.id}/edit`}
-          className="rounded-xl border border-neutral-300 bg-white px-3 py-3 text-center text-xs font-bold text-neutral-900"
+          className="rounded-xl border border-gray-300 bg-card px-3 py-3 text-center text-xs font-bold text-foreground"
         >
           편집
         </Link>
@@ -238,13 +238,13 @@ function ResultActions({
               router.push(`/test/${crypto.randomUUID()}`);
             }
           }}
-          className="rounded-xl border border-neutral-300 bg-white px-3 py-3 text-xs font-bold text-neutral-900"
+          className="rounded-xl border border-gray-300 bg-card px-3 py-3 text-xs font-bold text-foreground"
         >
           다시 만들기
         </button>
         <Link
           href="/"
-          className="rounded-xl border border-neutral-300 bg-white px-3 py-3 text-center text-xs font-bold text-neutral-900"
+          className="rounded-xl border border-gray-300 bg-card px-3 py-3 text-center text-xs font-bold text-foreground"
         >
           홈
         </Link>
@@ -351,20 +351,20 @@ export default function MoodboardResult({ moodboardId }: Props) {
   const { moodboard } = state;
 
   return (
-    <main className="flex flex-1 justify-center overflow-y-auto bg-[#f7f7f8] text-neutral-950">
+    <main className="flex flex-1 justify-center overflow-y-auto bg-background text-foreground">
       <Toast message={toast} />
       <div className="w-full max-w-[430px] px-4 py-4">
         <header className="mb-4 flex items-center justify-between">
           <Link
             href="/"
-            className="rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm font-bold"
+            className="rounded-xl border border-gray-300 bg-card px-3 py-2 text-sm font-bold"
           >
             홈
           </Link>
-          <p className="text-sm font-black">mood·me</p>
+          <p className="text-sm font-bold">mood·me</p>
         </header>
 
-        <section className="mx-auto w-[360px] max-w-full overflow-hidden rounded-2xl bg-neutral-950">
+        <section className="mx-auto w-[360px] max-w-full overflow-hidden rounded-2xl bg-surface-inverse">
           <BoardPreview
             width={MOODBOARD_WIDTH}
             height={MOODBOARD_HEIGHT}

@@ -7,11 +7,7 @@ import {
   loadMoodboardDraft,
   saveMoodboardDraft,
 } from "@/components/board/moodboard-draft-storage";
-import {
-  BoardCanvas,
-  STICKER_ASSETS,
-  useMoodboard,
-} from "@/components/canvas";
+import { BoardCanvas, STICKER_ASSETS, useMoodboard } from "@/components/canvas";
 import type {
   MoodboardElement,
   MoodboardTool,
@@ -45,7 +41,7 @@ function Toast({ message }: { message: string | null }) {
   return (
     <div
       role="status"
-      className="fixed left-1/2 top-4 z-40 w-[calc(100%-32px)] max-w-sm -translate-x-1/2 rounded-xl bg-neutral-950 px-4 py-3 text-sm font-semibold text-white shadow-lg"
+      className="fixed top-4 left-1/2 z-40 w-[calc(100%-32px)] max-w-sm -translate-x-1/2 rounded-xl bg-surface-inverse px-4 py-3 text-sm font-semibold text-white shadow-lg"
     >
       {message}
     </div>
@@ -64,31 +60,31 @@ function ConfirmLeaveDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/48 p-4 sm:items-center sm:justify-center">
+    <div className="fixed inset-0 z-50 flex items-end bg-surface-inverse/48 p-4 sm:items-center sm:justify-center">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="leave-title"
-        className="w-full max-w-sm rounded-2xl bg-white p-5 text-neutral-950 shadow-xl"
+        className="w-full max-w-sm rounded-2xl bg-card p-5 text-foreground shadow-xl"
       >
         <h2 id="leave-title" className="text-lg font-bold">
           저장하지 않고 나가시겠어요?
         </h2>
-        <p className="mt-2 text-sm leading-6 text-neutral-700">
+        <p className="mt-2 text-sm leading-6 text-gray-700">
           로컬 드래프트는 남아 있어서 같은 브라우저에서 다시 이어갈 수 있어요.
         </p>
         <div className="mt-5 grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-xl border border-neutral-300 px-4 py-3 text-sm font-bold text-neutral-900"
+            className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-bold text-foreground"
           >
             계속 편집
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="rounded-xl bg-neutral-950 px-4 py-3 text-sm font-bold text-white"
+            className="rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
           >
             나가기
           </button>
@@ -116,8 +112,8 @@ function ToolButton({
       onClick={onClick}
       className={`flex min-h-14 flex-col items-center justify-center rounded-2xl border px-2 text-[11px] font-bold transition ${
         isActive
-          ? "border-neutral-950 bg-neutral-950 text-white"
-          : "border-neutral-200 bg-white text-neutral-700"
+          ? "border-foreground bg-surface-inverse text-white"
+          : "border-gray-100 bg-card text-gray-700"
       }`}
     >
       <span className="text-[10px] leading-none">{item.symbol}</span>
@@ -138,7 +134,7 @@ function StickerPanel({
           key={asset.id}
           type="button"
           onClick={() => onAddSticker(asset.id)}
-          className="flex min-h-16 flex-col items-center justify-center rounded-2xl border border-neutral-200 bg-white px-2 text-xs font-bold text-neutral-900"
+          className="flex min-h-16 flex-col items-center justify-center rounded-2xl border border-gray-100 bg-card px-2 text-xs font-bold text-foreground"
         >
           <span
             className="mb-1 h-5 w-8 rounded-full border"
@@ -162,15 +158,14 @@ function TextPanel({
   onBeginTextEdit: () => void;
   onUpdateText: (properties: Record<string, string | number>) => void;
 }) {
-  const textElement =
-    selectedElement?.type === "text" ? selectedElement : null;
+  const textElement = selectedElement?.type === "text" ? selectedElement : null;
 
   return (
     <div className="space-y-3">
       <button
         type="button"
         onClick={onAddText}
-        className="w-full rounded-xl bg-neutral-950 px-4 py-3 text-sm font-bold text-white"
+        className="w-full rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
       >
         텍스트 박스 추가
       </button>
@@ -181,7 +176,7 @@ function TextPanel({
             onFocus={onBeginTextEdit}
             onChange={(event) => onUpdateText({ content: event.target.value })}
             placeholder="무드 한 줄"
-            className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-base font-semibold text-neutral-950 placeholder:text-neutral-600"
+            className="w-full rounded-xl border border-gray-300 px-4 py-3 text-base font-semibold text-foreground placeholder:text-muted-foreground"
           />
           <div className="grid grid-cols-[1fr_96px] gap-2">
             <select
@@ -189,7 +184,7 @@ function TextPanel({
               onChange={(event) =>
                 onUpdateText({ fontFamily: event.target.value })
               }
-              className="rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm font-semibold text-neutral-950"
+              className="rounded-xl border border-gray-300 bg-card px-3 py-2 text-sm font-semibold text-foreground"
             >
               {FONT_OPTIONS.map((font) => (
                 <option key={font} value={font}>
@@ -205,7 +200,7 @@ function TextPanel({
               onChange={(event) =>
                 onUpdateText({ fontSize: Number(event.target.value) })
               }
-              className="rounded-xl border border-neutral-300 px-3 py-2 text-sm font-semibold text-neutral-950"
+              className="rounded-xl border border-gray-300 px-3 py-2 text-sm font-semibold text-foreground"
               aria-label="글자 크기"
             />
           </div>
@@ -216,21 +211,21 @@ function TextPanel({
                 type="button"
                 aria-label={`${color} 글자색`}
                 onClick={() => onUpdateText({ color })}
-                className="h-9 w-9 rounded-full border-2 border-neutral-950"
+                className="h-9 w-9 rounded-full border-2 border-foreground"
                 style={{ backgroundColor: color }}
               />
             ))}
             <button
               type="button"
               onClick={() => onUpdateText({ align: "left" })}
-              className="ml-auto rounded-lg border border-neutral-300 px-3 py-2 text-xs font-bold"
+              className="ml-auto rounded-lg border border-gray-300 px-3 py-2 text-xs font-bold"
             >
               왼쪽
             </button>
             <button
               type="button"
               onClick={() => onUpdateText({ align: "center" })}
-              className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-bold"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-bold"
             >
               중앙
             </button>
@@ -259,14 +254,14 @@ function PenPanel({
             onClick={() => onChange({ stroke: color })}
             className={`h-9 w-9 rounded-full border-2 ${
               penStyle.stroke === color
-                ? "border-neutral-950"
-                : "border-neutral-300"
+                ? "border-foreground"
+                : "border-gray-300"
             }`}
             style={{ backgroundColor: color }}
           />
         ))}
       </div>
-      <label className="block text-xs font-bold text-neutral-700">
+      <label className="block text-xs font-bold text-gray-700">
         굵기
         <input
           type="range"
@@ -309,9 +304,9 @@ function ContextPanel({
   canUndo: boolean;
 }) {
   return (
-    <section className="space-y-3 rounded-t-3xl bg-white px-4 pb-4 pt-3 shadow-[0_-8px_24px_rgba(0,0,0,0.10)]">
+    <section className="space-y-3 rounded-t-3xl bg-card px-4 pt-3 pb-4 shadow-[0_-8px_24px_rgba(0,0,0,0.10)]">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-bold text-neutral-950">
+        <p className="text-sm font-bold text-foreground">
           {tool === "sticker"
             ? "스티커 고르기"
             : tool === "text"
@@ -327,7 +322,7 @@ function ContextPanel({
             type="button"
             disabled={!canUndo}
             onClick={onUndo}
-            className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-bold text-neutral-900 disabled:opacity-40"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-bold text-foreground disabled:opacity-40"
           >
             Undo
           </button>
@@ -342,9 +337,7 @@ function ContextPanel({
           ) : null}
         </div>
       </div>
-      {tool === "sticker" ? (
-        <StickerPanel onAddSticker={onAddSticker} />
-      ) : null}
+      {tool === "sticker" ? <StickerPanel onAddSticker={onAddSticker} /> : null}
       {tool === "text" || selectedElement?.type === "text" ? (
         <TextPanel
           selectedElement={selectedElement}
@@ -357,7 +350,7 @@ function ContextPanel({
         <PenPanel penStyle={penStyle} onChange={onPenStyleChange} />
       ) : null}
       {tool === "eraser" ? (
-        <p className="text-sm font-semibold leading-6 text-neutral-700">
+        <p className="text-sm leading-6 font-semibold text-gray-700">
           지울 요소를 탭하면 바로 삭제돼요. base 이미지는 지워지지 않습니다.
         </p>
       ) : null}
@@ -499,7 +492,7 @@ export default function MoodboardEditor({
   }, [baseImageUrl, moodboard, moodboardId, router, showToast]);
 
   return (
-    <main className="min-h-dvh bg-[#f6f7fb] text-neutral-950">
+    <main className="min-h-dvh bg-background text-foreground">
       <Toast message={toast} />
       <ConfirmLeaveDialog
         isOpen={isLeaveOpen}
@@ -507,20 +500,20 @@ export default function MoodboardEditor({
         onConfirm={() => router.push("/")}
       />
 
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-black/5 bg-[#f6f7fb]/95 px-4 py-3 backdrop-blur">
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-foreground/5 bg-background/95 px-4 py-3 backdrop-blur">
         <button
           type="button"
           onClick={() => setIsLeaveOpen(true)}
-          className="rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm font-bold"
+          className="rounded-xl border border-gray-300 bg-card px-3 py-2 text-sm font-bold"
         >
           뒤로
         </button>
-        <h1 className="text-base font-black">편집</h1>
+        <h1 className="text-base font-bold">편집</h1>
         <button
           type="button"
           disabled={isSaving || isBaseImageFailed}
           onClick={completeMoodboard}
-          className="rounded-xl bg-neutral-950 px-3 py-2 text-sm font-black text-white disabled:opacity-45"
+          className="rounded-xl bg-surface-inverse px-3 py-2 text-sm font-bold text-white disabled:opacity-45"
         >
           {isSaving ? "저장 중" : "완성하고 공유하기"}
         </button>
@@ -528,9 +521,9 @@ export default function MoodboardEditor({
 
       <div className="flex min-h-[calc(100dvh-220px)] items-center justify-center px-4 py-5">
         {isBaseImageFailed ? (
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 text-center shadow-sm">
-            <p className="text-lg font-black">이미지를 불러오지 못했어요.</p>
-            <p className="mt-2 text-sm leading-6 text-neutral-700">
+          <div className="w-full max-w-sm rounded-2xl bg-card p-5 text-center shadow-sm">
+            <p className="text-lg font-bold">이미지를 불러오지 못했어요.</p>
+            <p className="mt-2 text-sm leading-6 text-gray-700">
               네트워크를 확인한 뒤 다시 시도해 주세요.
             </p>
             <button
@@ -539,7 +532,7 @@ export default function MoodboardEditor({
                 setIsBaseImageFailed(false);
                 router.refresh();
               }}
-              className="mt-4 rounded-xl bg-neutral-950 px-4 py-3 text-sm font-bold text-white"
+              className="mt-4 rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
             >
               다시 시도
             </button>
@@ -570,7 +563,7 @@ export default function MoodboardEditor({
       <div className="sticky bottom-0 z-30">
         <nav
           aria-label="무드보드 편집 도구"
-          className="grid grid-cols-5 gap-2 border-t border-black/5 bg-[#f6f7fb] px-3 py-3"
+          className="grid grid-cols-5 gap-2 border-t border-foreground/5 bg-surface-card px-3 py-3"
         >
           {TOOL_ITEMS.map((item) => (
             <ToolButton
