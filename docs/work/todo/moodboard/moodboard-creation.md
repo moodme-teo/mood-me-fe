@@ -101,6 +101,8 @@ Elice 단가 — **입력 ₩12,852 / 1M tokens · 출력 ₩48,195 / 1M tokens*
 
 ## 적용할 코드 변경 (Gemini → gpt-image-2)
 
+> ✅ **반영 완료 (#92).** 아래는 애초 "모델 상수만 교체 + 히어로 컷 함수 수정"이라는 좁은 범위로 쓰였지만, 실제 구현은 §보드 이미지 생성 흐름(3단계)까지 포함한 전체 파이프라인 교체로 확장됐다 — `generate-hero-image.ts`(히어로 컷 1장)는 만들지 않았고, 대신 `lib/moodboard/generate-board-image.ts`가 보드 전체(1024×1536)를 생성하며 `lib/moodboard/build-board-prompt.ts`가 규칙 기반 프롬프트 조립을 맡는다. 큐레이션 타일·Konva 레이아웃 조립(`curation-library.ts`·`layout-central-title-radial.ts`)은 삭제했다. 아래 표는 히스토리로 남겨둔다.
+
 이 브랜치는 테스트 전용이라 코드를 커밋하지 않는다. 아래는 **본 작업 브랜치에서 적용해야 할 변경 전문**이다 — `test/board-image-gpt`에서 실제로 돌려본 코드를 그대로 옮겨 적었다. 모델 상수만 바꾸면 런타임에 깨진다(`response_format` 400, 타임아웃 30초 초과) — 파일 2개를 반드시 함께 적용할 것.
 
 **변경 대상 5파일 + env 1줄** (`docs/work/todo/*`와 `src/lib/mood-test/persona.ts`는 이 목록에서 제외 — 별도 작업으로 이미 반영됨)
@@ -287,17 +289,15 @@ ELICE_IMAGE_MODEL=openai/gpt-image-2
 
 ### 빌더가 반드시 확인할 것 (테스트 브랜치의 미해결 흠)
 
-이 브랜치 코드를 **그대로 복사하면 안 되는 지점들**이다. 옮기면서 같이 고칠 것.
+> ✅ **실제 구현 반영 완료 (2026-07-09, #92).** 아래 7개 중 실제 코드 이관에 해당하는 항목은 반영·해소했다. 취소선 항목은 반영 완료.
 
-1. **`moodboard-create.md`는 더 이상 없다.** 이 브랜치에서 `moodboard-create.md`가 `moodboard-creation.md`로 갈라지면서 삭제됐는데, 테스트 브랜치의 코드·ADR 주석은 아직 옛 이름을 가리킨다(`elice-ai.ts:24`, `generate-hero-image.ts:9,37`, ADR 004 §결정·§개정). **위 ①②④ 본문에는 이미 `moodboard-creation.md`로 고쳐 적어뒀다** — 그대로 쓰면 된다.
-2. **`persona.ts:2`의 주석 링크도 깨져 있다** — `moodboard-create.md "페르소나 산출" 절`을 가리키는데, 그 내용은 지금 [moodboard-persona-ratio.md](./moodboard-persona-ratio.md)에 있다. persona.ts는 이번 revert 대상이 아니라 **살아남는 파일**이므로 빌더가 링크만 따로 고쳐야 한다.
-3. **ADR 004 §개정의 "§테스트 로그 1" 앵커를 지웠다** — 이 문서에는 `테스트 로그` 헤딩이 없다. 위 ④ 본문처럼 문서 전체를 가리키게 둘 것.
-4. **`moodboard-library-collection.md:241`은 여전히 `google/gemini-2.5-flash-image`를 적고 있다.** 그건 *스톡 수집 대장*의 과거 실측 기록이라 그대로 두는 게 맞지만, "지금 쓰는 모델"로 오해되지 않도록 한 줄 주석(→ 보드 생성은 gpt-image-2, ADR 004 §개정)을 다는 걸 권한다.
-5. **`usage` 로깅이 아직 없다** (§해야할 것). `generate-hero-image.ts`가 `response.usage.input_tokens`/`output_tokens`를 로깅하도록 추가하면 크레딧을 추정 대신 실측할 수 있다. 이번 이관에 끼워 넣을지는 판단 필요.
-6. **보드 본생성 코드는 아직 없다.** ②는 **히어로 컷**(`1024x1024`) 경로일 뿐이고, §3이 확정한 보드 출력(`1024x1536` · `medium` · 2:3)을 실제로 호출하는 코드는 이 브랜치에 없다. 상수 3개(`MOODBOARD_IMAGE_SIZE`·`MOODBOARD_IMAGE_RATIO`·`MOODBOARD_IMAGE_QUALITY`)를 어디에 둘지는 빌더가 정한다.
-7. **페르소나 이름과 사전 키가 1:1이 아니다 — 조립 코드에서 반드시 처리할 것.** `computePersonaResult`가 뱉는 이름(`persona.ts`의 `AESTHETIC_CORES`·`LIFE_THEMES`)과 [moodboard-persona-list.md](./moodboard-persona-list.md) 사전의 키가 20종 중 **9종에서 어긋난다** — 사전 쪽에 별칭 접미사가 붙어 있다(`클린 걸` → `클린 걸 · 댓 걸`, `테크 노어` → `테크 노어 미니멀`, `트래블러` → `트래블러 · 방랑` 등). 이름으로 사전을 직접 인덱싱하면 **키워드가 통째로 빠지거나 런타임에 터진다.** `키 === 이름 || 키.startsWith(이름)` 으로 찾아야 한다.
-   - `맥시멀 글램`은 사전이 `맥시멀리스트 글램`이라 **접두사 매칭으로도 안 붙던 유일한 키**였다 → **2026-07-09에 사전 키를 `맥시멀 글램`으로 통일**했다(`seed.ts`·`persona.ts`·수집 대장이 전부 이 이름을 쓴다). 이제 나머지 8종은 접두사 매칭으로 전부 해결된다.
-   - 사전을 `.ts`로 옮길 때 **키를 `AESTHETIC_CORES`/`LIFE_THEMES` 원소 타입으로 묶어** 이 어긋남이 다시는 런타임까지 못 가게 하는 게 낫다.
+1. ~~`moodboard-create.md`는 더 이상 없다.~~ `lib/elice-ai.ts`·`lib/moodboard/generate-board-image.ts`·ADR 004 모두 `moodboard-creation.md`를 가리키도록 작성했다.
+2. ~~`persona.ts:2`의 주석 링크도 깨져 있다~~ — 확인 결과 `dev`에 머지된 `persona.ts`는 이미 [moodboard-persona-ratio.md](./moodboard-persona-ratio.md)를 정확히 가리키고 있었다(깨진 링크는 테스트 브랜치에만 있었음).
+3. ~~ADR 004 §개정의 "§테스트 로그 1" 앵커를 지웠다~~ — 이번 §개정은 문서 전체를 가리키도록 새로 썼다.
+4. **`moodboard-library-collection.md`의 `google/gemini-2.5-flash-image` 기록은 그대로 둔다** — 스톡 수집 대장의 과거 실측 기록이라 미반영. 필요하면 별도 이슈에서 주석만 추가.
+5. **`usage` 로깅은 이번 범위에서 미반영** — 여전히 열린 항목(§해야할 것).
+6. ~~보드 본생성 코드는 아직 없다.~~ `lib/moodboard/build-board-prompt.ts`(비율→프롬프트 조립) + `lib/moodboard/generate-board-image.ts`(`1024x1536`·`medium` 보드 전체 호출)로 구현했다. 상수는 `generate-board-image.ts`의 `IMAGE_SIZE`로 관리(별도 `MOODBOARD_IMAGE_RATIO` 상수는 프롬프트 텍스트에 리터럴로만 명시 — 코드에서 참조되지 않아 상수화하지 않음).
+7. ~~페르소나 이름과 사전 키가 1:1이 아니다.~~ `lib/moodboard/persona-keywords.ts`를 `Record<AestheticCore | LifeTheme, …>`로 선언해 별칭 접미사를 뗀 정확한 이름만 키로 쓴다 — 접두사 매칭 없이 타입 체크로 20종 일치를 강제한다.
 
 ## 프롬프트 방침 (수집 대장 계승) — **스톡 보완·오브제 컷아웃 전용**
 
@@ -311,9 +311,9 @@ ELICE_IMAGE_MODEL=openai/gpt-image-2
 ## 해야할 것
 
 - [ ] `quality` 단계별 **결과물 품질** 차이 (토큰·속도는 실측 완료: §비용)
-- [ ] `generate-hero-image.ts`에 `usage` 로깅 추가 — 크레딧 추정 대신 실측
-- [ ] 실제 구현 코드에 반영해야함. ## 적용할 코드 변경에 정리해둠. 하지만 적어둔 그대로 변경하면 안되고 검토필요함.(정리해둔 대로 변경할지, 추가 및 삭제 및 변경 해야할 건 뭔지)
-- [ ] 페르소나 사전을 `.ts`로 옮기고 **키를 페르소나 이름과 타입으로 묶기** — 지금은 20종 중 9종이 접두사로만 붙는다 (§빌더가 반드시 확인할 것 7)
+- [ ] `generate-board-image.ts`에 `usage` 로깅 추가 — 크레딧 추정 대신 실측
+- [x] 실제 구현 코드에 반영 — `lib/moodboard/{persona-keywords,layout-styles,build-board-prompt,generate-board-image,assemble-board}.ts` (#92)
+- [x] 페르소나 사전을 `.ts`로 옮기고 **키를 페르소나 이름과 타입으로 묶기** — `persona-keywords.ts`가 `Record<AestheticCore | LifeTheme, …>`로 강제한다 (#92)
 
 ## 보드 이미지 생성 흐름 (페르소나 → 이미지)
 

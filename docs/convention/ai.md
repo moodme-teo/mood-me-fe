@@ -7,7 +7,7 @@
 - 텍스트·이미지 모두 **Elice AX 프록시**(OpenAI 호환 엔드포인트)를 거칩니다 ([ADR 004](../adr/004-ai-elice-gpt5-gemini.md)).
 - 모델명은 항상 상수로 — 문자열 하드코딩 금지:
   - 텍스트: `lib/elice-ai.ts`의 `GPT_MODEL` (`openai/gpt-5` — 여정 → 무드 프로파일 변환용)
-  - 이미지: `lib/elice-ai.ts`의 이미지 모델 상수 (`google/gemini-2.5-flash-image`) — #37에서 추가
+  - 이미지: `lib/elice-ai.ts`의 `GPT_IMAGE_MODEL` (`openai/gpt-image-2` — 보드 이미지 생성용)
 - 모델 교체는 상수 한 곳 수정으로 끝나야 합니다.
 
 ## Prompt 구조 / 폴더
@@ -29,7 +29,7 @@
 
 ## Streaming / 진행 표시
 
-- Elice AX(Gemini) 이미지 엔드포인트(`/images/generations`)는 **동기 호출**이다 — 완성된 이미지 하나가 한 번에 돌아오고 큐/스트리밍 이벤트가 없다(moodboard-library-collection.md 실측, ADR 002가 fal.ai를 선택했던 근거인 실시간 큐 API와 다름). "채워지는" 연출은 백엔드 스트리밍이 아니라 **클라이언트가 결과 이미지를 순차적으로 공개**하는 방식으로 구현한다 — 로딩은 기다림이 아니라 연출입니다 (DESIGN.md 북극성).
+- Elice AX 이미지 엔드포인트(`/images/generations`)는 **동기 호출**이다 — 완성된 이미지 하나가 한 번에 돌아오고 큐/스트리밍 이벤트가 없다(moodboard-creation.md 실측, ADR 002가 fal.ai를 선택했던 근거인 실시간 큐 API와 다름). "채워지는" 연출은 백엔드 스트리밍이 아니라 **클라이언트가 결과 이미지를 순차적으로 공개**하는 방식으로 구현한다 — 로딩은 기다림이 아니라 연출입니다 (DESIGN.md 북극성).
 - 진행 상태는 `MoodboardGenerationJob`(`queued → processing → completed | failed`, `progress_percent`)으로 클라이언트에 노출 — 폴링 규칙은 [state.md](./state.md).
 
 ## Error / Fallback
