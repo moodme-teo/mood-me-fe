@@ -88,18 +88,24 @@ export default function TestLayout({ sessionId }: Props) {
         preview={<BuildBoardPreview cardIds={flow.previewCardIds} />}
       />
 
-      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 py-6">
-        <section className="flex flex-col gap-4">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground">
+      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 pt-4 pb-6">
+        <section className="flex flex-col gap-5">
+          <div className="relative">
+            <p className="font-semibold tracking-wide text-muted-foreground text-caption">
               {kicker}
             </p>
-            <h2 className="mt-1 text-xl font-semibold text-foreground">
+            <h2 className="mt-2 font-[family-name:var(--font-display-kr)] text-[24px] leading-[1.32] font-bold text-foreground">
               {title}
             </h2>
             {hint && (
-              <p className="mt-1 text-sm text-muted-foreground">{hint}</p>
+              <p className="mt-2 text-muted-foreground text-body-sm">{hint}</p>
             )}
+            <span
+              className="absolute top-0 right-0 font-medium text-muted-foreground text-caption"
+              role="status"
+            >
+              {flow.draft.length} / {flow.target}
+            </span>
           </div>
           <StageBody
             screen={flow.screen}
@@ -108,9 +114,6 @@ export default function TestLayout({ sessionId }: Props) {
             target={flow.target}
             onToggle={flow.toggle}
           />
-          <p className="text-xs text-muted-foreground" role="status">
-            {flow.draft.length} / {flow.target} 선택됨
-          </p>
         </section>
       </div>
 
