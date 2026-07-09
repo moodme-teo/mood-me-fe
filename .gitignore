@@ -40,6 +40,8 @@ yarn-error.log*
 .claude/settings.local.json
 # impeccable engine, if ever installed into the project instead of ~/
 **/skills/impeccable/
+# impeccable 로컬 설정·캐시 (머신 로컬 — 커밋 금지)
+.impeccable/
 
 # typescript
 *.tsbuildinfo

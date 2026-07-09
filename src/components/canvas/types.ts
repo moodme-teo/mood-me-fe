@@ -1,10 +1,24 @@
 "use client";
 
+// 무드보드 요소 타입·규격의 단일 원천은 @/types/moodboard 다.
+// 캔버스 구역은 그 타입을 재수출해 쓰고(외부는 배럴 index.ts 로만 접근),
+// 여기에는 캔버스 편집 UI 고유 타입만 남긴다.
 import type { SvgCropShapeId } from "@/components/canvas/crop-svg-shapes";
+import type { MoodboardElement } from "@/types/moodboard";
 
-export const MOODBOARD_WIDTH = 360;
-export const MOODBOARD_HEIGHT = 640;
-export const EXPORT_PIXEL_RATIO = 2;
+export {
+  EXPORT_PIXEL_RATIO,
+  MOODBOARD_HEIGHT,
+  MOODBOARD_WIDTH,
+} from "@/types/moodboard";
+export type {
+  ImageElement,
+  MoodboardElement,
+  PenElement,
+  StickerAssetId,
+  StickerElement,
+  TextElement,
+} from "@/types/moodboard";
 
 // 크롭 에디터 규격 — 정사각 프레임(1:1). 논리 좌표 CROP_SIZE 위에서 편집하고
 // export는 CROP_SIZE * EXPORT_PIXEL_RATIO(=720px) 해상도로 내보낸다. (mood-edit PRD §11)
@@ -45,62 +59,6 @@ export type CropState = {
   background: CropBackground;
   transform: CropTransform;
 };
-
-type BaseElement = {
-  id: string;
-  x: number;
-  y: number;
-  rotation: number;
-  scaleX: number;
-  scaleY: number;
-  z_index: number;
-};
-
-export type StickerAssetId =
-  "silver-star" | "dream-label" | "soft-orbit" | "lucky-ribbon" | "quiet-spark";
-
-export type StickerElement = BaseElement & {
-  type: "sticker";
-  properties: {
-    assetId: StickerAssetId;
-    width: number;
-    height: number;
-  };
-};
-
-export type TextElement = BaseElement & {
-  type: "text";
-  properties: {
-    content: string;
-    fontFamily: string;
-    fontSize: number;
-    color: string;
-    align: "left" | "center" | "right";
-    width: number;
-  };
-};
-
-export type PenElement = BaseElement & {
-  type: "pen";
-  properties: {
-    points: number[];
-    stroke: string;
-    strokeWidth: number;
-  };
-};
-
-// 큐레이션 타일·AI 생성 컷 등 임의 이미지 요소 (#37 — 보드 조립이 채우는 슬롯).
-export type ImageElement = BaseElement & {
-  type: "image";
-  properties: {
-    src: string;
-    width: number;
-    height: number;
-  };
-};
-
-export type MoodboardElement =
-  StickerElement | TextElement | PenElement | ImageElement;
 
 export type MoodboardDraft = {
   moodboardId: string;

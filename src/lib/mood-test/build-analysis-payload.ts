@@ -2,15 +2,12 @@
 // 모른다 — 반드시 라벨·태그로 번역해서 보낸다 (mood-test-questions.md 부록 1).
 
 import type { Journey } from "@/lib/mood-test/journey";
-import {
-  isAestheticCore,
-  isLifeTheme,
-  topScores,
-  TRANSITION_THEME_WEIGHT,
-} from "@/lib/mood-test/personas";
+import { computePersonaResult } from "@/lib/mood-test/persona";
 import { CARDS, SHADOWS, TRANSITIONS } from "@/lib/mood-test/seed";
 
-const PERSONA_SCORE_TOP_N = 3;
+// computePersonaResult가 결정론적으로 확정한 유형명이 없을 때(코어·테마 어느 한쪽이
+// 비는 극단 케이스 — moodboard-persona-ratio.md §열린 문제)의 최후 폴백.
+const FALLBACK_TYPE_NAME = "나만의 무드";
 
 const CARD_MAP = new Map(CARDS.map((card) => [card.id, card]));
 const SHADOW_MAP = new Map(SHADOWS.map((shadow) => [shadow.id, shadow]));
@@ -36,9 +33,14 @@ export type MoodAnalysisPayload = {
     dropped_convictions: string[];
     dropped_desires: string[];
   };
-  persona_scores: {
-    core_scores: Record<string, number>;
-    theme_scores: Record<string, number>;
+  // computePersonaResult(persona.ts, 결정론적 — 보드 이미지 생성이 쓰는 것과 동일한
+  // 함수)가 이미 확정한 값. type_name은 GPT-5가 재판정하지 않고 그대로 받아 글만
+  // 쓴다(ADR 004 §개정) — 리포트와 보드 이미지가 다른 유형을 가리키는 모순을 막는다.
+  // core/theme 비율 분포는 참고용 — 1등 외 페르소나의 존재감을 글에 반영하는 데만 쓴다.
+  persona: {
+    type_name: string;
+    core: { name: string; ratio: number }[];
+    theme: { name: string; ratio: number }[];
   };
 };
 
@@ -86,32 +88,23 @@ function buildTransitionEntries(journey: Journey) {
   });
 }
 
-function buildPersonaScores(journey: Journey) {
-  const coreScores: Record<string, number> = {};
-  const themeScores: Record<string, number> = {};
-
-  for (const id of journey.survivors) {
-    const card = CARD_MAP.get(id);
-    if (!card) continue;
-    for (const [persona, weight] of Object.entries(card.personaWeights)) {
-      if (isAestheticCore(persona)) {
-        coreScores[persona] = (coreScores[persona] ?? 0) + weight;
-      } else if (isLifeTheme(persona)) {
-        themeScores[persona] = (themeScores[persona] ?? 0) + weight;
-      }
-    }
-  }
-
-  for (const { picked } of journey.transitions) {
-    const theme = TRANSITION_MAP.get(picked)?.themeTag;
-    if (theme) {
-      themeScores[theme] = (themeScores[theme] ?? 0) + TRANSITION_THEME_WEIGHT;
-    }
-  }
+function resolvePersonaContext(
+  journey: Journey,
+): MoodAnalysisPayload["persona"] {
+  const result = computePersonaResult(journey);
+  const typeName =
+    result.typeName ?? result.topCore ?? result.topTheme ?? FALLBACK_TYPE_NAME;
 
   return {
-    core_scores: topScores(coreScores, PERSONA_SCORE_TOP_N),
-    theme_scores: topScores(themeScores, PERSONA_SCORE_TOP_N),
+    type_name: typeName,
+    core: result.core.map((rank) => ({
+      name: rank.persona,
+      ratio: rank.ratio,
+    })),
+    theme: result.theme.map((rank) => ({
+      name: rank.persona,
+      ratio: rank.ratio,
+    })),
   };
 }
 
@@ -143,6 +136,6 @@ export function buildMoodAnalysisPayload(
         .filter((id) => pickedTransitionIds.has(id))
         .map(transitionLabel),
     },
-    persona_scores: buildPersonaScores(journey),
+    persona: resolvePersonaContext(journey),
   };
 }

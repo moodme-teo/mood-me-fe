@@ -5,9 +5,12 @@ build
 package-lock.json
 next-env.d.ts
 prototype
+prototype-test-page
 supabase/migrations
 mood-me-design-system*
 .claude
 .cursor
 .agents
 .impeccable
+playwright-report
+test-results

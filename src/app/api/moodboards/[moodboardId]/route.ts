@@ -1,7 +1,7 @@
 import { moodboardSchema } from "@/lib/api/get-moodboard";
 import { updateMoodboardRequestSchema } from "@/lib/api/update-moodboard";
 import { apiError, apiSuccess } from "@/lib/api-response";
-import { getMockMoodboard } from "@/lib/moodboard/mock";
+import { getMoodboardById } from "@/lib/moodboard/get-moodboard";
 import { createServiceClient } from "@/lib/supabase/service";
 
 function canUseSupabaseService() {
@@ -19,48 +19,19 @@ function isUuid(value: string) {
   return UUID_PATTERN.test(value);
 }
 
-// 편집(PATCH)이 저장한 크롭 결과. 저장 row에는 mood_profile이 없으므로 base·elements·
-// 크롭 결과 이미지만 뽑아 mock 프로필 위에 덮어씌운다. row가 없으면 null.
-async function loadSavedMoodboard(moodboardId: string) {
-  if (!canUseSupabaseService() || !isUuid(moodboardId)) return null;
-
-  const service = createServiceClient();
-  const { data, error } = await service
-    .from("moodboards")
-    .select("base_image_url, elements, exported_image_data_url")
-    .eq("id", moodboardId)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[moodboards.GET] 조회 실패", error);
-    return null;
-  }
-  if (!data) return null;
-
-  return {
-    ...(data.base_image_url ? { baseImageUrl: data.base_image_url } : {}),
-    ...(Array.isArray(data.elements) ? { elements: data.elements } : {}),
-    exportedImageUrl: data.exported_image_data_url ?? null,
-  };
-}
-
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ moodboardId: string }> },
 ) {
   const { moodboardId } = await params;
 
-  if (moodboardId === "404" || moodboardId.startsWith("missing")) {
-    return apiError("NOT_FOUND", "무드보드를 찾지 못했어요.", 404);
+  const result = await getMoodboardById(moodboardId);
+  if (!result.ok) {
+    const status = result.code === "NOT_FOUND" ? 404 : 500;
+    return apiError(result.code, result.error, status);
   }
 
-  const fallbackMoodboard = getMockMoodboard(moodboardId);
-  // 저장된 편집본이 있으면 크롭 결과 이미지·base·elements를 mock 위에 덮어씌운다.
-  const saved = await loadSavedMoodboard(moodboardId);
-  const parsed = moodboardSchema.safeParse(
-    saved ? { ...fallbackMoodboard, ...saved } : fallbackMoodboard,
-  );
-
+  const parsed = moodboardSchema.safeParse(result.value);
   if (!parsed.success) {
     return apiError(
       "INTERNAL_ERROR",
@@ -109,6 +80,10 @@ export async function PATCH(
       base_image_url: parsed.data.baseImageUrl,
       elements: parsed.data.elements,
       exported_image_data_url: parsed.data.exportedImageDataUrl ?? null,
+      // moodProfile은 보낸 경우에만 갱신 — 재편집 저장이 기존 리포트를 지우지 않도록 omit.
+      ...(parsed.data.moodProfile
+        ? { mood_profile: parsed.data.moodProfile }
+        : {}),
       updated_at: new Date().toISOString(),
     },
     { onConflict: "id" },

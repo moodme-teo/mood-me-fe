@@ -29,10 +29,14 @@ import {
   zoomAtPoint,
 } from "@/components/canvas";
 import { updateMoodboard } from "@/lib/api/update-moodboard";
+import type { MoodProfile } from "@/types/moodboard";
 
 type Props = {
   moodboardId: string;
   baseImageUrl: string;
+  // 리포트(GPT-5)가 아직 안 끝났으면 없을 수 있다. 저장 시 함께 영속화해 결과 페이지가
+  // 실제 분석을 노출하도록 한다(없으면 서버가 PENDING 폴백). #99 크롭 흐름 통합.
+  moodProfile?: MoodProfile | null;
 };
 
 type EditTab = "image" | "shape" | "background" | "color";
@@ -365,6 +369,7 @@ function ColorPanel({
 export default function MoodboardCropEditor({
   moodboardId,
   baseImageUrl,
+  moodProfile,
 }: Props) {
   const router = useRouter();
   const crop = useCropEditor();
@@ -455,10 +460,12 @@ export default function MoodboardCropEditor({
       const exportedImageDataUrl =
         (await exporterRef.current?.("png")) ?? undefined;
       // 크롭 결과는 한 장의 평면 이미지 — elements는 비우고 export 이미지를 저장한다.
+      // moodProfile은 있을 때만 함께 저장(없으면 서버가 기존 값 유지 / PENDING 폴백).
       await updateMoodboard(moodboardId, {
         baseImageUrl,
         elements: [],
         exportedImageDataUrl,
+        ...(moodProfile ? { moodProfile } : {}),
       });
       router.push(`/moodboard/${moodboardId}`);
     } catch (error) {
@@ -466,7 +473,7 @@ export default function MoodboardCropEditor({
       showToast("저장하지 못했어요. 다시 시도해 주세요.");
       setIsSaving(false);
     }
-  }, [baseImageUrl, moodboardId, router, showToast]);
+  }, [baseImageUrl, moodProfile, moodboardId, router, showToast]);
 
   const activeSolidColor =
     crop.background.type === "solid" ? crop.background.color : null;

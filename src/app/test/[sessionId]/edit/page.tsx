@@ -28,6 +28,7 @@ export default async function EditPage({
     <MoodboardCropEditor
       moodboardId={moodboardId}
       baseImageUrl={jobResult.value.baseImageUrl ?? ""}
+      moodProfile={jobResult.value.moodProfile}
     />
   );
 }
