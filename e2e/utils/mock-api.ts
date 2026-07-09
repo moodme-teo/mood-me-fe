@@ -1,6 +1,11 @@
 import type { Page, Route } from "@playwright/test";
 
-import { generationJob, GUEST_SESSION_ID, JOB_ID, MOODBOARD } from "./data";
+import {
+  generationJob,
+  GUEST_SESSION_ID,
+  JOB_ID,
+  MOODBOARD,
+} from "../fixtures/data";
 
 // lib/api-client.ts 의 응답 규약: 성공은 { data }, 실패는 { error: { code, message } }.
 function ok(route: Route, data: unknown) {
@@ -16,17 +21,6 @@ function fail(route: Route, status: number, code: string, message: string) {
     status,
     contentType: "application/json",
     body: JSON.stringify({ error: { code, message } }),
-  });
-}
-
-// 첫진입 스플래시(2.6초)를 건너뛴다. sessionStorage 플래그는 FirstEntryLanding 이 읽는다.
-export async function skipSplash(page: Page) {
-  await page.addInitScript(() => {
-    try {
-      sessionStorage.setItem("moodme:first-entry-splash-seen", "1");
-    } catch {
-      // 프라이빗 모드 등 — 스플래시가 재생될 뿐 기능엔 영향 없음
-    }
   });
 }
 
@@ -68,6 +62,12 @@ export async function mockGenerationJobSequence(page: Page, steps: JobStep[]) {
 
 export async function mockMoodboard(page: Page) {
   await page.route("**/api/moodboards/*", (route) => ok(route, MOODBOARD));
+}
+
+export async function mockMoodboardFailure(page: Page) {
+  await page.route("**/api/moodboards/*", (route) =>
+    fail(route, 500, "INTERNAL_ERROR", "불러오지 못했어요."),
+  );
 }
 
 // 생성중 화면이 곧바로 호출하는 두 엔드포인트를 성공 경로로 묶어 세팅한다.

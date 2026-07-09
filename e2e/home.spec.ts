@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-import { skipSplash } from "./fixtures/mock-api";
-
-const CREATE_CTA = "무드보드 만들기 — 추구미 테스트 시작하기";
+import { HomePage } from "./pages/home.page";
+import { MoodTestPage } from "./pages/mood-test.page";
+import { skipSplash } from "./utils/session";
 
 test.describe("홈 — 첫진입", () => {
   test.beforeEach(async ({ page }) => {
@@ -10,17 +10,20 @@ test.describe("홈 — 첫진입", () => {
   });
 
   test("게스트가 로그인 없이 첫진입 화면을 본다", async ({ page }) => {
-    await page.goto("/");
+    const home = new HomePage(page);
 
-    await expect(page.getByRole("button", { name: CREATE_CTA })).toBeVisible();
+    await home.goto();
+
+    await expect(home.createButton).toBeVisible();
   });
 
   test("Create 를 누르면 추구미 테스트로 이동한다", async ({ page }) => {
-    await page.goto("/");
+    const home = new HomePage(page);
+    const moodTest = new MoodTestPage(page);
 
-    await page.getByRole("button", { name: CREATE_CTA }).click();
+    await home.goto();
+    await home.startMoodTest();
 
-    await page.waitForURL(/\/test\/[0-9a-f-]{36}$/);
-    await expect(page.getByRole("button", { name: "다음" })).toBeVisible();
+    await expect(moodTest.nextButton).toBeVisible();
   });
 });
