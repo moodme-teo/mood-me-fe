@@ -9,7 +9,6 @@
 import { z } from "zod";
 
 import type { MoodAnalysisPayload } from "@/lib/mood-test/build-analysis-payload";
-import { AESTHETIC_CORES, LIFE_THEMES } from "@/lib/mood-test/personas";
 
 export const moodVectorSchema = z.object({
   calm_energy: z.number().min(0).max(1),
@@ -19,9 +18,14 @@ export const moodVectorSchema = z.object({
   real_dreamy: z.number().min(0).max(1),
 });
 
+// type_name과 image_prompt는 GPT-5가 만들지 않는다. type_name은
+// computePersonaResult(persona.ts, 결정론적)가 이미 확정해 payload에 실어 보내고,
+// image_prompt는 보드 이미지 생성이 build-board-prompt.ts의 규칙 기반 프롬프트로
+// 대체돼(#92) 더 이상 쓰이지 않는다. GPT-5는 이 확정된 유형명을 바탕으로 글만 쓴다
+// (ADR 004 §개정 — "GPT-5는 페르소나 판정 주체가 아니다"). 리포트와 보드 이미지가
+// 서로 다른 유형을 가리키는 모순을 막는다.
 export const moodAnalysisSchema = z.object({
   title: z.string().min(1),
-  type_name: z.string().min(1),
   reading: z.object({
     conviction: z.string().min(1),
     desire: z.string().min(1),
@@ -30,7 +34,6 @@ export const moodAnalysisSchema = z.object({
   mood_vector: moodVectorSchema,
   keywords: z.array(z.string().min(1)).length(9),
   sticker_phrases: z.array(z.string().min(1)).length(3),
-  image_prompt: z.string().min(1),
 });
 
 export type MoodAnalysis = z.infer<typeof moodAnalysisSchema>;
@@ -49,28 +52,20 @@ export function buildMoodAnalysisSystemPrompt(): string {
    - dropped_convictions(밀려난 확신)는 흘려보낼 준비가 된 것으로 해석합니다.
 4. journey.late_drops는 마지막까지 붙들다 놓은 카드 — 미련으로, early_drops보다 무겁게 다룹니다.
 5. hesitation 값이 큰 카드는 망설임이 담긴 카드입니다. 해석의 참고로만 쓰고 문장에 직접 인용하지 않습니다. (활용 강도 미정)
-6. persona_scores는 참고용 후보입니다. core_scores(미학 코어 후보)와 theme_scores(인생 테마 후보)로 나뉩니다. 여정 해석과 어긋나면 여정을 우선합니다.
-
-[type_name 규칙 — 반드시 준수]
-- type_name = "<미학 코어 1개> × <인생 테마 1개>" 형식. 왼쪽은 아래 미학 코어 14종에서만, 오른쪽은 아래 인생 테마 6종에서만 고릅니다. 목록에 없는 이름을 새로 만들지 마세요.
-- 미학 코어(14): ${AESTHETIC_CORES.join(" · ")}
-- 인생 테마(6): ${LIFE_THEMES.join(" · ")}
-- 코어는 convictions(확신 카드)의 결과 core_scores에서, 테마는 transitions(열망)과 theme_scores에서 도출합니다. 테마 자리에 코어 이름을 넣지 마세요.
+6. persona.type_name은 이미 확정된 값입니다 — 페르소나 판정 도구(computePersonaResult)가 여정 전체를 정량적으로 분석해 결정했습니다. 같은 사람의 무드보드 이미지도 이 유형을 기준으로 생성됩니다. 당신은 이 유형을 재판정하지 않고, 이 유형에 맞는 문체·키워드·확언 문구를 쓰는 데만 씁니다. type_name과 다른 유형을 암시하는 문장을 쓰지 마세요.
+7. persona.core/persona.theme는 비율 분포(참고용)입니다 — 1위뿐 아니라 2위·3위 페르소나의 존재감(예: 2위가 30% 이상이면 그 결도 은은하게 반영)까지 문장·키워드에 뉘앙스로 담되, 이 분포를 근거로 type_name과 다른 유형을 새로 판정하지 않습니다.
 
 [작성 규칙]
 - 한국어, 부드러운 존댓말. 가볍고 놀이 같은 톤 — 사색적이거나 무거운 문체 금지.
 - 단정하되 근거는 항상 여정에서: "~를 마지막까지 붙들었으니까요"처럼 선택 행동을 근거로 씁니다.
-- 페르소나 이름은 type_name에만 사용하고 reading 문장에는 노출하지 않습니다.
+- 페르소나 이름(type_name)을 reading 문장에 그대로 노출하지 않습니다 — 느낌으로만 드러냅니다.
 - sticker_phrases는 매니페스테이션 확언 톤의 한국어, 각 12자 이내. (예시 톤: "작은 기적은 매일 온다")
-- image_prompt는 영문 한 문단 — kept_desires와 convictions의 태그를 조합한 무드보드용 감성 컷 묘사.
-  사진 스타일(감성 디테일 컷), 색감, 조명을 명시하고 인물 얼굴·텍스트·로고는 넣지 않습니다.
 
 [출력]
 아래 JSON만 출력합니다. 설명 문장·마크다운 금지.
 mood_vector의 다섯 축은 반드시 0.0~1.0 사이의 값입니다. 음수를 쓰지 마세요 (0.0이 왼쪽 극, 1.0이 오른쪽 극, 0.5가 중립).
 {
   "title": "리포트 타이틀 한 줄 (20자 이내)",
-  "type_name": "미학 코어 × 인생 테마 (예: 다크 아카데미아 × 커리어 보스)",
   "reading": {
     "conviction": "확신 해석 2~3문장",
     "desire": "열망 해석 2~3문장",
@@ -84,8 +79,7 @@ mood_vector의 다섯 축은 반드시 0.0~1.0 사이의 값입니다. 음수를
     "real_dreamy": 0.5
   },
   "keywords": ["9개의 무드 키워드"],
-  "sticker_phrases": ["확언 톤 문구 3개"],
-  "image_prompt": "english prompt for image generation"
+  "sticker_phrases": ["확언 톤 문구 3개"]
 }`;
 }
 

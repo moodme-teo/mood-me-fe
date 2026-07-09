@@ -26,6 +26,12 @@ async function callImageModel(prompt: string): Promise<string> {
     {
       timeout: IMAGE_TIMEOUT_MS,
       headers: { "User-Agent": BROWSER_USER_AGENT },
+      // openai SDK 기본값(maxRetries: 2)을 이 호출에서만 끈다 — 아래 generateBoardImage가
+      // 이미 의미 있는 재시도(1회)를 하고 있어서, SDK가 타임아웃마다 내부적으로 또
+      // 재시도하면 실제 대기 시간이 90초 설정의 최대 3배까지 조용히 늘어난다(리포트
+      // 호출에서 실측: generate-mood-analysis.ts 참고). 이 옵션은 이 요청에만 적용되고
+      // elice-ai.ts의 공용 클라이언트 기본값(리포트 호출도 함께 쓰는)은 그대로 둔다.
+      maxRetries: 0,
     },
   );
 

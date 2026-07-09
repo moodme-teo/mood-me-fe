@@ -14,6 +14,7 @@ import type {
   StickerAssetId,
 } from "@/components/canvas";
 import { updateMoodboard } from "@/lib/api/update-moodboard";
+import type { MoodProfile } from "@/types/moodboard";
 
 type Props = {
   moodboardId: string;
@@ -21,6 +22,9 @@ type Props = {
   // 생성 파이프라인(#37)이 조립한 초기 요소 — /test/[sessionId]/edit에서 처음 진입할 때만
   // 넘어온다. /moodboard/[moodboardId]/edit(재편집)는 로컬 드래프트/서버 저장본을 쓰므로 생략.
   initialElements?: MoodboardElement[];
+  // 생성 job의 리포트(GPT-5, 이미지와 독립적으로 돎) — 편집 진입 시점엔 아직 안 끝나
+  // null일 수 있다. "완성하고 공유하기" 시점에 그대로 함께 저장한다.
+  moodProfile?: MoodProfile | null;
 };
 
 const TOOL_ITEMS: { id: MoodboardTool; label: string; symbol: string }[] = [
@@ -362,6 +366,7 @@ export default function MoodboardEditor({
   moodboardId,
   baseImageUrl,
   initialElements,
+  moodProfile,
 }: Props) {
   const router = useRouter();
   const [tool, setTool] = useState<MoodboardTool>("move");
@@ -481,6 +486,7 @@ export default function MoodboardEditor({
             element.type !== "text" || element.properties.content.trim(),
         ),
         exportedImageDataUrl,
+        moodProfile: moodProfile ?? undefined,
       });
       router.push(`/moodboard/${moodboardId}`);
     } catch (error) {
@@ -489,7 +495,7 @@ export default function MoodboardEditor({
     } finally {
       setIsSaving(false);
     }
-  }, [baseImageUrl, moodboard, moodboardId, router, showToast]);
+  }, [baseImageUrl, moodboard, moodboardId, moodProfile, router, showToast]);
 
   return (
     <main className="min-h-dvh bg-background text-foreground">
