@@ -23,6 +23,7 @@
 | [type.md](./type.md)           | strict · any 금지 · 타입 위치 · Zod가 원천 · DB 타입                       | 🚧 초안 |
 | [canvas.md](./canvas.md)       | 직렬화 데이터가 원천 · Konva 구조 · store · undo · export · 격리           | 🚧 초안 |
 | [ai.md](./ai.md)               | Prompt · Model · Zod Output · Retry/Timeout · Streaming · Fallback         | 🚧 초안 |
+| [qa.md](./qa.md)               | 테스트 레이어 · E2E 구조 · AI mock · data-testid · 머지 기준               | 🚧 초안 |
 
 > Style · Design System 컨벤션은 [DESIGN.md](../../DESIGN.md)의 `[담당자 결정]` 항목 확정 후 별도 작성합니다.
 
@@ -44,8 +45,9 @@
 | 폴더 경계 (단방향 · Konva 격리 · 서버 lib)               | ESLint `import/no-restricted-paths` zones                                     | ✅ 적용됨    |
 | 파일명 규칙 (컴포넌트 PascalCase · 그 외 kebab)          | ESLint `check-file`                                                           | 🔜 후속 이슈 |
 | 포맷 논쟁 제거                                           | Prettier + VSCode formatOnSave                                                | ✅ 적용됨    |
-| 커밋 시 자동 검사                                        | lint-staged (`pre-commit`: ESLint --fix + `tsc --noEmit`)                     | 🔜 후속 이슈 |
-| PR 시 자동 검사                                          | GitHub Actions: lint → `tsc --noEmit` → `next build`                          | 🔜 후속 이슈 |
+| 커밋 시 자동 검사                                        | lint-staged (`pre-commit`: ESLint --fix + Prettier, 스테이징된 파일만)        | ✅ 적용됨    |
+| PR 시 자동 검사                                          | GitHub Actions: format:check → lint → typecheck → build → e2e                 | ✅ 적용됨    |
+| 핵심 여정 회귀 방지                                      | Playwright E2E (`e2e/`) — [qa.md](./qa.md)                                    | ✅ 적용됨    |
 
 - 설정 견본: [bulletproof-react `apps/nextjs-app`](https://github.com/alan2207/bulletproof-react/tree/master/apps/nextjs-app) — 구형 `.eslintrc` 포맷이므로 이 레포의 flat config(`eslint.config.mjs`)로 번역해서 가져옵니다.
 - 이 문서들의 규칙이 PR 리뷰에서 위반으로 잡히면, 그 사례를 해당 문서에 bad 예시로 추가해 문서를 키웁니다.

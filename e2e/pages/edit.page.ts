@@ -48,8 +48,14 @@ export class EditPage {
     this.baseImageRetryButton = page.getByRole("button", { name: "다시 시도" });
   }
 
+  /** 생성 직후 편집 — 서버가 job 을 조회한다 (E2E 보류, edit.spec.ts 주석 참조). */
   async goto(sessionId: string) {
     await this.page.goto(`/test/${sessionId}/edit`);
+  }
+
+  /** 저장된 무드보드 재편집 — 서버 조회 없이 렌더되므로 E2E 로 검증 가능하다. */
+  async gotoSaved(moodboardId: string) {
+    await this.page.goto(`/moodboard/${moodboardId}/edit`);
   }
 
   tool(label: ToolLabel): Locator {
