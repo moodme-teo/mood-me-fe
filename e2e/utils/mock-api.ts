@@ -5,6 +5,7 @@ import {
   GUEST_SESSION_ID,
   JOB_ID,
   MOODBOARD,
+  MOODBOARD_ID,
 } from "../fixtures/data";
 
 // lib/api-client.ts 의 응답 규약: 성공은 { data }, 실패는 { error: { code, message } }.
@@ -68,6 +69,27 @@ export async function mockMoodboardFailure(page: Page) {
   await page.route("**/api/moodboards/*", (route) =>
     fail(route, 500, "INTERNAL_ERROR", "불러오지 못했어요."),
   );
+}
+
+// 편집 화면의 "완성하고 공유하기" 는 PATCH /api/moodboards/{id} 로 저장한다.
+// 같은 URL 을 GET 으로도 쓰므로 PATCH 가 아니면 다른 핸들러로 넘긴다.
+export async function mockSaveMoodboard(page: Page) {
+  await page.route("**/api/moodboards/*", (route) => {
+    if (route.request().method() !== "PATCH") return route.fallback();
+    return ok(route, {
+      id: MOODBOARD_ID,
+      elements: MOODBOARD.elements,
+      baseImageUrl: MOODBOARD.baseImageUrl,
+      persisted: true,
+    });
+  });
+}
+
+export async function mockSaveMoodboardFailure(page: Page) {
+  await page.route("**/api/moodboards/*", (route) => {
+    if (route.request().method() !== "PATCH") return route.fallback();
+    return fail(route, 500, "INTERNAL_ERROR", "저장하지 못했어요.");
+  });
 }
 
 // 생성중 화면이 곧바로 호출하는 두 엔드포인트를 성공 경로로 묶어 세팅한다.
