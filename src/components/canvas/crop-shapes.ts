@@ -2,7 +2,20 @@
 
 import type Konva from "konva";
 
-import type { CropShapeId } from "@/components/canvas/types";
+import {
+  SVG_CROP_SHAPES,
+  type SvgPrimitive,
+} from "@/components/canvas/crop-svg-shapes";
+import type { CropFit } from "@/components/canvas/crop-transform";
+import type {
+  BuiltinCropShapeId,
+  CropShapeId,
+} from "@/components/canvas/types";
+
+// "크롭 안 함"은 원본 전체를 프레임 안에 담는 contain, 나머지 도형은 cover.
+export function getCropFit(shape: CropShapeId): CropFit {
+  return shape === "none" ? "contain" : "cover";
+}
 
 // 도형 clip 경로 — 정사각 프레임(size×size)에 내접하도록 경로만 그린다.
 // Konva가 clipFunc 호출 전 beginPath(), 호출 후 clip()을 대신 처리하므로
@@ -26,7 +39,12 @@ function roundedRectPath(
   ctx.closePath();
 }
 
-const SHAPE_PATHS: Record<CropShapeId, ShapePath> = {
+const SHAPE_PATHS: Record<BuiltinCropShapeId, ShapePath> = {
+  // 크롭 없음 — 프레임 전체(마스킹 없음). CropCanvas가 clip을 생략하므로 실사용되진 않지만
+  // 타입 완결성을 위해 정사각 경로를 둔다.
+  none: (ctx, s) => {
+    ctx.rect(0, 0, s, s);
+  },
   circle: (ctx, s) => {
     ctx.arc(s / 2, s / 2, s / 2, 0, Math.PI * 2, false);
   },
@@ -95,12 +113,136 @@ const SHAPE_PATHS: Record<CropShapeId, ShapePath> = {
   },
 };
 
+// SVG 프리미티브를 프레임(size)에 맞춰 스케일해 경로만 그린다. clip은 Konva가 처리.
+function drawSvgPrimitive(
+  ctx: Konva.Context,
+  size: number,
+  prim: SvgPrimitive,
+  view: number,
+) {
+  const k = size / view;
+  if (prim.t === "ellipse") {
+    ctx.ellipse(
+      prim.cx * k,
+      prim.cy * k,
+      prim.rx * k,
+      prim.ry * k,
+      0,
+      0,
+      Math.PI * 2,
+      false,
+    );
+    return;
+  }
+  if (prim.t === "rect") {
+    roundedRectPath(
+      ctx,
+      prim.x * k,
+      prim.y * k,
+      prim.w * k,
+      prim.h * k,
+      prim.rx * k,
+    );
+    return;
+  }
+  // path — 절대 명령 M/L/H/V/C/Z만 사용(자산 확인). 각 좌표를 k배로 스케일해 replay.
+  const tokens = prim.d.match(/[MLHVCZ]|-?\d*\.?\d+/gi);
+  if (!tokens) return;
+  let i = 0;
+  let cx = 0;
+  let cy = 0;
+  let startX = 0;
+  let startY = 0;
+  // 다음 토큰이 좌표 숫자인지(명령 문자가 아닌지) 판별.
+  const isNum = () => {
+    const t = tokens[i];
+    return t !== undefined && /^-?\.?\d/.test(t);
+  };
+  const next = () => Number(tokens[i++]);
+  while (i < tokens.length) {
+    const cmd = tokens[i++];
+    switch (cmd) {
+      case "M":
+        cx = next();
+        cy = next();
+        startX = cx;
+        startY = cy;
+        ctx.moveTo(cx * k, cy * k);
+        while (isNum()) {
+          cx = next();
+          cy = next();
+          ctx.lineTo(cx * k, cy * k);
+        }
+        break;
+      case "L":
+        while (isNum()) {
+          cx = next();
+          cy = next();
+          ctx.lineTo(cx * k, cy * k);
+        }
+        break;
+      case "H":
+        while (isNum()) {
+          cx = next();
+          ctx.lineTo(cx * k, cy * k);
+        }
+        break;
+      case "V":
+        while (isNum()) {
+          cy = next();
+          ctx.lineTo(cx * k, cy * k);
+        }
+        break;
+      case "C":
+        while (isNum()) {
+          const x1 = next();
+          const y1 = next();
+          const x2 = next();
+          const y2 = next();
+          cx = next();
+          cy = next();
+          ctx.bezierCurveTo(x1 * k, y1 * k, x2 * k, y2 * k, cx * k, cy * k);
+        }
+        break;
+      case "Z":
+        ctx.closePath();
+        cx = startX;
+        cy = startY;
+        break;
+      default:
+        break;
+    }
+  }
+}
+
+const SVG_SHAPE_MAP = new Map(SVG_CROP_SHAPES.map((def) => [def.id, def]));
+
 export function getCropShapePath(shape: CropShapeId): ShapePath {
-  return SHAPE_PATHS[shape];
+  const builtin = (SHAPE_PATHS as Partial<Record<CropShapeId, ShapePath>>)[
+    shape
+  ];
+  if (builtin) return builtin;
+
+  const svg = SVG_SHAPE_MAP.get(
+    shape as (typeof SVG_CROP_SHAPES)[number]["id"],
+  );
+  if (svg) {
+    return (ctx, size) => {
+      for (const prim of svg.shapes) {
+        drawSvgPrimitive(ctx, size, prim, svg.view);
+      }
+    };
+  }
+
+  // 알 수 없는 도형 — 정사각으로 안전 폴백.
+  return (ctx, s) => {
+    ctx.rect(0, 0, s, s);
+  };
 }
 
 // 하단 가로 스크롤에 노출할 도형 목록 (mood-edit PRD §3.2 · §4.2).
 export const CROP_SHAPES: { id: CropShapeId; label: string }[] = [
+  { id: "none", label: "크롭 안 함" },
   { id: "circle", label: "원" },
   { id: "ellipse", label: "타원" },
   { id: "square", label: "정사각형" },
@@ -110,4 +252,5 @@ export const CROP_SHAPES: { id: CropShapeId; label: string }[] = [
   { id: "star", label: "별" },
   { id: "heart", label: "하트" },
   { id: "diamond", label: "다이아몬드" },
+  ...SVG_CROP_SHAPES.map((def) => ({ id: def.id, label: def.label })),
 ];

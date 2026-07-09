@@ -38,6 +38,10 @@ export function useCropEditor() {
     setBackground({ type: "transparent" });
   }, []);
 
+  const setBlurBackground = useCallback(() => {
+    setBackground({ type: "blur" });
+  }, []);
+
   const state = useMemo<CropState>(
     () => ({ shape, background, transform }),
     [shape, background, transform],
@@ -53,6 +57,7 @@ export function useCropEditor() {
     setBackground,
     setSolidBackground,
     setTransparentBackground,
+    setBlurBackground,
     setTransform,
     setPalette,
   };

@@ -17,13 +17,15 @@ export {
   MOODBOARD_HEIGHT,
   MOODBOARD_WIDTH,
 } from "@/components/canvas/types";
-export { CROP_SHAPES } from "@/components/canvas/crop-shapes";
+export { CROP_SHAPES, getCropFit } from "@/components/canvas/crop-shapes";
+export { CropShapeIcon } from "@/components/canvas/crop-shape-icon";
 export { extractPalette } from "@/components/canvas/extract-palette";
 export {
   getCenteredTransform,
   zoomAtPoint,
   MAX_ZOOM,
   MIN_ZOOM,
+  type CropFit,
   type ImageMetrics,
 } from "@/components/canvas/crop-transform";
 export {

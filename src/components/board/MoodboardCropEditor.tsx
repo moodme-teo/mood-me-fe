@@ -1,5 +1,12 @@
 "use client";
 
+import {
+  Image as ImageIcon,
+  type LucideIcon,
+  PaintBucket,
+  Palette,
+  Shapes,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 
@@ -10,9 +17,11 @@ import {
   CropCanvas,
   type CropExporter,
   type CropExportFormat,
+  CropShapeIcon,
   type CropShapeId,
   extractPalette,
   getCenteredTransform,
+  getCropFit,
   type ImageMetrics,
   MAX_ZOOM,
   MIN_ZOOM,
@@ -28,11 +37,11 @@ type Props = {
 
 type EditTab = "image" | "shape" | "background" | "color";
 
-const TABS: { id: EditTab; label: string }[] = [
-  { id: "image", label: "이미지" },
-  { id: "shape", label: "도형" },
-  { id: "background", label: "배경" },
-  { id: "color", label: "색상" },
+const TABS: { id: EditTab; label: string; Icon: LucideIcon }[] = [
+  { id: "image", label: "이미지", Icon: ImageIcon },
+  { id: "shape", label: "도형", Icon: Shapes },
+  { id: "background", label: "배경", Icon: PaintBucket },
+  { id: "color", label: "색상", Icon: Palette },
 ];
 
 const SOLID_PRESETS: { label: string; color: string }[] = [
@@ -215,15 +224,20 @@ function ShapePanel({
         <button
           key={item.id}
           type="button"
+          aria-label={item.label}
+          title={item.label}
           aria-pressed={shape === item.id}
           onClick={() => onSelect(item.id)}
-          className={`min-h-14 shrink-0 rounded-2xl border px-4 text-xs font-bold transition ${
+          className={`flex size-16 shrink-0 items-center justify-center rounded-2xl border bg-card p-3 transition ${
             shape === item.id
-              ? "border-foreground bg-surface-inverse text-white"
-              : "border-gray-100 bg-card text-gray-700"
+              ? "border-foreground ring-2 ring-foreground"
+              : "border-gray-200"
           }`}
         >
-          {item.label}
+          <CropShapeIcon
+            shape={item.id}
+            className="size-full text-foreground"
+          />
         </button>
       ))}
     </div>
@@ -234,12 +248,15 @@ function BackgroundPanel({
   background,
   onTransparent,
   onSolid,
+  onBlur,
 }: {
   background: CropBackground;
   onTransparent: () => void;
   onSolid: (color: string) => void;
+  onBlur: () => void;
 }) {
   const isTransparent = background.type === "transparent";
+  const isBlur = background.type === "blur";
   const activeColor = background.type === "solid" ? background.color : null;
 
   return (
@@ -255,6 +272,18 @@ function BackgroundPanel({
         }`}
       >
         투명
+      </button>
+      <button
+        type="button"
+        aria-pressed={isBlur}
+        onClick={onBlur}
+        className={`min-h-14 rounded-2xl border px-4 text-xs font-bold transition ${
+          isBlur
+            ? "border-foreground bg-surface-inverse text-white"
+            : "border-gray-100 bg-card text-gray-700"
+        }`}
+      >
+        이미지 블러
       </button>
       {SOLID_PRESETS.map((preset) => (
         <button
@@ -371,6 +400,8 @@ export default function MoodboardCropEditor({
     exporterRef.current = exporter;
   }, []);
 
+  const handleImageError = useCallback(() => setIsBaseImageFailed(true), []);
+
   const handleZoomChange = useCallback(
     (zoom: number) => {
       if (!metrics) return;
@@ -382,16 +413,19 @@ export default function MoodboardCropEditor({
           zoom,
           CROP_SIZE / 2,
           CROP_SIZE / 2,
+          getCropFit(crop.shape),
         ),
       );
     },
-    [crop.transform, metrics, setTransform],
+    [crop.transform, crop.shape, metrics, setTransform],
   );
 
   const handleReset = useCallback(() => {
     if (!metrics) return;
-    setTransform(getCenteredTransform(metrics, CROP_SIZE));
-  }, [metrics, setTransform]);
+    setTransform(
+      getCenteredTransform(metrics, CROP_SIZE, getCropFit(crop.shape)),
+    );
+  }, [crop.shape, metrics, setTransform]);
 
   const handleDownload = useCallback(
     async (format: CropExportFormat) => {
@@ -507,7 +541,7 @@ export default function MoodboardCropEditor({
             transform={crop.transform}
             onTransformChange={crop.setTransform}
             onImageLoad={handleImageLoad}
-            onImageError={() => setIsBaseImageFailed(true)}
+            onImageError={handleImageError}
             onExportReady={handleExportReady}
           />
         )}
@@ -522,15 +556,17 @@ export default function MoodboardCropEditor({
             <button
               key={item.id}
               type="button"
+              aria-label={item.label}
+              title={item.label}
               aria-pressed={tab === item.id}
               onClick={() => setTab(item.id)}
-              className={`min-h-11 rounded-2xl border px-2 text-[13px] font-bold transition ${
+              className={`flex min-h-11 items-center justify-center rounded-2xl border transition ${
                 tab === item.id
                   ? "border-foreground bg-surface-inverse text-white"
                   : "border-gray-100 bg-card text-gray-700"
               }`}
             >
-              {item.label}
+              <item.Icon className="size-5" aria-hidden strokeWidth={2.25} />
             </button>
           ))}
         </nav>
@@ -551,6 +587,7 @@ export default function MoodboardCropEditor({
               background={crop.background}
               onTransparent={crop.setTransparentBackground}
               onSolid={crop.setSolidBackground}
+              onBlur={crop.setBlurBackground}
             />
           ) : null}
           {tab === "color" ? (

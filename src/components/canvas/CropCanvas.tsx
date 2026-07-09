@@ -4,7 +4,8 @@ import type Konva from "konva";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Group, Image as KonvaImage, Layer, Rect, Stage } from "react-konva";
 
-import { getCropShapePath } from "@/components/canvas/crop-shapes";
+import { createBlurredBackground } from "@/components/canvas/crop-background";
+import { getCropFit, getCropShapePath } from "@/components/canvas/crop-shapes";
 import {
   clampTransform,
   getCenteredTransform,
@@ -40,6 +41,13 @@ function useCanvasImage(src: string, onError: () => void) {
     "loading",
   );
 
+  // onError는 부모의 인라인 콜백이라 매 렌더 새 참조 — effect deps에 넣으면 이미지가
+  // 매 렌더 재로드되며 무한 루프(Maximum update depth)가 난다. ref로 미러링해 src에만 반응.
+  const onErrorRef = useRef(onError);
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+
   useEffect(() => {
     if (!src) return;
 
@@ -55,14 +63,14 @@ function useCanvasImage(src: string, onError: () => void) {
       if (cancelled) return;
       setImage(null);
       setStatus("error");
-      onError();
+      onErrorRef.current();
     };
     img.src = src;
 
     return () => {
       cancelled = true;
     };
-  }, [onError, src]);
+  }, [src]);
 
   return { image, status };
 }
@@ -123,6 +131,15 @@ export default function CropCanvas({
     [image],
   );
 
+  // "크롭 안 함"은 contain(원본 전체), 도형 크롭은 cover.
+  const fit = getCropFit(shape);
+
+  // 블러 배경 — 원본 이미지를 확대·블러한 캔버스. 배경 탭에서 선택할 때만 그린다.
+  const blurredBackground = useMemo(
+    () => (image ? createBlurredBackground(image, CROP_SIZE) : null),
+    [image],
+  );
+
   // 최신 값을 이벤트 핸들러에서 stale 없이 읽기 위한 ref 미러. commit 이후 effect에서 동기화한다.
   const transformRef = useRef(transform);
   const metricsRef = useRef(metrics);
@@ -143,9 +160,19 @@ export default function CropCanvas({
     if (!image || !metrics) return;
     if (handledImageRef.current === image) return;
     handledImageRef.current = image;
-    onTransformChange(getCenteredTransform(metrics, CROP_SIZE));
+    onTransformChange(getCenteredTransform(metrics, CROP_SIZE, fit));
     onImageLoad(image);
-  }, [image, metrics, onImageLoad, onTransformChange]);
+  }, [image, metrics, fit, onImageLoad, onTransformChange]);
+
+  // 도형이 바뀌어 fit(cover↔contain)이 달라지면 현재 transform을 새 기준으로 다시 clamp한다.
+  // (도형 변경 시 위치·확대는 유지 — mood-edit PRD §7 "도형 크롭")
+  useEffect(() => {
+    const meta = metricsRef.current;
+    if (!meta) return;
+    onTransformChange(
+      clampTransform(transformRef.current, meta, CROP_SIZE, fit),
+    );
+  }, [fit, onTransformChange]);
 
   useEffect(() => {
     const syncScale = () => {
@@ -161,8 +188,9 @@ export default function CropCanvas({
   }, []);
 
   const placement = useMemo(
-    () => (metrics ? getImagePlacement(transform, metrics, CROP_SIZE) : null),
-    [metrics, transform],
+    () =>
+      metrics ? getImagePlacement(transform, metrics, CROP_SIZE, fit) : null,
+    [metrics, transform, fit],
   );
 
   useEffect(() => {
@@ -194,9 +222,9 @@ export default function CropCanvas({
     (next: CropTransform) => {
       const meta = metricsRef.current;
       if (!meta) return;
-      onTransformChange(clampTransform(next, meta, CROP_SIZE));
+      onTransformChange(clampTransform(next, meta, CROP_SIZE, fit));
     },
-    [onTransformChange],
+    [onTransformChange, fit],
   );
 
   // ----- 포인터(마우스) 드래그 -----
@@ -245,6 +273,7 @@ export default function CropCanvas({
       current.zoom * factor,
       point.x,
       point.y,
+      fit,
     );
     transformRef.current = next;
     onTransformChange(next);
@@ -301,6 +330,7 @@ export default function CropCanvas({
           gesture.start.zoom * ratio,
           gesture.focalX,
           gesture.focalY,
+          fit,
         ),
       );
       return;
@@ -322,7 +352,7 @@ export default function CropCanvas({
     const meta = metricsRef.current;
     if (!meta) return;
     gestureRef.current = null;
-    onTransformChange(getCenteredTransform(meta, CROP_SIZE));
+    onTransformChange(getCenteredTransform(meta, CROP_SIZE, fit));
   };
 
   const stagePixelSize = CROP_SIZE * displayScale;
@@ -367,7 +397,7 @@ export default function CropCanvas({
         onDblTap={handleReset}
       >
         <Layer listening={false}>
-          {!isTransparent ? (
+          {background.type === "solid" ? (
             <Rect
               x={0}
               y={0}
@@ -376,9 +406,24 @@ export default function CropCanvas({
               fill={background.color}
             />
           ) : null}
+          {background.type === "blur" && blurredBackground ? (
+            <KonvaImage
+              image={blurredBackground}
+              x={0}
+              y={0}
+              width={CROP_SIZE}
+              height={CROP_SIZE}
+            />
+          ) : null}
         </Layer>
         <Layer listening={false}>
-          <Group clipFunc={(ctx) => getCropShapePath(shape)(ctx, CROP_SIZE)}>
+          <Group
+            clipFunc={
+              shape === "none"
+                ? undefined
+                : (ctx) => getCropShapePath(shape)(ctx, CROP_SIZE)
+            }
+          >
             {image && placement ? (
               <KonvaImage
                 image={image}
