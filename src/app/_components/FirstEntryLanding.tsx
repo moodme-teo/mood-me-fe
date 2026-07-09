@@ -57,12 +57,14 @@ export default function FirstEntryLanding({
       alreadySeen = false;
     }
 
-    // 이미 본 세션이거나 모션 최소화 선호 시 스플래시를 건너뛴다(delay 0).
-    // 전환은 항상 타이머 콜백에서 일어나 이펙트 본문의 동기 setState 를 피한다.
-    const delay = alreadySeen || reduced ? 0 : SPLASH_DURATION_MS;
+    // 이미 본 세션이면 스플래시를 건너뛴다(delay 0). 모션 최소화 선호 시에도
+    // 스플래시 자체는 그대로 노출하고(2.6초), 등장·전환 애니메이션만 끈다
+    // (DESIGN.md: reduced-motion 대안은 "제거"가 아니라 "즉시 전환"). 전환은 항상
+    // 타이머 콜백에서 일어나 이펙트 본문의 동기 setState 를 피한다.
+    const delay = alreadySeen ? 0 : SPLASH_DURATION_MS;
     const timer = window.setTimeout(skipToEntry, delay);
     return () => window.clearTimeout(timer);
-  }, [reduced, skipToEntry]);
+  }, [skipToEntry]);
 
   const isEntry = phase === "entry";
 
@@ -120,7 +122,7 @@ export default function FirstEntryLanding({
               type="button"
               onClick={onCreate}
               aria-label="무드보드 만들기 — 추구미 테스트 시작하기"
-              className="group flex w-full items-center gap-4 rounded-[var(--radius-pill)] border border-gray-100 bg-surface-card py-4 pr-5 pl-7 shadow-card ring-ring transition-[transform,box-shadow] duration-200 ease-spring outline-none hover:-translate-y-[3px] hover:shadow-card-hover focus-visible:ring-2 active:translate-y-px active:scale-[0.98] active:shadow-card motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
+              className="flex w-full items-center gap-4 rounded-[var(--radius-pill)] border border-gray-100 bg-surface-card py-4 pr-5 pl-7 shadow-card ring-ring transition-colors duration-200 ease-standard outline-none hover:bg-surface-sunken focus-visible:ring-2 active:bg-gray-100"
             >
               <span className="font-display-en text-[1.75rem] leading-none text-foreground">
                 Create
@@ -130,7 +132,7 @@ export default function FirstEntryLanding({
                 aria-hidden="true"
                 className="flex flex-1 items-center gap-0"
               >
-                <span className="h-px flex-1 bg-gray-900/70 transition-transform duration-200 ease-spring group-hover:origin-left group-hover:scale-x-105" />
+                <span className="h-px flex-1 bg-gray-900/70" />
                 <ArrowRight
                   className="-ml-1 size-5 shrink-0 text-gray-900"
                   strokeWidth={1.5}

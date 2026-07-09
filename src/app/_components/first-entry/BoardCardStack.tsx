@@ -1,11 +1,21 @@
 "use client";
 
-import { motion } from "framer-motion";
+import {
+  motion,
+  type MotionValue,
+  useScroll,
+  useSpring,
+  useTransform,
+} from "framer-motion";
 import Image from "next/image";
+import { useRef } from "react";
 
-// 첫진입 화면의 흩뿌려진 이미지 카드 무리. entry 페이즈에 상단에서 스프링으로 떨어져
-// 기울어진 채 자리를 잡고(디자인 시안), 세로 스와이프/스크롤로 넘겨볼 수 있다.
-// 카드는 네이티브 세로 스크롤 컨테이너 안에 놓여 터치·휠·드래그 모두로 넘어간다.
+// 첫진입 화면의 이미지 카드 무리. 한 줄(단일 세로 컬럼)로 쌓여 위→아래로 스와이프/스크롤한다.
+// 각 카드는 화면 밖 왼쪽에 중심을 둔 큰 원의 오른쪽 곡면을 따라 움직이는 듯
+// 스크롤 위치에 맞춰 x 축과 rotateY 를 함께 바꾼다. Board 글자에 가까워지는 지점에
+// 작은 되감김을 넣어 카드가 글자에 잠깐 걸렸다가 풀리는 듯한 감각을 만든다.
+// 화면 중앙에 가까울수록 평면에 가깝고, 바깥으로 갈수록 다시 깊은 3D 각도를 갖는다.
+// entry 페이즈에 상단에서 스프링으로 떨어져 자리잡는다.
 // (지금은 목업 콜라주 1장을 모든 카드에 채운다 — 추후 실제 결과물 썸네일로 교체 예정)
 
 type Props = {
@@ -15,67 +25,160 @@ type Props = {
 
 const MOCKUP_SRC = "/assets/image.png";
 
-// top 은 스크롤 캔버스(세로로 뷰포트보다 김) 기준 vh, left/width 는 프레임 대비 %.
+// 한 줄 세로 배치 — left/width 는 동일(살짝 겹치며 아래로), top 은 스크롤 캔버스 기준 vh.
+// rotateY 는 카드가 화면 바깥으로 갈 때의 왼쪽 축 기준 최대 회전각, rotate 는 평면 기울기다.
+// arcPeak 는 카드가 원호의 안쪽(오른쪽)으로 가장 들어오는 scrollYProgress 지점이다.
 const CARDS = [
-  { top: "3vh", left: "6%", width: "58%", rotate: -6 },
-  { top: "23vh", left: "38%", width: "56%", rotate: 5 },
-  { top: "45vh", left: "-4%", width: "62%", rotate: 4 },
-  { top: "69vh", left: "40%", width: "54%", rotate: -5 },
-  { top: "92vh", left: "3%", width: "60%", rotate: -8 },
-  { top: "116vh", left: "37%", width: "56%", rotate: 3 },
+  { top: "3vh", rotateY: -17, rotate: -5.5, arcPeak: -0.28 },
+  { top: "33vh", rotateY: -13, rotate: 3.5, arcPeak: 0.02 },
+  { top: "63vh", rotateY: -16, rotate: -1.5, arcPeak: 0.42 },
+  { top: "93vh", rotateY: -12, rotate: 6, arcPeak: 0.86 },
+  { top: "123vh", rotateY: -18, rotate: -8, arcPeak: 1.22 },
 ] as const;
 
+const CARD_LEFT = "14%";
+const CARD_WIDTH = "42%";
+const ARC_SPAN = 0.34;
+const ARC_CATCH_POINTS = [-ARC_SPAN, -0.1, -0.03, 0, 0.04, 0.12, ARC_SPAN];
+const ARC_X = ["-14vw", "-3vw", "6vw", "4vw", "8vw", "4.5vw", "-14vw"];
+const ARC_X_REDUCED = ["-6vw", "-2vw", "2.5vw", "1.5vw", "3vw", "2vw", "-6vw"];
+
+type Card = (typeof CARDS)[number];
+type BoardArcCardProps = {
+  card: Card;
+  index: number;
+  reduced: boolean;
+  scrollYProgress: MotionValue<number>;
+};
+
 export default function BoardCardStack({ active, reduced }: Props) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ container: scrollRef });
+
   return (
     <div
+      ref={scrollRef}
       className="absolute inset-0 z-10 [scrollbar-width:none] overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:hidden"
       aria-label="무드보드 예시 이미지 — 위아래로 넘겨보세요"
     >
-      {/* 세로로 뷰포트보다 긴 캔버스 → 스크롤 발생 */}
-      <div className="relative h-[168vh] w-full">
+      {/* 세로로 뷰포트보다 긴 캔버스 + 원근(perspective) 컨텍스트 → rotateY 가 입체로 보인다 */}
+      <div
+        className="relative h-[168vh] w-full"
+        style={{ perspective: "1500px", perspectiveOrigin: "left center" }}
+      >
         {active &&
           CARDS.map((card, index) => (
-            <motion.div
+            <BoardArcCard
               key={index}
-              className="absolute overflow-hidden rounded-[var(--radius-lg)] bg-gray-100 shadow-card"
-              style={{
-                top: card.top,
-                left: card.left,
-                width: card.width,
-                aspectRatio: "1720 / 2552",
-              }}
-              initial={
-                reduced
-                  ? { opacity: 0, rotate: card.rotate }
-                  : { opacity: 0, y: "-72vh", rotate: 0 }
-              }
-              animate={{ opacity: 1, y: 0, rotate: card.rotate }}
-              transition={
-                reduced
-                  ? { duration: 0.3, delay: index * 0.04 }
-                  : {
-                      type: "spring",
-                      stiffness: 88,
-                      damping: 15,
-                      mass: 0.9,
-                      delay: index * 0.11,
-                    }
-              }
-            >
-              <Image
-                src={MOCKUP_SRC}
-                alt=""
-                fill
-                sizes="(max-width: 430px) 60vw, 258px"
-                className="object-cover"
-                style={{
-                  objectPosition: `50% ${(index * 18) % 100}%`,
-                }}
-                priority={index < 2}
-              />
-            </motion.div>
+              card={card}
+              index={index}
+              reduced={reduced}
+              scrollYProgress={scrollYProgress}
+            />
           ))}
       </div>
     </div>
+  );
+}
+
+function BoardArcCard({
+  card,
+  index,
+  reduced,
+  scrollYProgress,
+}: BoardArcCardProps) {
+  const rawX = useTransform(
+    scrollYProgress,
+    ARC_CATCH_POINTS.map((point) => card.arcPeak + point),
+    reduced ? ARC_X_REDUCED : ARC_X,
+  );
+  const x = useSpring(rawX, {
+    stiffness: reduced ? 900 : 420,
+    damping: reduced ? 90 : 31,
+    mass: reduced ? 0.2 : 0.38,
+  });
+  const rotateYRange = reduced
+    ? [
+        card.rotateY * 0.45,
+        card.rotateY * 0.32,
+        card.rotateY * 0.16,
+        card.rotateY * 0.08,
+        card.rotateY * 0.14,
+        card.rotateY * 0.32,
+        card.rotateY * 0.45,
+      ]
+    : [
+        card.rotateY,
+        card.rotateY * 0.62,
+        card.rotateY * 0.22,
+        card.rotateY * 0.08,
+        card.rotateY * 0.18,
+        card.rotateY * 0.62,
+        card.rotateY,
+      ];
+  const rawRotateY = useTransform(
+    scrollYProgress,
+    ARC_CATCH_POINTS.map((point) => card.arcPeak + point),
+    rotateYRange,
+  );
+  const rotateY = useSpring(rawRotateY, {
+    stiffness: reduced ? 900 : 360,
+    damping: reduced ? 90 : 34,
+    mass: reduced ? 0.2 : 0.32,
+  });
+
+  return (
+    <motion.div
+      className="absolute overflow-hidden rounded-[var(--radius-lg)] bg-gray-100 shadow-card"
+      style={{
+        x,
+        rotateY,
+        top: card.top,
+        left: CARD_LEFT,
+        width: CARD_WIDTH,
+        aspectRatio: "1720 / 2552",
+        transformOrigin: "left center",
+      }}
+      initial={
+        reduced
+          ? { opacity: 0, rotate: card.rotate }
+          : { opacity: 0, y: "-72vh", rotate: 0 }
+      }
+      animate={{
+        opacity: 1,
+        y: 0,
+        rotate: card.rotate,
+      }}
+      transition={
+        reduced
+          ? { duration: 0.3, delay: index * 0.04 }
+          : {
+              type: "spring",
+              stiffness: 88,
+              damping: 15,
+              mass: 0.9,
+              delay: index * 0.12,
+            }
+      }
+    >
+      <Image
+        src={MOCKUP_SRC}
+        alt=""
+        fill
+        sizes="(max-width: 430px) 64vw, 275px"
+        className="object-cover"
+        style={{ objectPosition: `50% ${(index * 22) % 100}%` }}
+        priority={index < 2}
+      />
+      {/* 오른쪽으로 물러난 면에 옅은 음영 — 3D 입체감 강조 */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(90deg, transparent 55%, rgba(30,25,50,0.16))",
+        }}
+      />
+    </motion.div>
   );
 }

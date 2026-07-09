@@ -32,14 +32,14 @@ export default function LoginActions() {
       <button
         type="button"
         onClick={() => startOAuth("kakao")}
-        className="w-full rounded-full bg-[#FEE500] py-4 text-sm font-semibold text-foreground shadow-card transition-[transform,box-shadow] duration-200 ease-spring hover:-translate-y-[3px] hover:shadow-card-hover active:translate-y-px active:scale-[0.97]"
+        className="w-full rounded-full bg-[#FEE500] py-4 text-sm font-semibold text-foreground shadow-card ring-ring transition-colors duration-200 ease-standard outline-none hover:bg-[#ffeb33] focus-visible:ring-2 active:bg-[#f4dc00]"
       >
         카카오로 시작하기
       </button>
       <button
         type="button"
         onClick={() => startOAuth("google")}
-        className="w-full rounded-full border border-gray-300 bg-card py-4 text-sm font-semibold text-foreground transition-[transform,box-shadow] duration-200 ease-spring hover:-translate-y-[3px] hover:shadow-card active:translate-y-px active:scale-[0.97]"
+        className="w-full rounded-full border border-gray-300 bg-card py-4 text-sm font-semibold text-foreground ring-ring transition-colors duration-200 ease-standard outline-none hover:bg-surface-sunken focus-visible:ring-2 active:bg-gray-100"
       >
         구글로 시작하기
       </button>

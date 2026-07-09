@@ -6,16 +6,17 @@ import { cn } from "@/lib/utils";
 
 /**
  * Pill 버튼 — mood me 시스템의 유일한 기본 형태. 깊이는 테두리가 아니라 색조
- * 그림자로만 표현되고, hover 시 위로 떠오르고(-translateY) press 시 눌린다(scale).
+ * 그림자로만 표현한다. hover 에서는 위치나 그림자 깊이 대신 그라디언트 stop
+ * 위치를 바꿔 오른쪽 컬러 면적을 넓힌다.
  * tone 은 그라디언트 fill·전경색·그림자 색을 함께 결정한다(primary 변형에서).
  */
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 cursor-pointer select-none items-center justify-center gap-2.5 whitespace-nowrap rounded-full border-0 font-body outline-none transition-all duration-200 ease-spring will-change-transform hover:-translate-y-[3px] focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px active:scale-[0.97] active:duration-100 active:ease-standard motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 disabled:pointer-events-none disabled:translate-y-0 disabled:opacity-40 disabled:shadow-none [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  "mood-button-gradient group/button inline-flex shrink-0 cursor-pointer select-none items-center justify-center gap-2.5 whitespace-nowrap rounded-full border-0 font-body outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         primary: "",
-        secondary: "bg-surface-sunken text-foreground hover:shadow-card-hover",
+        secondary: "bg-surface-sunken text-foreground",
         ghost: "bg-transparent text-foreground hover:bg-surface-sunken",
       },
       tone: {
@@ -27,9 +28,9 @@ const buttonVariants = cva(
         mustard: "",
       },
       size: {
-        lg: "px-[36px] py-[18px] text-heading-md [&_svg]:size-[22px]",
-        md: "px-[26px] py-[13px] text-body-lg [&_svg]:size-[19px]",
-        sm: "px-[18px] py-[9px] text-body-sm [&_svg]:size-4",
+        lg: "px-[38px] py-[14px] text-body-md font-bold [&_svg]:size-[22px]",
+        md: "px-[28px] py-[10px] text-caption font-semibold [&_svg]:size-[19px]",
+        sm: "px-[20px] py-[7px] text-caption font-medium [&_svg]:size-4",
         "icon-lg": "size-[60px] p-0 [&_svg]:size-[22px]",
         "icon-md": "size-12 p-0 [&_svg]:size-[19px]",
         "icon-sm": "size-[38px] p-0 [&_svg]:size-4",
@@ -39,38 +40,34 @@ const buttonVariants = cva(
       {
         variant: "primary",
         tone: "ink",
-        className:
-          "bg-[image:var(--gradient-ink)] text-white shadow-ink hover:shadow-ink-hover active:shadow-ink-press",
+        className: "bg-[image:var(--gradient-ink)] text-white shadow-ink",
       },
       {
         variant: "primary",
         tone: "pink",
-        className:
-          "bg-[image:var(--gradient-pink)] text-[#3a0d24] shadow-pink hover:shadow-pink-hover active:shadow-pink-press",
+        className: "bg-[image:var(--gradient-pink)] text-[#3a0d24] shadow-pink",
       },
       {
         variant: "primary",
         tone: "violet",
-        className:
-          "bg-[image:var(--gradient-violet)] text-white shadow-violet hover:shadow-violet-hover active:shadow-violet-press",
+        className: "bg-[image:var(--gradient-violet)] text-white shadow-violet",
       },
       {
         variant: "primary",
         tone: "cyan",
-        className:
-          "bg-[image:var(--gradient-cyan)] text-white shadow-cyan hover:shadow-cyan-hover active:shadow-cyan-press",
+        className: "bg-[image:var(--gradient-cyan)] text-white shadow-cyan",
       },
       {
         variant: "primary",
         tone: "green",
         className:
-          "bg-[image:var(--gradient-green)] text-[#173d05] shadow-green hover:shadow-green-hover active:shadow-green-press",
+          "bg-[image:var(--gradient-green)] text-[#173d05] shadow-green",
       },
       {
         variant: "primary",
         tone: "mustard",
         className:
-          "bg-[image:var(--gradient-mustard)] text-white shadow-mustard hover:shadow-mustard-hover active:shadow-mustard-press",
+          "bg-[image:var(--gradient-mustard)] text-white shadow-mustard",
       },
     ],
     defaultVariants: {

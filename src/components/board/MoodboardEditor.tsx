@@ -492,7 +492,7 @@ export default function MoodboardEditor({
   }, [baseImageUrl, moodboard, moodboardId, router, showToast]);
 
   return (
-    <main className="min-h-dvh bg-[#f6f7fb] text-foreground">
+    <main className="min-h-dvh bg-background text-foreground">
       <Toast message={toast} />
       <ConfirmLeaveDialog
         isOpen={isLeaveOpen}
@@ -500,7 +500,7 @@ export default function MoodboardEditor({
         onConfirm={() => router.push("/")}
       />
 
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-foreground/5 bg-[#f6f7fb]/95 px-4 py-3 backdrop-blur">
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-foreground/5 bg-background/95 px-4 py-3 backdrop-blur">
         <button
           type="button"
           onClick={() => setIsLeaveOpen(true)}
@@ -508,12 +508,12 @@ export default function MoodboardEditor({
         >
           뒤로
         </button>
-        <h1 className="text-base font-black">편집</h1>
+        <h1 className="text-base font-bold">편집</h1>
         <button
           type="button"
           disabled={isSaving || isBaseImageFailed}
           onClick={completeMoodboard}
-          className="rounded-xl bg-surface-inverse px-3 py-2 text-sm font-black text-white disabled:opacity-45"
+          className="rounded-xl bg-surface-inverse px-3 py-2 text-sm font-bold text-white disabled:opacity-45"
         >
           {isSaving ? "저장 중" : "완성하고 공유하기"}
         </button>
@@ -522,7 +522,7 @@ export default function MoodboardEditor({
       <div className="flex min-h-[calc(100dvh-220px)] items-center justify-center px-4 py-5">
         {isBaseImageFailed ? (
           <div className="w-full max-w-sm rounded-2xl bg-card p-5 text-center shadow-sm">
-            <p className="text-lg font-black">이미지를 불러오지 못했어요.</p>
+            <p className="text-lg font-bold">이미지를 불러오지 못했어요.</p>
             <p className="mt-2 text-sm leading-6 text-gray-700">
               네트워크를 확인한 뒤 다시 시도해 주세요.
             </p>
@@ -563,7 +563,7 @@ export default function MoodboardEditor({
       <div className="sticky bottom-0 z-30">
         <nav
           aria-label="무드보드 편집 도구"
-          className="grid grid-cols-5 gap-2 border-t border-foreground/5 bg-[#f6f7fb] px-3 py-3"
+          className="grid grid-cols-5 gap-2 border-t border-foreground/5 bg-surface-card px-3 py-3"
         >
           {TOOL_ITEMS.map((item) => (
             <ToolButton

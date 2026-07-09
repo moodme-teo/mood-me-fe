@@ -46,7 +46,7 @@ function Toast({ message }: { message: string | null }) {
 
 function LoadingView() {
   return (
-    <main className="flex flex-1 justify-center overflow-y-auto bg-[#f7f7f8] px-4 py-5 text-foreground">
+    <main className="flex flex-1 justify-center overflow-y-auto bg-background px-4 py-5 text-foreground">
       <div className="w-full max-w-[430px] animate-pulse space-y-4">
         <div className="h-12 rounded-2xl bg-gray-100" />
         <div className="mx-auto h-[520px] w-full max-w-[360px] rounded-2xl bg-gray-100" />
@@ -65,9 +65,9 @@ function ErrorView({
   onRetry: () => void;
 }) {
   return (
-    <main className="flex flex-1 items-center justify-center bg-[#f7f7f8] px-4 text-foreground">
+    <main className="flex flex-1 items-center justify-center bg-background px-4 text-foreground">
       <section className="w-full max-w-sm rounded-2xl bg-card p-5 text-center">
-        <h1 className="text-xl font-black">결과를 불러오지 못했어요.</h1>
+        <h1 className="text-xl font-bold">결과를 불러오지 못했어요.</h1>
         <p className="mt-3 text-sm leading-6 text-gray-700">{message}</p>
         <div className="mt-5 grid grid-cols-2 gap-2">
           <Link
@@ -92,7 +92,7 @@ function ErrorView({
 function MoodSpectrum({ vector }: { vector: MoodVector }) {
   return (
     <section className="rounded-2xl bg-card p-4">
-      <h2 className="text-lg font-black">무드 성향 5축</h2>
+      <h2 className="text-lg font-bold">무드 성향 5축</h2>
       <div className="mt-4 space-y-4">
         {MOOD_AXES.map((axis) => {
           const value = vector[axis.key];
@@ -127,7 +127,7 @@ function ReadingBlock({ moodboard }: { moodboard: Moodboard }) {
   return (
     <section className="space-y-4">
       <div>
-        <h1 className="text-4xl leading-tight font-black text-foreground">
+        <h1 className="text-4xl leading-tight font-bold text-foreground">
           {moodProfile.title}
         </h1>
         <p className="mt-2 text-base font-bold text-[#2556d9]">
@@ -167,7 +167,7 @@ function KeywordCloud({ moodboard }: { moodboard: Moodboard }) {
           {stickerPhrases.map((phrase) => (
             <p
               key={phrase}
-              className="rounded-2xl bg-surface-inverse px-4 py-3 text-center text-sm font-black text-white"
+              className="rounded-2xl bg-surface-inverse px-4 py-3 text-center text-sm font-bold text-white"
             >
               {phrase}
             </p>
@@ -181,7 +181,7 @@ function KeywordCloud({ moodboard }: { moodboard: Moodboard }) {
 function GuestBanner() {
   return (
     <section className="rounded-2xl bg-[#e8eeff] p-4 text-foreground">
-      <p className="text-sm font-black">로그인하면 언제든 다시 볼 수 있어요.</p>
+      <p className="text-sm font-bold">로그인하면 언제든 다시 볼 수 있어요.</p>
       <p className="mt-1 text-sm leading-6 text-gray-700">
         지금은 게스트로도 열람, 공유, 이미지 내보내기를 모두 사용할 수 있습니다.
       </p>
@@ -212,14 +212,14 @@ function ResultActions({
         <button
           type="button"
           onClick={onShare}
-          className="rounded-xl bg-[#2556d9] px-4 py-3 text-sm font-black text-white"
+          className="rounded-xl bg-[#2556d9] px-4 py-3 text-sm font-bold text-white"
         >
           SNS 공유
         </button>
         <button
           type="button"
           onClick={onDownload}
-          className="rounded-xl bg-surface-inverse px-4 py-3 text-sm font-black text-white"
+          className="rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
         >
           이미지 내보내기
         </button>
@@ -351,7 +351,7 @@ export default function MoodboardResult({ moodboardId }: Props) {
   const { moodboard } = state;
 
   return (
-    <main className="flex flex-1 justify-center overflow-y-auto bg-[#f7f7f8] text-foreground">
+    <main className="flex flex-1 justify-center overflow-y-auto bg-background text-foreground">
       <Toast message={toast} />
       <div className="w-full max-w-[430px] px-4 py-4">
         <header className="mb-4 flex items-center justify-between">
@@ -361,7 +361,7 @@ export default function MoodboardResult({ moodboardId }: Props) {
           >
             홈
           </Link>
-          <p className="text-sm font-black">mood·me</p>
+          <p className="text-sm font-bold">mood·me</p>
         </header>
 
         <section className="mx-auto w-[360px] max-w-full overflow-hidden rounded-2xl bg-surface-inverse">

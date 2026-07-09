@@ -1,11 +1,4 @@
-import {
-  ArrowRight,
-  Check,
-  Heart,
-  Plus,
-  Share2,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight, Check, Heart, Plus, Share2, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,26 +23,76 @@ export const metadata: Metadata = {
 // ── 데이터 ──────────────────────────────────────────────────────────────────
 type Tone = "ink" | "pink" | "violet" | "cyan" | "green" | "mustard";
 const ACCENT_TONES = ["pink", "violet", "cyan", "green", "mustard"] as const;
-const BUTTON_TONES: Tone[] = ["ink", "violet", "pink", "cyan", "green", "mustard"];
+const BUTTON_TONES: Tone[] = [
+  "ink",
+  "violet",
+  "pink",
+  "cyan",
+  "green",
+  "mustard",
+];
 
 const NEUTRALS = [
-  { name: "gray-050", cls: "bg-gray-050", hex: "#f6f7fa" },
-  { name: "gray-100", cls: "bg-gray-100", hex: "#edeef2" },
-  { name: "gray-300", cls: "bg-gray-300", hex: "#d2d2d8" },
-  { name: "gray-500", cls: "bg-gray-500", hex: "#7b7b84" },
-  { name: "gray-700", cls: "bg-gray-700", hex: "#43434a" },
-  { name: "gray-900", cls: "bg-gray-900", hex: "#16161a" },
+  { name: "gray-050", cls: "bg-gray-050", hex: "#f6f4f2" },
+  { name: "gray-100", cls: "bg-gray-100", hex: "#ece8e5" },
+  { name: "gray-300", cls: "bg-gray-300", hex: "#d4ceca" },
+  { name: "gray-500", cls: "bg-gray-500", hex: "#6d645f" },
+  { name: "gray-700", cls: "bg-gray-700", hex: "#463f3b" },
+  { name: "gray-900", cls: "bg-gray-900", hex: "#1b1715" },
 ];
 
 const PALETTE = [
-  { hue: "pink", steps: [["700", "#c21e74"], ["500", "#ff4fa3"], ["300", "#ffb3d9"]] },
-  { hue: "violet", steps: [["700", "#5b21b6"], ["500", "#8b5cf6"], ["300", "#cabdfb"]] },
-  { hue: "cyan", steps: [["700", "#0e7fa3"], ["500", "#22d3ee"], ["300", "#a6ecf9"]] },
-  { hue: "green", steps: [["700", "#4f9e12"], ["500", "#8cff3d"], ["300", "#cdffa8"]] },
-  { hue: "mustard", steps: [["700", "#b8790a"], ["500", "#ffc933"], ["300", "#ffe49e"]] },
+  {
+    hue: "pink",
+    steps: [
+      ["700", "#c21e74"],
+      ["500", "#ff4fa3"],
+      ["300", "#ffb3d9"],
+    ],
+  },
+  {
+    hue: "violet",
+    steps: [
+      ["700", "#5b21b6"],
+      ["500", "#8b5cf6"],
+      ["300", "#cabdfb"],
+    ],
+  },
+  {
+    hue: "cyan",
+    steps: [
+      ["700", "#0e7fa3"],
+      ["500", "#22d3ee"],
+      ["300", "#a6ecf9"],
+    ],
+  },
+  {
+    hue: "green",
+    steps: [
+      ["700", "#4f9e12"],
+      ["500", "#8cff3d"],
+      ["300", "#cdffa8"],
+    ],
+  },
+  {
+    hue: "mustard",
+    steps: [
+      ["700", "#b8790a"],
+      ["500", "#ffc933"],
+      ["300", "#ffe49e"],
+    ],
+  },
 ] as const;
 
-const GRADIENTS = ["ink", "pink", "violet", "cyan", "green", "mustard"] as const;
+const GRADIENTS = [
+  "ink",
+  "pink",
+  "violet",
+  "cyan",
+  "green",
+  "mustard",
+  "pastel",
+] as const;
 
 const RADII = [
   { name: "sm", cls: "rounded-sm", px: "8px" },
@@ -70,15 +113,47 @@ const SHADOWS = [
 ];
 
 const TYPE_SAMPLES = [
-  { cls: "text-display-md", label: "display-md · 700/44", sample: "채워지는 꿈" },
-  { cls: "text-display-sm", label: "display-sm · 700/32", sample: "오늘의 추구미" },
-  { cls: "text-heading-lg", label: "heading-lg · 700/28", sample: "무드보드 결과" },
-  { cls: "text-heading-md", label: "heading-md · 600/22", sample: "질문 3 / 8" },
-  { cls: "text-body-lg", label: "body-lg · 500/18", sample: "짧은 테스트로 취향을 무드보드로." },
-  { cls: "text-body-md", label: "body-md · 400/16", sample: "감각은 높이되, 사용은 쉽게." },
-  { cls: "text-body-sm", label: "body-sm · 400/14", sample: "생성에는 약 30초가 걸립니다." },
+  {
+    cls: "text-display-md",
+    label: "display-md · 700/44",
+    sample: "채워지는 꿈",
+  },
+  {
+    cls: "text-display-sm",
+    label: "display-sm · 700/32",
+    sample: "오늘의 추구미",
+  },
+  {
+    cls: "text-heading-lg",
+    label: "heading-lg · 700/28",
+    sample: "무드보드 결과",
+  },
+  {
+    cls: "text-heading-md",
+    label: "heading-md · 600/22",
+    sample: "질문 3 / 8",
+  },
+  {
+    cls: "text-body-lg",
+    label: "body-lg · 500/18",
+    sample: "짧은 테스트로 취향을 무드보드로.",
+  },
+  {
+    cls: "text-body-md",
+    label: "body-md · 500/16",
+    sample: "감각은 높이되, 사용은 쉽게.",
+  },
+  {
+    cls: "text-body-sm",
+    label: "body-sm · 500/14",
+    sample: "생성에는 약 30초가 걸립니다.",
+  },
   { cls: "text-label", label: "label · 600/13", sample: "저장됨" },
-  { cls: "text-caption", label: "caption · 400/12", sample: "2026.07.08 업데이트" },
+  {
+    cls: "text-caption",
+    label: "caption · 500/12",
+    sample: "2026.07.08 업데이트",
+  },
 ];
 
 // ── 레이아웃 헬퍼 ─────────────────────────────────────────────────────────────
@@ -95,7 +170,9 @@ function Section({
     <section className="space-y-5">
       <div className="space-y-1">
         <h2 className="text-heading-lg">{title}</h2>
-        {desc ? <p className="text-body-sm text-muted-foreground">{desc}</p> : null}
+        {desc ? (
+          <p className="text-muted-foreground text-body-sm">{desc}</p>
+        ) : null}
       </div>
       {children}
     </section>
@@ -104,7 +181,7 @@ function Section({
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-label tracking-wide text-muted-foreground uppercase">
+    <p className="tracking-wide text-muted-foreground uppercase text-label">
       {children}
     </p>
   );
@@ -118,16 +195,20 @@ export default function UiTestPage() {
         {/* 헤더 */}
         <header className="space-y-3 border-b border-gray-100 pb-8">
           <div className="flex items-baseline gap-1">
-            <span className="text-[28px] font-extrabold">mood</span>
-            <span className="text-[28px] font-extrabold text-violet-500">me</span>
+            <span className="text-[28px] font-bold">mood</span>
+            <span className="text-[28px] font-bold text-violet-500">me</span>
           </div>
           <h1 className="text-display-sm">Design System</h1>
-          <p className="max-w-[52ch] text-body-md text-muted-foreground">
+          <p className="max-w-[52ch] text-muted-foreground text-body-md">
             토큰·타이포·컴포넌트를 한눈에 보는 레퍼런스. 값의 단일 소스는{" "}
             <code className="rounded bg-surface-sunken px-1.5 py-0.5 text-body-sm">
               src/app/globals.css
             </code>
-            , 규칙은 <code className="rounded bg-surface-sunken px-1.5 py-0.5 text-body-sm">DESIGN.md</code>.
+            , 규칙은{" "}
+            <code className="rounded bg-surface-sunken px-1.5 py-0.5 text-body-sm">
+              DESIGN.md
+            </code>
+            .
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
             {ACCENT_TONES.map((t) => (
@@ -141,7 +222,7 @@ export default function UiTestPage() {
         {/* Colors — Neutral */}
         <Section
           title="Colors"
-          desc="화이트 캔버스 + cool gray 텍스트 스케일. 악센트는 항상 글로우 그라디언트로, flat 단색은 텍스트·아이콘·그림자에만."
+          desc="웜그레이 50 메인 배경 + 웜화이트 카드 표면. 악센트는 항상 글로우 그라디언트로, flat 단색은 텍스트·아이콘·그림자에만."
         >
           <div className="space-y-3">
             <Eyebrow>Neutral scale</Eyebrow>
@@ -152,7 +233,7 @@ export default function UiTestPage() {
                     className={`h-16 rounded-md border border-gray-100 ${n.cls}`}
                   />
                   <p className="text-caption">{n.name}</p>
-                  <p className="text-caption text-muted-foreground">{n.hex}</p>
+                  <p className="text-muted-foreground text-caption">{n.hex}</p>
                 </div>
               ))}
             </div>
@@ -171,7 +252,7 @@ export default function UiTestPage() {
                         className="flex items-center justify-between px-3 py-2.5 text-caption"
                         style={{
                           background: hex,
-                          color: step === "300" ? "#16161a" : "#ffffff",
+                          color: step === "300" ? "var(--gray-900)" : "#ffffff",
                         }}
                       >
                         <span>
@@ -222,7 +303,7 @@ export default function UiTestPage() {
         {/* Typography */}
         <Section
           title="Typography"
-          desc="한글·UI = SUIT Variable. 영문 display 악센트만 Instrument Serif — 세리프는 한글에 쓰지 않는다."
+          desc="본문/UI = Pretendard. 한글 display = Nanum Myeongjo, 영문 display = Instrument Serif."
         >
           <div className="space-y-4 rounded-lg bg-surface-sunken p-6">
             {TYPE_SAMPLES.map((t) => (
@@ -231,7 +312,7 @@ export default function UiTestPage() {
                 className="flex flex-col gap-1 border-b border-gray-100 pb-4 last:border-0 last:pb-0 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6"
               >
                 <span className={`${t.cls} min-w-0`}>{t.sample}</span>
-                <span className="shrink-0 text-caption text-muted-foreground">
+                <span className="shrink-0 text-muted-foreground text-caption">
                   {t.label}
                 </span>
               </div>
@@ -239,12 +320,12 @@ export default function UiTestPage() {
           </div>
 
           <div className="space-y-3">
-            <Eyebrow>English display accent · Instrument Serif</Eyebrow>
+            <Eyebrow>Korean / English display pair</Eyebrow>
             <div className="space-y-2 rounded-lg bg-surface-sunken p-6">
+              <p className="text-display-sm">채워지는 꿈</p>
               <p className="font-display-en text-[48px] leading-none italic">
                 Vision
               </p>
-              <p className="text-heading-md">추구미 무드보드</p>
               <p className="font-display-en text-[48px] leading-none italic">
                 Vibe
               </p>
@@ -271,7 +352,7 @@ export default function UiTestPage() {
         {/* Elevation */}
         <Section
           title="Elevation"
-          desc="깊이는 전부 색조 그림자 — 순수 검정/opacity 없음. hover 시 떠오르고 press 시 눌린다."
+          desc="깊이는 전부 색조 그림자 — 순수 검정/opacity 없음. 버튼 hover는 위치 변화 없이 색으로만 반응한다."
         >
           <div className="grid grid-cols-2 gap-5 sm:grid-cols-4 lg:grid-cols-7">
             {SHADOWS.map((s) => (
@@ -279,7 +360,7 @@ export default function UiTestPage() {
                 <div
                   className={`flex h-20 items-center justify-center rounded-lg bg-card ${s.cls}`}
                 >
-                  <span className="text-caption text-muted-foreground">
+                  <span className="text-muted-foreground text-caption">
                     {s.name}
                   </span>
                 </div>
@@ -291,7 +372,7 @@ export default function UiTestPage() {
         {/* Buttons */}
         <Section
           title="Button"
-          desc="시스템의 유일한 기본 형태 = pill. tone × variant × size. hover/press에 스프링 lift·눌림."
+          desc="시스템의 유일한 기본 형태 = pill. tone × variant × size. hover는 오른쪽 그라디언트 면적 확대로 통일한다."
         >
           <div className="space-y-3">
             <Eyebrow>Primary · tones</Eyebrow>
@@ -413,8 +494,16 @@ export default function UiTestPage() {
           desc="테두리 없는 sunken fill. focus 시 아웃라인 대신 색조 그림자로 떠오른다."
         >
           <div className="grid max-w-xl grid-cols-1 gap-4">
-            <Input inputSize="lg" tone="violet" placeholder="Large · 이름을 입력하세요" />
-            <Input inputSize="md" tone="cyan" placeholder="Medium · 키워드 검색" />
+            <Input
+              inputSize="lg"
+              tone="violet"
+              placeholder="Large · 이름을 입력하세요"
+            />
+            <Input
+              inputSize="md"
+              tone="cyan"
+              placeholder="Medium · 키워드 검색"
+            />
             <Input inputSize="sm" tone="pink" placeholder="Small · 메모" />
             <Input inputSize="md" placeholder="Disabled" disabled />
           </div>
@@ -434,7 +523,7 @@ export default function UiTestPage() {
                   value={p.value}
                   className="flex-1"
                 />
-                <span className="w-10 shrink-0 text-caption text-muted-foreground">
+                <span className="w-10 shrink-0 text-muted-foreground text-caption">
                   {p.value}%
                 </span>
               </div>
@@ -451,13 +540,13 @@ export default function UiTestPage() {
                   <AvatarImage src="/test-image/board/b21.jpg" alt="" />
                   <AvatarFallback>MM</AvatarFallback>
                 </Avatar>
-                <p className="text-caption text-muted-foreground">{tone}</p>
+                <p className="text-muted-foreground text-caption">{tone}</p>
               </div>
             ))}
           </div>
         </Section>
 
-        <footer className="border-t border-gray-100 pt-6 text-caption text-muted-foreground">
+        <footer className="border-t border-gray-100 pt-6 text-muted-foreground text-caption">
           mood·me design system — 이 페이지는 개발용 레퍼런스입니다 (/ui-test).
         </footer>
       </div>

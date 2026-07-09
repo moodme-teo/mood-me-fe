@@ -10,7 +10,7 @@ import {
 // 스플래시 오버레이 — 흩뿌려진 세리프 워드마크(Vision·Mode·Vibe·Chugumi)와 보우/스파클,
 // 서브카피가 스플래시에서 나타났다가 entry 로 넘어가며 사라진다. "Board" 만 상수처럼 남아
 // 첫진입 화면의 앵커가 된다. 영문 display 단어는 Instrument Serif(--font-display-en),
-// 서브카피는 SUIT(한글) — DESIGN.md 언어별 폰트 규칙.
+// 서브카피는 Pretendard 본문 계층 — DESIGN.md 언어별 폰트 규칙.
 
 type Phase = "splash" | "entry";
 
@@ -161,7 +161,7 @@ export default function SplashScene({ phase, reduced }: Props) {
         </motion.span>
       </h1>
 
-      {/* 서브카피 — 스플래시 전용 가치 제안(SUIT, 한글). 가독성 위해 gray-700(≥4.5:1). */}
+      {/* 서브카피 — 스플래시 전용 가치 제안(Pretendard). 가독성 위해 gray-700(≥4.5:1). */}
       <AnimatePresence>
         {isSplash && (
           <motion.p
