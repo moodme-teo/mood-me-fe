@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;600&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #efedea; font-family: 'Noto Sans KR', system-ui, sans-serif; }
+  a { color: #1a1a1a; }
+  a:hover { color: #555; }
+</style>
+</helmet>
+
+<div style="width:402px; height:874px; margin:40px auto; background:#ffffff; border-radius:20px; box-shadow:0 24px 60px rgba(0,0,0,0.10); overflow:hidden; position:relative; display:flex; flex-direction:column;">
+
+  <div style="flex:none; padding:20px 20px 0 20px; display:flex; align-items:center; gap:14px;">
+    <div onClick="{{ headerBackClick }}" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 5L7 12L15 19" stroke="#1a1a1a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;">
+      <div style="width:100%; height:3px; background:#eceae6; border-radius:2px; overflow:hidden;">
+        <div style="height:100%; background:#1a1a1a; border-radius:2px; transition:width 400ms ease; width:{{ progressWidth }};"></div>
+      </div>
+      <span style="font-size:10px; color:#a7a39c; letter-spacing:0.02em;">{{ progressLabel }}</span>
+    </div>
+    <div style="width:36px; height:36px; border-radius:11px; background:#f4f3f0; border:1px solid #ebe9e5; flex:none;"></div>
+  </div>
+
+  <div style="flex:none; padding:22px 20px 16px 20px; position:relative;">
+    <div style="font-family:'Noto Serif KR', serif; font-weight:600; font-size:24px; line-height:1.32; color:#171614;">
+      <div>{{ titleLine1 }}</div>
+      <div>{{ titleLine2 }}</div>
+    </div>
+    <sc-if value="{{ hasSubtitle }}" hint-placeholder-val="{{ true }}">
+      <div style="margin-top:8px; font-size:13px; color:#a7a39c;">{{ subtitleText }}</div>
+    </sc-if>
+    <sc-if value="{{ isSelect }}" hint-placeholder-val="{{ true }}">
+      <span style="position:absolute; top:22px; right:20px; font-size:12px; color:#b8b4ac; font-weight:500;">{{ pickedCounterText }}</span>
+    </sc-if>
+    <sc-if value="{{ isDiscard }}" hint-placeholder-val="{{ false }}">
+      <span style="position:absolute; top:22px; right:20px; font-size:12px; color:#b8b4ac; font-weight:500;">{{ discardCounterText }}</span>
+    </sc-if>
+    <sc-if value="{{ isStep3 }}" hint-placeholder-val="{{ false }}">
+      <span style="position:absolute; top:22px; right:20px; font-size:12px; color:#b8b4ac; font-weight:500;">{{ tagCounterText }}</span>
+    </sc-if>
+    <sc-if value="{{ isStep5 }}" hint-placeholder-val="{{ false }}">
+      <span style="position:absolute; top:22px; right:20px; font-size:12px; color:#b8b4ac; font-weight:500;">{{ placedCounterText }}</span>
+    </sc-if>
+  </div>
+
+  <div style="flex:1; position:relative; overflow-y:auto; overflow-x:hidden;">
+
+    <sc-if value="{{ isSelect }}" hint-placeholder-val="{{ true }}">
+      <div style="column-count:3; column-gap:3px; padding:0 3px 140px 3px;">
+        <sc-for list="{{ poolCards }}" as="item" hint-placeholder-count="12">
+          <div style="{{ item.style }}" style-active="{{ item.activeStyle }}" onClick="{{ item.onClick }}"></div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isTransition }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">
+        <div style="width:240px; height:320px; border-radius:10px; background:linear-gradient(160deg,#f3f3f3 0%,#dcdcdc 100%); box-shadow:0 20px 40px rgba(0,0,0,0.14); opacity:0; transform:scale(0.9); transition:transform 420ms cubic-bezier(.4,0,.2,1), opacity 420ms ease;"></div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isDiscard }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">
+        <sc-for list="{{ stackItems }}" as="item" hint-placeholder-count="4">
+          <div style="{{ item.style }}" onMouseDown="{{ item.onDown }}" onTouchStart="{{ item.onDown }}"></div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isStep3 }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; flex-direction:column; gap:14px; padding:8px 20px 160px 20px;">
+        <sc-for list="{{ tagItems }}" as="tag" hint-placeholder-count="7">
+          <div style="{{ tag.style }}" onClick="{{ tag.onClick }}">{{ tag.label }}</div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isStep4 }}" hint-placeholder-val="{{ false }}">
+      <div style="position:relative; height:480px; margin-top:10px;">
+        <sc-for list="{{ shapeItems }}" as="shape" hint-placeholder-count="4">
+          <div style="{{ shape.boxStyle }}">
+            <div style="{{ shape.shapeStyle }}"></div>
+            <span style="{{ shape.labelStyle }}">{{ shape.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isStep5 }}" hint-placeholder-val="{{ false }}">
+      <div style="position:relative; height:640px;">
+        <sc-for list="{{ step5Cards }}" as="card" hint-placeholder-count="7">
+          <div style="{{ card.style }}" onClick="{{ card.onClick }}"></div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+  </div>
+
+  <sc-if value="{{ isSelect }}" hint-placeholder-val="{{ true }}">
+    <sc-if value="{{ readyToCreate }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute; left:0; right:0; bottom:26px; display:flex; justify-content:center;">
+        <div onClick="{{ onCreateClick }}" style="display:flex; align-items:center; gap:10px; padding:14px 24px; border-radius:999px; background:radial-gradient(circle at 28% 20%, #4b3b78 0%, #0c0b12 62%); box-shadow:0 8px 24px rgba(90,60,160,0.35); cursor:pointer;">
+          <span style="color:#fff; font-size:14px; font-weight:600;">Create</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 5L17 12L9 19" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </sc-if>
+  </sc-if>
+
+  <sc-if value="{{ isDiscard }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute; left:0; right:0; bottom:26px; display:flex; justify-content:space-between; padding:0 20px;">
+      <div onClick="{{ onBackButton }}" style="display:flex; align-items:center; gap:10px; padding:14px 20px; border-radius:999px; background:radial-gradient(circle at 28% 20%, #4b3b78 0%, #0c0b12 62%); box-shadow:0 8px 24px rgba(90,60,160,0.35); cursor:pointer;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 5L7 12L15 19" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span style="color:#fff; font-size:14px; font-weight:600;">Create</span>
+      </div>
+      <div onClick="{{ onForwardButton }}" style="{{ forwardBtnStyle }}">
+        <span style="color:#fff; font-size:14px; font-weight:600;">Create</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 5L17 12L9 19" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isStep3 }}" hint-placeholder-val="{{ false }}">
+    <sc-if value="{{ tagReady }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute; left:0; right:0; bottom:26px; display:flex; justify-content:center;">
+        <div onClick="{{ onStep3Forward }}" style="display:flex; align-items:center; gap:10px; padding:14px 24px; border-radius:999px; background:radial-gradient(circle at 28% 20%, #4b3b78 0%, #0c0b12 62%); box-shadow:0 8px 24px rgba(90,60,160,0.35); cursor:pointer;">
+          <span style="color:#fff; font-size:14px; font-weight:600;">Create</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 5L17 12L9 19" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </sc-if>
+  </sc-if>
+
+  <sc-if value="{{ isStep4 }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute; left:0; right:0; bottom:26px; display:flex; justify-content:center;">
+      <div onClick="{{ onStep4Forward }}" style="{{ step4BtnStyle }}">
+        <span style="color:#fff; font-size:14px; font-weight:600;">Create</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 5L17 12L9 19" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isStep5 }}" hint-placeholder-val="{{ false }}">
+    <sc-if value="{{ step5Ready }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute; left:0; right:0; bottom:26px; display:flex; justify-content:center;">
+        <div onClick="{{ onFinish }}" style="display:flex; align-items:center; gap:10px; padding:14px 24px; border-radius:999px; background:radial-gradient(circle at 28% 20%, #4b3b78 0%, #0c0b12 62%); box-shadow:0 8px 24px rgba(90,60,160,0.35); cursor:pointer;">
+          <span style="color:#fff; font-size:14px; font-weight:600;">Create</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 5L17 12L9 19" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </sc-if>
+  </sc-if>
+
+  <sc-if value="{{ showDone }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute; inset:0; background:rgba(255,255,255,0.98); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:0 40px; text-align:center;">
+      <div style="width:56px; height:56px; border-radius:50%; background:#171614; display:flex; align-items:center; justify-content:center;">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M5 13L9.5 17.5L19 6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div style="font-family:'Noto Serif KR', serif; font-weight:600; font-size:22px; color:#171614;">무드보드가 완성됐어요</div>
+      <div style="font-size:13px; color:#a7a39c;">골라주신 5장으로 오늘의 무드보드를 만들었어요</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center; max-width:260px;">
+        <sc-for list="{{ keptMini }}" as="k" hint-placeholder-count="5">
+          <div style="width:32px; height:44px; border-radius:4px; background:linear-gradient(160deg,#f3f3f3 0%,#dcdcdc 100%);"></div>
+        </sc-for>
+      </div>
+      <div onClick="{{ onReset }}" style="margin-top:8px; padding:12px 22px; border-radius:999px; background:#171614; color:#fff; font-size:13px; font-weight:600; cursor:pointer;">다시 시작</div>
+    </div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const INITIAL_HEIGHTS = [220,190,260,150,230,200,170,240,210,180,250,160,230,190,220,170,200,240,180,210,160,250,190,220];
+
+const TAG_LABELS = ['번아웃','비교하는 마음','미루는 버릇','눈치보기','조급함','무기력','어중간함'];
+const TAG_OFFSETS = [0, 46, -8, 54, -16, 40, 6];
+
+const SHAPE_DEFS = [
+  { id: 1, label: '휴식', kind: 'burst', bumps: 10, top: 10, left: 18, size: 168 },
+  { id: 2, label: '휴식', kind: 'scallop', bumps: 8, top: 96, left: 206, size: 168 },
+  { id: 3, label: '휴식', kind: 'pentagon', top: 236, left: 4, size: 176 },
+  { id: 4, label: '휴식', kind: 'hexblob', top: 300, left: 192, size: 176 },
+];
+
+const STEP5_SCATTER = [
+  { left: -20, top: 470, rot: -6 },
+  { left: 58, top: 400, rot: 5 },
+  { left: 150, top: 335, rot: -4 },
+  { left: 232, top: 270, rot: 6 },
+  { left: 300, top: 200, rot: -5 },
+  { left: 300, top: 60, rot: -3 },
+  { left: 220, top: 10, rot: 4 },
+];
+
+const STEP5_SLOTS = [
+  { left: 10, top: 420 },
+  { left: 134, top: 420 },
+  { left: 258, top: 420 },
+  { left: 83, top: 580 },
+  { left: 207, top: 580 },
+];
+
+function makeBumpPath(bumps, innerPct, outerPct) {
+  const pts = [];
+  const total = bumps * 2;
+  for (let i = 0; i < total; i++) {
+    const angle = (Math.PI * 2 * i) / total - Math.PI / 2;
+    const r = i % 2 === 0 ? outerPct : innerPct;
+    const x = 50 + r * Math.cos(angle);
+    const y = 50 + r * Math.sin(angle);
+    pts.push(x.toFixed(1) + '% ' + y.toFixed(1) + '%');
+  }
+  return 'polygon(' + pts.join(',') + ')';
+}
+
+class Component extends DCLogic {
+  state = {
+    pool: INITIAL_HEIGHTS.map((h, i) => ({ id: i + 1, h })),
+    picked: [],
+    removing: {},
+    screen: 'select', // select | transition | discard | step3 | step4 | step5
+    discardOrder: [],
+    discarded: [],
+    drag: { dx: 0, dy: 0, dragging: false },
+    selectedTags: [],
+    shapeSelected: null,
+    placedOrder: [],
+    showDone: false,
+  };
+
+  onCardClick(id) {
+    return () => {
+      const { picked, removing } = this.state;
+      if (picked.length >= 12 || removing[id]) return;
+      this.setState({ removing: { ...removing, [id]: true } });
+      setTimeout(() => {
+        this.setState((s) => {
+          const nr = { ...s.removing };
+          delete nr[id];
+          return {
+            pool: s.pool.filter((c) => c.id !== id),
+            picked: [...s.picked, id],
+            removing: nr,
+          };
+        });
+      }, 380);
+    };
+  }
+
+  onCreateClick = () => {
+    this.setState({ screen: 'transition' });
+    setTimeout(() => {
+      this.setState((s) => ({ screen: 'discard', discardOrder: [...s.picked], discarded: [] }));
+    }, 420);
+  };
+
+  topId() {
+    const o = this.state.discardOrder;
+    return o.length ? o[o.length - 1] : null;
+  }
+
+  startDrag = (e) => {
+    if (this.state.screen !== 'discard') return;
+    if (!this.topId()) return;
+    if (e.preventDefault) e.preventDefault();
+    const point = e.touches ? e.touches[0] : e;
+    const startX = point.clientX, startY = point.clientY;
+    let dx = 0, dy = 0;
+    const move = (ev) => {
+      const p = ev.touches ? ev.touches[0] : ev;
+      dx = p.clientX - startX;
+      dy = p.clientY - startY;
+      this.setState({ drag: { dx, dy, dragging: true } });
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      window.removeEventListener('touchmove', move);
+      window.removeEventListener('touchend', up);
+      const dist = Math.hypot(dx, dy);
+      if (dist > 100) {
+        this.setState({ drag: { dx: dx * 3, dy: dy * 3, dragging: false } });
+        setTimeout(() => {
+          this.setState((s) => {
+            const order = [...s.discardOrder];
+            const id = order.pop();
+            return { discardOrder: order, discarded: [...s.discarded, id], drag: { dx: 0, dy: 0, dragging: false } };
+          });
+        }, 240);
+      } else {
+        this.setState({ drag: { dx: 0, dy: 0, dragging: false } });
+      }
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    window.addEventListener('touchmove', move, { passive: false });
+    window.addEventListener('touchend', up);
+  };
+
+  goBackToSelect = () => this.setState({ screen: 'select' });
+
+  onForwardButtonClick = () => {
+    if (this.state.discarded.length === 4) this.setState({ screen: 'step3' });
+  };
+
+  toggleTag(id) {
+    return () => {
+      this.setState((s) => {
+        const has = s.selectedTags.includes(id);
+        if (has) return { selectedTags: s.selectedTags.filter((t) => t !== id) };
+        if (s.selectedTags.length >= 3) return {};
+        return { selectedTags: [...s.selectedTags, id] };
+      });
+    };
+  }
+
+  onStep3Forward = () => {
+    if (this.state.selectedTags.length === 3) this.setState({ screen: 'step4' });
+  };
+
+  selectShape(id) {
+    return () => {
+      this.setState((s) => ({ shapeSelected: s.shapeSelected === id ? null : id }));
+    };
+  }
+
+  onStep4Forward = () => {
+    if (this.state.shapeSelected != null) this.setState({ screen: 'step5' });
+  };
+
+  placeCard(id) {
+    return () => {
+      this.setState((s) => {
+        if (s.placedOrder.includes(id) || s.placedOrder.length >= 5) return {};
+        return { placedOrder: [...s.placedOrder, id] };
+      });
+    };
+  }
+
+  onFinish = () => {
+    if (this.state.placedOrder.length === 5) this.setState({ showDone: true });
+  };
+
+  onReset = () => {
+    this.setState({
+      pool: INITIAL_HEIGHTS.map((h, i) => ({ id: i + 1, h })),
+      picked: [],
+      removing: {},
+      screen: 'select',
+      discardOrder: [],
+      discarded: [],
+      drag: { dx: 0, dy: 0, dragging: false },
+      selectedTags: [],
+      shapeSelected: null,
+      placedOrder: [],
+      showDone: false,
+    });
+  };
+
+  renderVals() {
+    const { pool, picked, removing, screen, discardOrder, discarded, drag, selectedTags, shapeSelected, placedOrder, showDone } = this.state;
+
+    const poolCards = pool.map((c) => {
+      const isRemoving = !!removing[c.id];
+      return {
+        id: c.id,
+        style: {
+          height: c.h + 'px',
+          breakInside: 'avoid',
+          marginBottom: '3px',
+          borderRadius: '2px',
+          background: 'linear-gradient(160deg, #f3f3f3 0%, #dcdcdc 100%)',
+          cursor: 'pointer',
+          transform: isRemoving ? 'scale(0.25) translateY(70px) rotate(10deg)' : 'scale(1) translateY(0) rotate(0deg)',
+          opacity: isRemoving ? 0 : 1,
+          transition: 'transform 380ms cubic-bezier(.4,0,.2,1), opacity 380ms ease',
+          pointerEvents: isRemoving ? 'none' : 'auto',
+        },
+        activeStyle: { transform: 'scale(0.94)' },
+        onClick: this.onCardClick(c.id),
+      };
+    });
+
+    const pickedCount = picked.length;
+    const readyToCreate = pickedCount === 12;
+
+    const visibleIds = discardOrder.slice(-4);
+    const n = visibleIds.length;
+    const baseAngles = [-7, 6, -3, 0];
+    const baseOff = [{ x: -10, y: 10 }, { x: 10, y: 6 }, { x: -4, y: 3 }, { x: 0, y: 0 }];
+    const stackItems = visibleIds.map((id, idx) => {
+      const posFromEnd = n - idx;
+      const isTop = posFromEnd === 1;
+      const angleIdx = 4 - posFromEnd;
+      const angle = baseAngles[angleIdx] !== undefined ? baseAngles[angleIdx] : 0;
+      const off = baseOff[angleIdx] || { x: 0, y: 0 };
+      let transform = 'translate(' + off.x + 'px, ' + off.y + 'px) rotate(' + angle + 'deg)';
+      let transition = 'transform 320ms cubic-bezier(.4,0,.2,1)';
+      let zIndex = idx;
+      if (isTop) {
+        transform = 'translate(' + (off.x + drag.dx) + 'px, ' + (off.y + drag.dy) + 'px) rotate(' + (angle + drag.dx * 0.06) + 'deg)';
+        transition = drag.dragging ? 'none' : 'transform 320ms cubic-bezier(.4,0,.2,1)';
+        zIndex = 10;
+      }
+      return {
+        id,
+        isTop,
+        onDown: isTop ? this.startDrag : null,
+        style: {
+          position: 'absolute',
+          left: 0, top: 0, right: 0, bottom: 0,
+          margin: 'auto',
+          width: '240px',
+          height: '320px',
+          borderRadius: '10px',
+          background: 'linear-gradient(160deg, #f3f3f3 0%, #dcdcdc 100%)',
+          boxShadow: '0 12px 30px rgba(0,0,0,0.10)',
+          transform,
+          transition,
+          zIndex,
+          cursor: isTop ? 'grab' : 'default',
+          touchAction: 'none',
+        },
+      };
+    });
+
+    const discardedCount = discarded.length;
+    const canProceed = discardedCount === 4;
+
+    const isSelect = screen === 'select';
+    const isTransition = screen === 'transition';
+    const isDiscard = screen === 'discard';
+    const isStep3 = screen === 'step3';
+    const isStep4 = screen === 'step4';
+    const isStep5 = screen === 'step5';
+
+    // step3 tags
+    const tagItems = TAG_LABELS.map((label, i) => {
+      const id = i + 1;
+      const selected = selectedTags.includes(id);
+      return {
+        id,
+        label,
+        style: {
+          alignSelf: 'flex-start',
+          marginLeft: TAG_OFFSETS[i] + 'px',
+          padding: '15px 24px',
+          borderRadius: '999px',
+          background: '#ffffff',
+          color: '#171614',
+          fontSize: '14px',
+          fontWeight: 500,
+          border: selected ? '1px solid #e6e3dd' : '1px solid #e9e7e2',
+          boxShadow: selected ? '0 10px 24px rgba(0,0,0,0.10)' : 'none',
+          transform: selected ? 'scale(1.03)' : 'scale(1)',
+          cursor: 'pointer',
+          transition: 'transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease',
+          whiteSpace: 'nowrap',
+        },
+        onClick: this.toggleTag(id),
+      };
+    });
+    const tagReady = selectedTags.length === 3;
+
+    // step4 shapes
+    const shapeItems = SHAPE_DEFS.map((s) => {
+      const selected = shapeSelected === s.id;
+      let clip;
+      if (s.kind === 'burst') clip = makeBumpPath(s.bumps, 34, 46);
+      else if (s.kind === 'scallop') clip = makeBumpPath(s.bumps, 38, 47);
+      else if (s.kind === 'pentagon') clip = 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)';
+      else clip = 'polygon(22% 4%, 78% 0%, 100% 42%, 88% 92%, 38% 100%, 0% 58%)';
+      return {
+        id: s.id,
+        label: s.label,
+        boxStyle: {
+          position: 'absolute',
+          top: s.top + 'px',
+          left: s.left + 'px',
+          width: s.size + 'px',
+          height: s.size + 'px',
+          cursor: 'pointer',
+        },
+        shapeStyle: {
+          position: 'absolute',
+          inset: 0,
+          clipPath: clip,
+          background: selected ? 'linear-gradient(160deg, #f0efec 0%, #dedcd7 100%)' : 'transparent',
+          border: selected ? '1px solid #eee0e5' : '1px solid #e7e5e0',
+          boxShadow: selected ? '0 0 0 3px rgba(233,120,160,0.16), 0 0 34px rgba(233,120,160,0.35)' : 'none',
+          transition: 'background 320ms ease, box-shadow 320ms ease, border-color 320ms ease',
+        },
+        labelStyle: {
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '13px',
+          color: '#171614',
+          pointerEvents: 'none',
+        },
+        onClick: this.selectShape(s.id),
+      };
+    });
+
+    // step5 cards
+    const step5Cards = STEP5_SCATTER.map((pos, i) => {
+      const id = i + 1;
+      const placedIdx = placedOrder.indexOf(id);
+      const isPlaced = placedIdx !== -1;
+      const target = isPlaced ? STEP5_SLOTS[placedIdx] : pos;
+      const width = isPlaced ? 112 : 130;
+      const height = isPlaced ? 150 : 170;
+      const rot = isPlaced ? 0 : pos.rot;
+      return {
+        id,
+        style: {
+          position: 'absolute',
+          left: target.left + 'px',
+          top: target.top + 'px',
+          width: width + 'px',
+          height: height + 'px',
+          borderRadius: '6px',
+          background: 'linear-gradient(160deg, #f3f3f3 0%, #dcdcdc 100%)',
+          boxShadow: isPlaced ? '0 6px 16px rgba(0,0,0,0.10)' : '0 2px 6px rgba(0,0,0,0.06)',
+          transform: 'rotate(' + rot + 'deg)',
+          transformOrigin: 'center',
+          transition: 'left 420ms cubic-bezier(.4,0,.2,1), top 420ms cubic-bezier(.4,0,.2,1), width 420ms cubic-bezier(.4,0,.2,1), height 420ms cubic-bezier(.4,0,.2,1), transform 420ms cubic-bezier(.4,0,.2,1)',
+          zIndex: isPlaced ? 10 + placedIdx : i,
+          cursor: isPlaced ? 'default' : 'pointer',
+        },
+        onClick: isPlaced ? (() => {}) : this.placeCard(id),
+      };
+    });
+    const step5Ready = placedOrder.length === 5;
+
+    const prevMap = { select: 'select', transition: 'select', discard: 'select', step3: 'discard', step4: 'step3', step5: 'step4' };
+    const stepIndexMap = { select: 1, transition: 1, discard: 2, step3: 3, step4: 4, step5: 5 };
+    const stepIdx = stepIndexMap[screen] || 1;
+
+    let titleLine1 = '끌리는 카드';
+    let titleLine2 = '12장을 담아주세요';
+    let subtitleText = '생각은 넣어두고, 손이 먼저 가는 걸로요';
+    let hasSubtitle = true;
+    if (isDiscard) {
+      titleLine1 = '이 중 4장을 내려놓아';
+      titleLine2 = '주세요';
+      subtitleText = '아깝죠? 괜찮아요, 남는게 더 선명해져요';
+    } else if (isStep3) {
+      titleLine1 = '요즘 나를 무겁게 하는 것';
+      titleLine2 = '3개를 골라주세요';
+      subtitleText = '요즘 나를 무겁게 하는 것 3개를 골라주세요';
+    } else if (isStep4) {
+      titleLine1 = '비교하는 마음을 넘어서기';
+      titleLine2 = '위해 지금 당신에게 필요한 힘은?';
+      hasSubtitle = false;
+    } else if (isStep5) {
+      titleLine1 = '마지막이에요';
+      titleLine2 = '당신의 무드보드에 남길 5장을 골라주세요';
+      subtitleText = '지켜온 것과 바라는 것, 무엇이 남을까요';
+    }
+
+    const keptMini = placedOrder.map((id) => ({ id }));
+
+    return {
+      isSelect,
+      isTransition,
+      isDiscard,
+      isStep3,
+      isStep4,
+      isStep5,
+      showDone,
+      hasSubtitle,
+      headerBackClick: () => this.setState({ screen: prevMap[screen] }),
+      progressWidth: (stepIdx / 5 * 100) + '%',
+      progressLabel: stepIdx + '/5',
+      titleLine1,
+      titleLine2,
+      subtitleText,
+      pickedCounterText: pickedCount + '/12',
+      discardCounterText: discardedCount + '/4 내려놓음',
+      tagCounterText: selectedTags.length + '/3',
+      placedCounterText: placedOrder.length + '/5',
+      poolCards,
+      readyToCreate,
+      onCreateClick: this.onCreateClick,
+      stackItems,
+      onBackButton: this.goBackToSelect,
+      onForwardButton: this.onForwardButtonClick,
+      forwardBtnStyle: {
+        display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 20px', borderRadius: '999px',
+        background: canProceed ? 'radial-gradient(circle at 28% 20%, #4b3b78 0%, #0c0b12 62%)' : '#e4e2de',
+        boxShadow: canProceed ? '0 8px 24px rgba(90,60,160,0.35)' : 'none',
+        cursor: canProceed ? 'pointer' : 'default',
+        opacity: canProceed ? 1 : 0.55,
+      },
+      tagItems,
+      tagReady,
+      onStep3Forward: this.onStep3Forward,
+      shapeItems,
+      step4BtnStyle: {
+        display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 24px', borderRadius: '999px',
+        background: 'radial-gradient(circle at 28% 20%, #4b3b78 0%, #0c0b12 62%)',
+        boxShadow: '0 8px 24px rgba(90,60,160,0.35)',
+        cursor: shapeSelected != null ? 'pointer' : 'default',
+        opacity: shapeSelected != null ? 1 : 0.4,
+      },
+      onStep4Forward: this.onStep4Forward,
+      step5Cards,
+      step5Ready,
+      onFinish: this.onFinish,
+      keptMini,
+      onReset: this.onReset,
+    };
+  }
+}
+
+</script>
+</body>
+</html>
