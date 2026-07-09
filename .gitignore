@@ -13,6 +13,12 @@
 # testing
 /coverage
 
+# playwright (실행 산출물 — 커밋 금지)
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # next.js
 /.next/
 /out/

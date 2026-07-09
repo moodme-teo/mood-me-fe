@@ -1,5 +1,7 @@
-# PR/push 시 최소 품질 게이트. npm ci → format:check → lint → typecheck → build 순서로 실행.
+# PR/push 시 최소 품질 게이트. npm ci → format:check → lint → typecheck → build → e2e 순서로 실행.
 # 로컬에서는 pre-commit(lint-staged)이 스테이징된 파일만 빠르게 검사하고, CI 는 전체를 검사한다.
+# E2E 를 별도 job 으로 빼지 않는 이유: Playwright webServer 가 이 job 의 Build 산출물(.next)을
+# 그대로 `next start` 로 띄운다 — 별도 job 이면 빌드를 한 번 더 해야 한다.
 # Node 버전은 .nvmrc(24) 기준.
 
 name: CI
@@ -37,3 +39,19 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # E2E 는 실제 Supabase/Elice 를 호출하지 않는다 — 시크릿 불필요.
+      # 클라이언트 fetch 는 spec 에서 page.route 로 mock 하고, 서버는 빈 env 로 띄운다.
+      - name: E2E
+        run: npm run e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
