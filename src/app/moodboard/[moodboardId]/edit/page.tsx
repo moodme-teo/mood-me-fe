@@ -1,4 +1,4 @@
-import MoodboardEditor from "@/components/board/MoodboardEditor";
+import MoodboardCropEditor from "@/components/board/MoodboardCropEditor";
 
 const FALLBACK_BASE_IMAGES = [
   "/test-image/aesthetic/c18.jpg",
@@ -22,7 +22,7 @@ export default async function MoodboardEditPage({
   const { moodboardId } = await params;
 
   return (
-    <MoodboardEditor
+    <MoodboardCropEditor
       moodboardId={moodboardId}
       baseImageUrl={pickFallbackBaseImage(moodboardId)}
     />
