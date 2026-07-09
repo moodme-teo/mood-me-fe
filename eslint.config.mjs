@@ -22,6 +22,8 @@ const eslintConfig = defineConfig([
     ".impeccable/**",
     // 디자인 시스템 핸드오프 번들 — 참조용(HTML/JSX 프로토타입), 앱 코드 아님
     "mood-me-design-system*/**",
+    // Claude Design 핸드오프 번들 — 참조용 프로토타입(HTML/JS), 앱 코드 아님
+    "prototype-test-page/**",
   ]),
   {
     // /////////////////////////////////////////////////////////////////////////
