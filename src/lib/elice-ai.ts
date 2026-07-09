@@ -21,6 +21,6 @@ export function getEliceClient(): OpenAI {
 // 여정 → 무드 프로파일 변환용.
 export const GPT_MODEL = "openai/gpt-5";
 
-// 보드 히어로 컷 생성용 (#37). 실측 스펙: docs/work/todo/moodboard-library-collection.md
-// — aspect_ratio 파라미터는 무시되고 항상 1024×1024로 반환된다.
-export const GEMINI_IMAGE_MODEL = "google/gemini-2.5-flash-image";
+// 보드 이미지 생성용 (#37). 실측 스펙: docs/work/todo/moodboard/moodboard-creation.md
+// — size는 요청값 그대로 반환되고, response_format은 지원하지 않는다.
+export const GPT_IMAGE_MODEL = "openai/gpt-image-2";
