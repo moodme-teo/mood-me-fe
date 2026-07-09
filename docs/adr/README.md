@@ -10,12 +10,12 @@
 
 ## 목록
 
-| #                                        | 제목                                                               | 상태                                               |
-| ---------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------- |
-| [001](./001-canvas-konva.md)             | 캔버스 라이브러리 — Konva/react-konva                              | ✅ 채택                                            |
-| [002](./002-ai-claude-haiku-fal-flux.md) | AI — Claude Haiku(텍스트) + fal.ai Flux schnell(이미지)            | superseded by [004](./004-ai-elice-gpt5-gemini.md) |
-| [003](./003-state-library-deferred.md)   | 상태 라이브러리 — 도입 보류 (도입 신호 정의)                       | ✅ 채택                                            |
-| [004](./004-ai-elice-gpt5-gemini.md)     | AI — Elice AX 프록시(GPT-5 텍스트 + GPT-Image-2 이미지)            | ✅ 채택                                            |
+| #                                        | 제목                                                    | 상태                                               |
+| ---------------------------------------- | ------------------------------------------------------- | -------------------------------------------------- |
+| [001](./001-canvas-konva.md)             | 캔버스 라이브러리 — Konva/react-konva                   | ✅ 채택                                            |
+| [002](./002-ai-claude-haiku-fal-flux.md) | AI — Claude Haiku(텍스트) + fal.ai Flux schnell(이미지) | superseded by [004](./004-ai-elice-gpt5-gemini.md) |
+| [003](./003-state-library-deferred.md)   | 상태 라이브러리 — 도입 보류 (도입 신호 정의)            | ✅ 채택                                            |
+| [004](./004-ai-elice-gpt5-gemini.md)     | AI — Elice AX 프록시(GPT-5 텍스트 + GPT-Image-2 이미지) | ✅ 채택                                            |
 
 ## 템플릿
 

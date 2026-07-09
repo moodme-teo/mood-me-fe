@@ -9,10 +9,7 @@ import type {
   StickerAssetId,
   TextElement,
 } from "@/components/canvas/types";
-import {
-  MOODBOARD_HEIGHT,
-  MOODBOARD_WIDTH,
-} from "@/components/canvas/types";
+import { MOODBOARD_HEIGHT, MOODBOARD_WIDTH } from "@/components/canvas/types";
 
 const MAX_UNDO_SNAPSHOTS = 30;
 
@@ -36,7 +33,9 @@ function createId(prefix: string) {
 }
 
 function nextZIndex(elements: MoodboardElement[]) {
-  return elements.reduce((max, element) => Math.max(max, element.z_index), 0) + 1;
+  return (
+    elements.reduce((max, element) => Math.max(max, element.z_index), 0) + 1
+  );
 }
 
 function pushSnapshot(
@@ -171,7 +170,9 @@ export function useMoodboard(initialElements: MoodboardElement[] = []) {
     (id: string, patch: Partial<MoodboardElement>, pushHistory = true) => {
       const updater = (current: MoodboardElement[]) =>
         current.map((element) =>
-          element.id === id ? ({ ...element, ...patch } as MoodboardElement) : element,
+          element.id === id
+            ? ({ ...element, ...patch } as MoodboardElement)
+            : element,
         );
 
       if (pushHistory) {
@@ -221,7 +222,9 @@ export function useMoodboard(initialElements: MoodboardElement[] = []) {
   );
 
   const discardEmptyText = useCallback(() => {
-    const emptyText = selectedElement?.type === "text" && !selectedElement.properties.content.trim();
+    const emptyText =
+      selectedElement?.type === "text" &&
+      !selectedElement.properties.content.trim();
     if (selectedElement && emptyText) {
       removeElement(selectedElement.id);
     }
