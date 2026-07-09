@@ -29,6 +29,7 @@ export default async function EditPage({
       moodboardId={moodboardId}
       baseImageUrl={jobResult.value.baseImageUrl ?? ""}
       initialElements={jobResult.value.elements}
+      moodProfile={jobResult.value.moodProfile}
     />
   );
 }

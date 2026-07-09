@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createServiceClient } from "@/lib/supabase/service";
-import type { MoodboardElement } from "@/types/moodboard";
+import type { MoodboardElement, MoodProfile } from "@/types/moodboard";
 
 // Supabase 생성 타입이 아직 없어 API 경계에서 row 타입을 손으로 좁힌다
 // (src/lib/moodboard/list.ts와 동일한 패턴).
@@ -12,6 +12,7 @@ type GenerationJobRow = {
   status_message: string | null;
   elements: unknown;
   base_image_url: string | null;
+  mood_profile: unknown;
 };
 
 export type LatestGenerationJob = {
@@ -21,6 +22,9 @@ export type LatestGenerationJob = {
   statusMessage: string | null;
   elements: MoodboardElement[];
   baseImageUrl: string | null;
+  // 리포트(GPT-5)는 이미지 생성과 독립적으로 돈다 — 편집 화면 진입 시점에는 아직 안
+  // 끝났을 수 있어 null일 수 있다(generate-mood-analysis.ts의 runReportAnalysis 참고).
+  moodProfile: MoodProfile | null;
 };
 
 export type GetLatestGenerationJobResult =
@@ -35,7 +39,7 @@ export async function getLatestGenerationJob(
   const { data, error } = await service
     .from("moodboard_generation_jobs")
     .select(
-      "id, status, progress_percent, status_message, elements, base_image_url",
+      "id, status, progress_percent, status_message, elements, base_image_url, mood_profile",
     )
     .eq("test_session_id", testSessionId)
     .order("created_at", { ascending: false })
@@ -60,6 +64,7 @@ export async function getLatestGenerationJob(
       statusMessage: row.status_message,
       elements: (row.elements as MoodboardElement[] | null) ?? [],
       baseImageUrl: row.base_image_url,
+      moodProfile: (row.mood_profile as MoodProfile | null) ?? null,
     },
   };
 }
