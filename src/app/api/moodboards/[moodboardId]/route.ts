@@ -10,6 +10,15 @@ function canUseSupabaseService() {
   );
 }
 
+// moodboards.id는 uuid PK — 비-UUID id(테스트/목 흐름의 임의 라우트 등)를 그대로 upsert하면
+// Postgres가 "invalid input syntax for type uuid"로 터진다. 저장을 막지 않고 미영속으로 흘려보낸다.
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string) {
+  return UUID_PATTERN.test(value);
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ moodboardId: string }> },
@@ -55,7 +64,7 @@ export async function PATCH(
     return apiError("INVALID_INPUT", message, 400);
   }
 
-  if (!canUseSupabaseService()) {
+  if (!canUseSupabaseService() || !isUuid(moodboardId)) {
     return apiSuccess({
       id: moodboardId,
       baseImageUrl: parsed.data.baseImageUrl,
@@ -71,13 +80,17 @@ export async function PATCH(
       base_image_url: parsed.data.baseImageUrl,
       elements: parsed.data.elements,
       exported_image_data_url: parsed.data.exportedImageDataUrl ?? null,
-      mood_profile: parsed.data.moodProfile ?? null,
+      // moodProfile은 보낸 경우에만 갱신 — 재편집 저장이 기존 리포트를 지우지 않도록 omit.
+      ...(parsed.data.moodProfile
+        ? { mood_profile: parsed.data.moodProfile }
+        : {}),
       updated_at: new Date().toISOString(),
     },
     { onConflict: "id" },
   );
 
   if (error) {
+    console.error("[moodboards.PATCH] upsert 실패", error);
     return apiError("INTERNAL_ERROR", "무드보드를 저장하지 못했어요.", 500);
   }
 

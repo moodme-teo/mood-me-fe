@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { redirect } from "next/navigation";
 
-import MoodboardEditor from "@/components/board/MoodboardEditor";
+import MoodboardCropEditor from "@/components/board/MoodboardCropEditor";
 import { getLatestGenerationJob } from "@/lib/mood-test/get-latest-generation-job";
 
 // PRD §5.7 저장 원칙에 따라 편집 단계는 아직 실제 moodboardId가 없는 상태라
@@ -21,14 +21,13 @@ export default async function EditPage({
   }
 
   // 매 진입마다 새 id를 발급한다 — "완성하고 공유하기" 전까지는 서버에 아무것도 쓰지 않으므로
-  // (§5.7) 안전하지만, 새로고침 시 로컬 드래프트 연속성은 끊긴다(moodboardId가 바뀌므로).
+  // (§5.7) 안전하다. AI가 생성한 보드 이미지(baseImageUrl)를 크롭 대상으로 넘긴다 (#99).
   const moodboardId = randomUUID();
 
   return (
-    <MoodboardEditor
+    <MoodboardCropEditor
       moodboardId={moodboardId}
       baseImageUrl={jobResult.value.baseImageUrl ?? ""}
-      initialElements={jobResult.value.elements}
       moodProfile={jobResult.value.moodProfile}
     />
   );

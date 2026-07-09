@@ -83,6 +83,8 @@ export type Moodboard = {
   id: string;
   baseImageUrl: string;
   elements: MoodboardElement[];
+  // 크롭 에디터(#99)가 저장한 평면 결과 이미지. 있으면 결과 화면이 이 이미지를 그대로 보여준다.
+  exportedImageUrl?: string | null;
   moodProfile: MoodProfile;
   isGuest: boolean;
   updatedAt: string;

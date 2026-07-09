@@ -89,6 +89,8 @@ export const moodboardSchema = z.object({
   id: z.string().min(1),
   baseImageUrl: z.string().min(1),
   elements: z.array(moodboardElementSchema),
+  // 크롭 에디터(#99)가 저장한 평면 결과 이미지 URL/데이터. 레거시 무드보드에는 없다.
+  exportedImageUrl: z.string().nullable().optional(),
   moodProfile: moodProfileSchema,
   isGuest: z.boolean(),
   updatedAt: z.string().min(1),
