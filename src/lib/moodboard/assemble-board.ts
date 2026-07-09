@@ -1,42 +1,24 @@
 import "server-only";
 
-import { pickObjects, pickTiles } from "@/lib/moodboard/curation-library";
-import type { PersonaScores } from "@/lib/moodboard/curation-library";
-import { generateHeroImage } from "@/lib/moodboard/generate-hero-image";
-import {
-  assembleCentralTitleRadialLayout,
-  getToneTextureUrl,
-} from "@/lib/moodboard/layout-central-title-radial";
-import type { MoodAnalysis } from "@/lib/prompts";
+import type { Journey } from "@/lib/mood-test/journey";
+import { buildBoardPrompt } from "@/lib/moodboard/build-board-prompt";
+import { generateBoardImage } from "@/lib/moodboard/generate-board-image";
 import type { MoodboardElement } from "@/types/moodboard";
-
-const TILE_SLOT_COUNT = 4; // 히어로(AI 컷) 1 + 큐레이션 타일 4 = 타일 슬롯 5
-const OBJECT_SLOT_COUNT = 2;
 
 export type AssembleBoardResult = {
   elements: MoodboardElement[];
   baseImageUrl: string;
 };
 
-// 확신 카드 → 큐레이션 타일, 열망(image_prompt) → AI 컷으로 보드를 조립한다
-// (docs/work/todo/moodboard-generation.md 생성 확정안). 레이아웃은 중앙 타이틀
-// 방사형 1종 고정(#41 구간 3 결과 대기) — layout-central-title-radial.ts 참고.
+// 여정 → 규칙 기반 프롬프트 → gpt-image-2 단일 호출로 보드 이미지 전체를 생성한다
+// (moodboard-creation.md §보드 이미지 생성 흐름). 큐레이션 타일·히어로 컷·Konva 텍스트
+// 조립은 더 이상 없다 — gpt-image-2가 돌려준 이미지 한 장이 곧 보드 전체이고, 텍스트도
+// 그 안에 이미 그려져 있다. elements는 비워서 반환 — 사용자가 편집 화면에서 직접 얹는
+// 스티커·텍스트·펜만 여기 채워진다.
 export async function assembleBoard(
-  moodProfile: MoodAnalysis,
-  personaScores: PersonaScores,
+  journey: Journey,
 ): Promise<AssembleBoardResult> {
-  const tiles = pickTiles(personaScores, TILE_SLOT_COUNT);
-  const objects = pickObjects(personaScores, OBJECT_SLOT_COUNT);
-  const heroImageSrc = await generateHeroImage(moodProfile.image_prompt);
-
-  const elements = assembleCentralTitleRadialLayout({
-    heroImageSrc,
-    tiles,
-    objects,
-    title: moodProfile.title,
-    typeName: moodProfile.type_name,
-    stickerPhrases: moodProfile.sticker_phrases,
-  });
-
-  return { elements, baseImageUrl: getToneTextureUrl() };
+  const prompt = buildBoardPrompt(journey);
+  const baseImageUrl = await generateBoardImage(prompt);
+  return { elements: [], baseImageUrl };
 }

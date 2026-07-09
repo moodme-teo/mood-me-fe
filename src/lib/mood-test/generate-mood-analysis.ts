@@ -1,21 +1,9 @@
 import "server-only";
 
-import { getEliceClient, GPT_MODEL } from "@/lib/elice-ai";
-import { buildMoodAnalysisPayload } from "@/lib/mood-test/build-analysis-payload";
 import { getCompletedMoodTestSession } from "@/lib/mood-test/get-completed-session";
 import type { Journey } from "@/lib/mood-test/journey";
 import { assembleBoard } from "@/lib/moodboard/assemble-board";
-import {
-  buildMoodAnalysisRetryMessage,
-  buildMoodAnalysisSystemPrompt,
-  buildMoodAnalysisUserMessage,
-  moodAnalysisSchema,
-} from "@/lib/prompts";
-import type { MoodAnalysis } from "@/lib/prompts";
 import { createServiceClient } from "@/lib/supabase/service";
-
-const GPT_TIMEOUT_MS = 30_000;
-const GPT_MAX_COMPLETION_TOKENS = 2048;
 
 type ServiceClient = ReturnType<typeof createServiceClient>;
 
@@ -57,42 +45,6 @@ export async function createGenerationJob(
   };
 }
 
-async function callGpt(userMessage: string): Promise<string> {
-  const response = await getEliceClient().chat.completions.create(
-    {
-      model: GPT_MODEL,
-      max_completion_tokens: GPT_MAX_COMPLETION_TOKENS,
-      messages: [
-        { role: "system", content: buildMoodAnalysisSystemPrompt() },
-        { role: "user", content: userMessage },
-      ],
-    },
-    { timeout: GPT_TIMEOUT_MS },
-  );
-
-  return response.choices[0]?.message.content ?? "";
-}
-
-function parseMoodAnalysis(
-  text: string,
-): { ok: true; value: MoodAnalysis } | { ok: false; error: string } {
-  let json: unknown;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    return { ok: false, error: "유효한 JSON이 아닙니다" };
-  }
-
-  const parsed = moodAnalysisSchema.safeParse(json);
-  if (!parsed.success) {
-    const message = parsed.error.issues
-      .map((issue) => issue.message)
-      .join("; ");
-    return { ok: false, error: message };
-  }
-  return { ok: true, value: parsed.data };
-}
-
 async function markJobFailed(
   service: ServiceClient,
   jobId: string,
@@ -108,11 +60,15 @@ async function markJobFailed(
     .eq("id", jobId);
 }
 
-// 여정 로그를 AI(GPT-5)로 해석하고 보드까지 조립해 job을 completed로 채운다.
+// 여정 로그를 규칙 기반으로 보드까지 조립해 job을 completed로 채운다.
 // next/server의 after()로 응답을 먼저 보낸 뒤 백그라운드에서 실행된다 — 클라이언트는
 // createGenerationJob이 즉시 돌려준 jobId로 GET .../generation-job을 폴링해 진행률을 본다.
 // 실패는 throw하지 않고 job.status를 failed로 남기는 것으로만 알린다(응답이 이미 나갔으므로
 // 여기서 던져도 받을 곳이 없다).
+//
+// 리포트용 GPT-5 호출(mood_profile 생성)은 당분간 스킵한다 — 실제 페이로드 크기에서
+// 타임아웃으로 파이프라인 전체가 막히는 문제가 있어 별도 이슈(#94)로 분리했다. job의
+// mood_profile은 그동안 null로 남는다 — 편집 화면(elements·baseImageUrl만 사용)은 영향 없음.
 export async function runGenerationPipeline(
   jobId: string,
   journey: Journey,
@@ -128,47 +84,9 @@ export async function runGenerationPipeline(
     })
     .eq("id", jobId);
 
-  const payload = buildMoodAnalysisPayload(journey);
-
-  let text: string;
-  try {
-    text = await callGpt(buildMoodAnalysisUserMessage(payload));
-  } catch {
-    await markJobFailed(service, jobId, "AI 응답을 받지 못했습니다");
-    return;
-  }
-
-  let parsed = parseMoodAnalysis(text);
-  if (!parsed.ok) {
-    // Zod 파싱 실패 시 서버에서 1회 재시도 — 파싱 에러를 프롬프트에 포함해 재요청 (docs/convention/ai.md)
-    try {
-      text = await callGpt(
-        buildMoodAnalysisRetryMessage(payload, parsed.error),
-      );
-    } catch {
-      await markJobFailed(service, jobId, "AI 응답을 받지 못했습니다");
-      return;
-    }
-    parsed = parseMoodAnalysis(text);
-  }
-
-  if (!parsed.ok) {
-    await markJobFailed(service, jobId, "무드 프로파일 생성에 실패했습니다");
-    return;
-  }
-
-  await service
-    .from("moodboard_generation_jobs")
-    .update({
-      mood_profile: parsed.value,
-      progress_percent: 45,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", jobId);
-
   let assembled: Awaited<ReturnType<typeof assembleBoard>>;
   try {
-    assembled = await assembleBoard(parsed.value, payload.persona_scores);
+    assembled = await assembleBoard(journey);
   } catch {
     await markJobFailed(service, jobId, "보드 조립에 실패했습니다");
     return;
