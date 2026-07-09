@@ -24,7 +24,11 @@ export async function GET(
   const parsed = moodboardSchema.safeParse(fallbackMoodboard);
 
   if (!parsed.success) {
-    return apiError("INTERNAL_ERROR", "무드보드 데이터를 불러오지 못했어요.", 500);
+    return apiError(
+      "INTERNAL_ERROR",
+      "무드보드 데이터를 불러오지 못했어요.",
+      500,
+    );
   }
 
   return apiSuccess(parsed.data);

@@ -1,4 +1,5 @@
-# PR/push 시 최소 품질 게이트. npm ci → lint → typecheck → build 순서로 실행.
+# PR/push 시 최소 품질 게이트. npm ci → format:check → lint → typecheck → build 순서로 실행.
+# 로컬에서는 pre-commit(lint-staged)이 스테이징된 파일만 빠르게 검사하고, CI 는 전체를 검사한다.
 # Node 버전은 .nvmrc(24) 기준.
 
 name: CI
@@ -24,6 +25,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Format check
+        run: npm run format:check
 
       - name: Lint
         run: npm run lint
