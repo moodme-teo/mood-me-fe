@@ -23,6 +23,8 @@ export const AESTHETIC_CORES = [
   "네오 로맨틱",
 ] as const;
 
+export type AestheticCore = (typeof AESTHETIC_CORES)[number];
+
 // 인생 테마 6종 — 전환이 재는 '어떻게 살고 싶나'(태도) 축. type_name의 오른쪽.
 export const LIFE_THEMES = [
   "커리어 보스",
