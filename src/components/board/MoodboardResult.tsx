@@ -1,10 +1,15 @@
 "use client";
 
+import { Download, Home, Pencil, RotateCcw, Share2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { BoardPreview, compositeOnWhite } from "@/components/canvas";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import type { GetMoodboardResponse } from "@/lib/api/get-moodboard";
 import { getMoodboard } from "@/lib/api/get-moodboard";
 import { ApiClientError } from "@/lib/api-client";
@@ -21,16 +26,20 @@ type LoadState =
   | { status: "error"; message: string; isMissing: boolean }
   | { status: "ready"; moodboard: GetMoodboardResponse };
 
+type SpectrumTone = "pink" | "violet" | "cyan" | "green" | "mustard";
+
+// 축 5개 = 브랜드 밝은 팔레트 5색과 1:1 — 각 축을 고유 색으로 구분한다.
 const MOOD_AXES: {
   key: keyof MoodVector;
   left: string;
   right: string;
+  tone: SpectrumTone;
 }[] = [
-  { key: "calm_energy", left: "고요", right: "활기" },
-  { key: "warm_cool", left: "따뜻", right: "서늘" },
-  { key: "minimal_maximal", left: "미니멀", right: "맥시멀" },
-  { key: "vintage_modern", left: "빈티지", right: "모던" },
-  { key: "real_dreamy", left: "현실", right: "몽환" },
+  { key: "calm_energy", left: "고요", right: "활기", tone: "pink" },
+  { key: "warm_cool", left: "따뜻", right: "서늘", tone: "violet" },
+  { key: "minimal_maximal", left: "미니멀", right: "맥시멀", tone: "cyan" },
+  { key: "vintage_modern", left: "빈티지", right: "모던", tone: "green" },
+  { key: "real_dreamy", left: "현실", right: "몽환", tone: "mustard" },
 ];
 
 function Toast({ message }: { message: string | null }) {
@@ -39,7 +48,7 @@ function Toast({ message }: { message: string | null }) {
   return (
     <div
       role="status"
-      className="fixed top-4 left-1/2 z-40 w-[calc(100%-32px)] max-w-sm -translate-x-1/2 rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
+      className="fixed top-4 left-1/2 z-40 w-[calc(100%-32px)] max-w-sm -translate-x-1/2 rounded-lg bg-surface-inverse px-4 py-3 text-sm font-semibold text-on-inverse shadow-ink"
     >
       {message}
     </div>
@@ -49,11 +58,11 @@ function Toast({ message }: { message: string | null }) {
 function LoadingView() {
   return (
     <main className="flex flex-1 justify-center overflow-y-auto bg-background px-4 py-5 text-foreground">
-      <div className="w-full max-w-[430px] animate-pulse space-y-4">
-        <div className="h-12 rounded-2xl bg-gray-100" />
-        <div className="mx-auto h-[520px] w-full max-w-[360px] rounded-2xl bg-gray-100" />
-        <div className="h-28 rounded-2xl bg-gray-100" />
-        <div className="h-44 rounded-2xl bg-gray-100" />
+      <div className="w-full max-w-[430px] animate-pulse space-y-4 motion-reduce:animate-none">
+        <div className="h-12 rounded-lg bg-gray-100" />
+        <div className="mx-auto h-[520px] w-full max-w-[360px] rounded-xl bg-gray-100" />
+        <div className="h-28 rounded-lg bg-gray-100" />
+        <div className="h-44 rounded-lg bg-gray-100" />
       </div>
     </main>
   );
@@ -76,18 +85,22 @@ function MissingView() {
 
   return (
     <main className="flex flex-1 items-center justify-center bg-background px-4 text-foreground">
-      <section className="w-full max-w-sm rounded-2xl bg-card p-5 text-center">
-        <h1 className="text-xl font-bold">존재하지 않는 무드보드예요.</h1>
-        <p className="mt-3 text-sm leading-6 text-gray-700">
+      <Card className="w-full max-w-sm gap-4 px-5 text-center">
+        <h1 className="text-heading-md">존재하지 않는 무드보드예요.</h1>
+        <p className="text-gray-700 text-body-sm">
           링크가 만료됐거나 삭제된 보드예요. 잠시 뒤 홈으로 이동할게요.
         </p>
         <Link
           href="/"
-          className="mt-5 block rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
+          className={buttonVariants({
+            tone: "ink",
+            size: "md",
+            className: "w-full",
+          })}
         >
           지금 홈으로 가기
         </Link>
-      </section>
+      </Card>
     </main>
   );
 }
@@ -101,58 +114,56 @@ function ErrorView({
 }) {
   return (
     <main className="flex flex-1 items-center justify-center bg-background px-4 text-foreground">
-      <section className="w-full max-w-sm rounded-2xl bg-card p-5 text-center">
-        <h1 className="text-xl font-bold">결과를 불러오지 못했어요.</h1>
-        <p className="mt-3 text-sm leading-6 text-gray-700">{message}</p>
-        <div className="mt-5 grid grid-cols-2 gap-2">
+      <Card className="w-full max-w-sm gap-4 px-5 text-center">
+        <h1 className="text-heading-md">결과를 불러오지 못했어요.</h1>
+        <p className="text-gray-700 text-body-sm">{message}</p>
+        <div className="grid grid-cols-2 gap-2">
           <Link
             href="/"
-            className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-bold"
+            className={buttonVariants({ variant: "secondary", size: "md" })}
           >
             홈으로
           </Link>
-          <button
-            type="button"
-            onClick={onRetry}
-            className="rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
-          >
+          <Button type="button" tone="ink" size="md" onClick={onRetry}>
             다시 시도
-          </button>
+          </Button>
         </div>
-      </section>
+      </Card>
     </main>
   );
 }
 
 function MoodSpectrum({ vector }: { vector: MoodVector }) {
   return (
-    <section className="rounded-2xl bg-card p-4">
-      <h2 className="text-lg font-bold">무드 성향 5축</h2>
-      <div className="mt-4 space-y-4">
+    <Card className="px-4">
+      <h2 className="text-heading-md">무드 성향 5축</h2>
+      <div className="space-y-4">
         {MOOD_AXES.map((axis) => {
           const value = vector[axis.key];
           const percent = Math.round(value * 100);
 
           return (
             <div key={axis.key}>
-              <div className="flex items-center justify-between text-xs font-bold text-gray-700">
+              <div className="flex items-center justify-between text-gray-700 text-label">
                 <span>{axis.left}</span>
                 <span>{axis.right}</span>
               </div>
-              <div className="mt-2 h-3 rounded-full bg-gray-100">
-                <div
-                  className="h-3 rounded-full bg-[#2556d9]"
-                  style={{ width: `${percent}%` }}
+              <div className="mt-2 flex items-center gap-3">
+                <Progress
+                  value={percent}
+                  tone={axis.tone}
+                  size="sm"
+                  className="flex-1"
                 />
+                <span className="w-9 shrink-0 text-right text-muted-foreground text-caption">
+                  {percent}%
+                </span>
               </div>
-              <p className="mt-1 text-right text-xs font-bold text-muted-foreground">
-                {percent}%
-              </p>
             </div>
           );
         })}
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -161,19 +172,15 @@ function ReadingBlock({ moodboard }: { moodboard: GetMoodboardResponse }) {
 
   return (
     <section className="space-y-4">
-      <div>
-        <h1 className="text-4xl leading-tight font-bold text-foreground">
-          {moodProfile.title}
-        </h1>
-        <p className="mt-2 text-base font-bold text-[#2556d9]">
-          {moodProfile.type_name}
-        </p>
+      <div className="space-y-2">
+        <h1 className="text-display-sm text-foreground">{moodProfile.title}</h1>
+        <Badge tone="violet">{moodProfile.type_name}</Badge>
       </div>
-      <div className="space-y-3 rounded-2xl bg-card p-4 text-[15px] leading-7 font-medium text-gray-700">
+      <Card className="gap-3 px-4 text-gray-700 text-body-md">
         <p>{moodProfile.reading.conviction}</p>
         <p>{moodProfile.reading.desire}</p>
         <p>{moodProfile.reading.showdown}</p>
-      </div>
+      </Card>
     </section>
   );
 }
@@ -188,12 +195,9 @@ function KeywordCloud({ moodboard }: { moodboard: GetMoodboardResponse }) {
       {keywords.length > 0 ? (
         <div className="flex flex-wrap gap-2">
           {keywords.map((keyword) => (
-            <span
-              key={keyword}
-              className="rounded-full bg-card px-3 py-2 text-xs font-bold text-gray-700"
-            >
+            <Badge key={keyword} tone="violet">
               {keyword}
-            </span>
+            </Badge>
           ))}
         </div>
       ) : null}
@@ -202,7 +206,7 @@ function KeywordCloud({ moodboard }: { moodboard: GetMoodboardResponse }) {
           {stickerPhrases.map((phrase) => (
             <p
               key={phrase}
-              className="rounded-2xl bg-surface-inverse px-4 py-3 text-center text-sm font-bold text-white"
+              className="rounded-lg bg-surface-inverse px-4 py-3 text-center font-bold text-on-inverse shadow-ink text-body-sm"
             >
               {phrase}
             </p>
@@ -215,18 +219,24 @@ function KeywordCloud({ moodboard }: { moodboard: GetMoodboardResponse }) {
 
 function GuestBanner() {
   return (
-    <section className="rounded-2xl bg-[#e8eeff] p-4 text-foreground">
-      <p className="text-sm font-bold">로그인하면 언제든 다시 볼 수 있어요.</p>
-      <p className="mt-1 text-sm leading-6 text-gray-700">
+    <Card className="gap-2 px-4 text-foreground">
+      <p className="font-bold text-body-md">
+        로그인하면 언제든 다시 볼 수 있어요.
+      </p>
+      <p className="text-gray-700 text-body-sm">
         지금은 게스트로도 열람, 공유, 이미지 저장을 모두 사용할 수 있습니다.
       </p>
       <Link
         href="/login"
-        className="mt-3 inline-flex rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
+        className={buttonVariants({
+          tone: "violet",
+          size: "md",
+          className: "mt-1 w-full",
+        })}
       >
         로그인하고 보관하기
       </Link>
-    </section>
+    </Card>
   );
 }
 
@@ -241,38 +251,44 @@ function SaveFormatSheet({
 }) {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/48 p-4">
-      <section
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-inverse/48 p-4">
+      <Card
         role="dialog"
         aria-modal="true"
         aria-labelledby="image-save-title"
-        className="w-full max-w-sm space-y-3 rounded-2xl bg-card p-5 text-foreground"
+        className="w-full max-w-sm gap-3 px-5 text-foreground"
       >
-        <h2 id="image-save-title" className="text-lg font-bold">
+        <h2 id="image-save-title" className="text-heading-md">
           이미지 저장
         </h2>
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="md"
+          className="w-full"
           onClick={() => onSelect("png")}
-          className="w-full rounded-xl border border-gray-300 bg-card px-4 py-3 text-sm font-bold"
         >
           PNG로 저장 (투명 유지)
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="secondary"
+          size="md"
+          className="w-full"
           onClick={() => onSelect("jpeg")}
-          className="w-full rounded-xl border border-gray-300 bg-card px-4 py-3 text-sm font-bold"
         >
           JPG로 저장 (흰 배경)
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="ghost"
+          size="md"
+          className="w-full"
           onClick={onClose}
-          className="w-full rounded-xl px-4 py-3 text-sm font-bold text-gray-700"
         >
           닫기
-        </button>
-      </section>
+        </Button>
+      </Card>
     </div>
   );
 }
@@ -291,36 +307,33 @@ function ConfirmRestartDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-surface-inverse/48 p-4 sm:items-center sm:justify-center">
-      <div
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-inverse/48 p-4">
+      <Card
         role="dialog"
         aria-modal="true"
         aria-labelledby="restart-title"
-        className="w-full max-w-sm rounded-2xl bg-card p-5 text-foreground shadow-xl"
+        className="w-full max-w-sm gap-4 px-5 text-foreground"
       >
-        <h2 id="restart-title" className="text-lg font-bold">
+        <h2 id="restart-title" className="text-heading-md">
           처음부터 다시 만들까요?
         </h2>
-        <p className="mt-2 text-sm leading-6 text-gray-700">
+        <p className="text-gray-700 text-caption">
           지금 보고 있는 무드보드는 그대로 남아요. 새 테스트를 시작합니다.
         </p>
-        <div className="mt-5 grid grid-cols-2 gap-2">
-          <button
+        <div className="grid grid-cols-2 gap-2">
+          <Button
             type="button"
+            variant="secondary"
+            size="md"
             onClick={onCancel}
-            className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-bold text-foreground"
           >
             그대로 볼게요
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
-          >
+          </Button>
+          <Button type="button" tone="ink" size="md" onClick={onConfirm}>
             새로 시작할게요
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -338,52 +351,60 @@ function ResultActions({
   const [isRestartOpen, setIsRestartOpen] = useState(false);
 
   return (
-    <section className="space-y-3">
+    <section className="space-y-4">
       <div className="grid grid-cols-2 gap-2">
-        <button
+        <Button
           type="button"
+          tone="violet"
+          size="lg"
+          className="w-full"
           onClick={onShare}
-          className="rounded-xl bg-[#2556d9] px-4 py-3 text-sm font-bold text-white"
         >
-          SNS 공유
-        </button>
-        <button
+          <Share2 aria-hidden /> SNS 공유
+        </Button>
+        <Button
           type="button"
+          tone="ink"
+          size="lg"
+          className="w-full"
           onClick={onOpenSave}
-          className="rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
         >
-          이미지 저장
-        </button>
+          <Download aria-hidden /> 이미지 저장
+        </Button>
       </div>
       {/* 편집은 소유자에게만 보인다 — 공유 링크로 들어온 사람에게는 감춘다. 실제 방어는
           서버의 PATCH 소유자 검증이고, 이 숨김은 그 위에 얹는 안내다 (#126). */}
-      <div
-        className={
-          moodboard.isOwner
-            ? "grid grid-cols-3 gap-2"
-            : "grid grid-cols-2 gap-2"
-        }
-      >
+      <div className="flex items-center justify-center gap-3">
         {moodboard.isOwner ? (
           <Link
             href={`/moodboard/${moodboard.id}/edit`}
-            className="rounded-xl border border-gray-300 bg-card px-3 py-3 text-center text-xs font-bold text-foreground"
+            title="편집"
+            aria-label="편집"
+            className={buttonVariants({
+              variant: "secondary",
+              size: "icon-md",
+            })}
           >
-            편집
+            <Pencil aria-hidden />
           </Link>
         ) : null}
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="icon-md"
+          title="다시 만들기"
+          aria-label="다시 만들기"
           onClick={() => setIsRestartOpen(true)}
-          className="rounded-xl border border-gray-300 bg-card px-3 py-3 text-xs font-bold text-foreground"
         >
-          다시 만들기
-        </button>
+          <RotateCcw aria-hidden />
+        </Button>
         <Link
           href="/"
-          className="rounded-xl border border-gray-300 bg-card px-3 py-3 text-center text-xs font-bold text-foreground"
+          title="홈"
+          aria-label="홈"
+          className={buttonVariants({ variant: "secondary", size: "icon-md" })}
         >
-          홈
+          <Home aria-hidden />
         </Link>
       </div>
       <ConfirmRestartDialog
@@ -526,9 +547,11 @@ export default function MoodboardResult({ moodboardId }: Props) {
         <header className="mb-4 flex items-center justify-between">
           <Link
             href="/"
-            className="rounded-xl border border-gray-300 bg-card px-3 py-2 text-sm font-bold"
+            title="홈으로 이동"
+            aria-label="홈으로 이동"
+            className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
           >
-            홈
+            <Home aria-hidden />
           </Link>
           <p className="text-sm font-bold">mood·me</p>
         </header>
@@ -536,7 +559,7 @@ export default function MoodboardResult({ moodboardId }: Props) {
         {exportedImageUrl ? (
           // 크롭 에디터(#99) 결과 — 평면 이미지를 그대로 보여준다. 투명 영역은 체크보드로 표시.
           <section
-            className="mx-auto flex aspect-square w-[360px] max-w-full items-center justify-center overflow-hidden rounded-2xl"
+            className="mx-auto flex aspect-square w-[360px] max-w-full items-center justify-center overflow-hidden rounded-xl shadow-card"
             style={{
               backgroundImage:
                 "linear-gradient(45deg, #e5e5e5 25%, transparent 25%), linear-gradient(-45deg, #e5e5e5 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e5e5e5 75%), linear-gradient(-45deg, transparent 75%, #e5e5e5 75%)",
@@ -554,7 +577,7 @@ export default function MoodboardResult({ moodboardId }: Props) {
             />
           </section>
         ) : (
-          <section className="mx-auto w-[360px] max-w-full overflow-hidden rounded-2xl bg-surface-inverse">
+          <section className="mx-auto w-[360px] max-w-full overflow-hidden rounded-xl bg-surface-inverse shadow-card">
             <BoardPreview
               width={MOODBOARD_WIDTH}
               height={MOODBOARD_HEIGHT}
