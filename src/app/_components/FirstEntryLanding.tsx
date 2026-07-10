@@ -41,6 +41,9 @@ const SPLASH_SEEN_KEY = "moodme:first-entry-splash-seen";
 const SPLASH_MIN_MS = 2600;
 const SPLASH_MAX_MS = 5000;
 
+// 등장 전용 감속 곡선(ease-out-quint) — SplashScene 과 같은 값을 쓴다.
+const EASE_IN = [0.22, 1, 0.36, 1] as const;
+
 // 스플래시는 서버가 그린 첫 화면이라 first-contentful-paint 가 곧 스플래시가 뜬 시각이다.
 // 페인트 타이밍이 없거나(구형 브라우저) 클라이언트 라우팅으로 들어온 경우엔 지금을 기준으로 삼는다.
 function elapsedSinceSplashShown() {
@@ -107,82 +110,90 @@ export default function FirstEntryLanding({
 
   return (
     <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-surface-page">
-      {/* 스플래시 동안 화면을 탭하면 건너뛴다(아바타 영역 제외 — 아래 z-30) */}
-      {!isEntry && (
-        <button
-          type="button"
-          onClick={skipToEntry}
-          aria-label="시작 화면 건너뛰기"
-          className="absolute inset-0 z-[25] cursor-default"
-          tabIndex={-1}
-        />
-      )}
-
-      <BoardCardStack
-        active={isEntry}
-        onAboveFoldReady={handleImagesReady}
-        reduced={reduced}
-      />
-      <SplashScene phase={phase} reduced={reduced} />
-
-      {/* 상단 프로필(아바타) — 두 페이즈 상시 노출 (PRD §6) */}
-      <div className="absolute top-3 right-4 z-30">
-        <ProfileMenu isLoggedIn={isLoggedIn} />
-      </div>
-
-      {/* 하단 CTA 영역 — 첫진입에서만 페이드인 */}
-      <AnimatePresence>
-        {isEntry && (
-          <motion.div
-            className="absolute inset-x-0 bottom-0 z-30 flex flex-col gap-2 px-5 pt-6 pb-[max(env(safe-area-inset-bottom),1.25rem)]"
-            style={{
-              background:
-                "linear-gradient(to top, var(--surface-page) 42%, transparent)",
-            }}
-            initial={reduced ? { opacity: 0 } : { opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: reduced ? 0 : 0.5,
-              ease: [0.22, 1, 0.36, 1],
-              delay: reduced ? 0 : 0.35,
-            }}
-          >
-            {continueTarget && (
-              <Link
-                href={continueTarget.href}
-                className="flex items-center justify-between rounded-[var(--radius-md)] bg-surface-sunken px-4 py-3 font-semibold text-gray-700 ring-ring outline-none text-body-sm focus-visible:ring-2"
-              >
-                <span>이어서 만들기</span>
-                <span className="text-gray-500 text-caption">
-                  {continueTarget.label}
-                </span>
-              </Link>
-            )}
-
-            <button
-              type="button"
-              onClick={onCreate}
-              aria-label="무드보드 만들기 — 추구미 테스트 시작하기"
-              className="flex w-full items-center gap-4 rounded-[var(--radius-pill)] border border-gray-100 bg-surface-card py-4 pr-5 pl-7 shadow-card ring-ring transition-colors duration-200 ease-standard outline-none hover:bg-surface-sunken focus-visible:ring-2 active:bg-gray-100"
-            >
-              <span className="font-display-en text-[1.75rem] leading-none text-foreground">
-                Create
-              </span>
-              {/* 손으로 그린 듯 긴 화살표 라인(디자인 시안) */}
-              <span
-                aria-hidden="true"
-                className="flex flex-1 items-center gap-0"
-              >
-                <span className="h-px flex-1 bg-gray-900/70" />
-                <ArrowRight
-                  className="-ml-1 size-5 shrink-0 text-gray-900"
-                  strokeWidth={1.5}
-                />
-              </span>
-            </button>
-          </motion.div>
+      {/* 화면 전체가 배경 위로 떠오른다. 이게 없으면 Board 워드마크와 아바타가 첫 페인트에
+          불투명하게 박힌 채로 나타나, 스플래시를 건너뛰는 재진입에서 특히 갑작스럽다.
+          배경(bg-surface-page)은 바깥 div 에 남긴다 — 여기까지 함께 흐려지면 <html> 의
+          어두운 배경이 비친다.
+          framer 가 아니라 CSS 애니메이션인 이유: framer 의 initial 은 SSR 에도 opacity:0 으로
+          찍혀, 하이드레이션이 끝날 때까지 빈 화면이 된다. CSS 는 첫 페인트부터 바로 돈다. */}
+      <div className="absolute inset-0 animate-in duration-500 ease-out fade-in motion-reduce:animate-none">
+        {/* 스플래시 동안 화면을 탭하면 건너뛴다(아바타 영역 제외 — 아래 z-30) */}
+        {!isEntry && (
+          <button
+            type="button"
+            onClick={skipToEntry}
+            aria-label="시작 화면 건너뛰기"
+            className="absolute inset-0 z-[25] cursor-default"
+            tabIndex={-1}
+          />
         )}
-      </AnimatePresence>
+
+        <BoardCardStack
+          active={isEntry}
+          onAboveFoldReady={handleImagesReady}
+          reduced={reduced}
+        />
+        <SplashScene phase={phase} reduced={reduced} />
+
+        {/* 상단 프로필(아바타) — 두 페이즈 상시 노출 (PRD §6) */}
+        <div className="absolute top-3 right-4 z-30">
+          <ProfileMenu isLoggedIn={isLoggedIn} />
+        </div>
+
+        {/* 하단 CTA 영역 — 첫진입에서만 페이드인 */}
+        <AnimatePresence>
+          {isEntry && (
+            <motion.div
+              className="absolute inset-x-0 bottom-0 z-30 flex flex-col gap-2 px-5 pt-6 pb-[max(env(safe-area-inset-bottom),1.25rem)]"
+              style={{
+                background:
+                  "linear-gradient(to top, var(--surface-page) 42%, transparent)",
+              }}
+              initial={reduced ? { opacity: 0 } : { opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: reduced ? 0 : 0.5,
+                ease: EASE_IN,
+                delay: reduced ? 0 : 0.35,
+              }}
+            >
+              {continueTarget && (
+                <Link
+                  href={continueTarget.href}
+                  className="flex items-center justify-between rounded-[var(--radius-md)] bg-surface-sunken px-4 py-3 font-semibold text-gray-700 ring-ring outline-none text-body-sm focus-visible:ring-2"
+                >
+                  <span>이어서 만들기</span>
+                  <span className="text-gray-500 text-caption">
+                    {continueTarget.label}
+                  </span>
+                </Link>
+              )}
+
+              <button
+                type="button"
+                onClick={onCreate}
+                aria-label="무드보드 만들기 — 추구미 테스트 시작하기"
+                className="flex w-full items-center gap-4 rounded-[var(--radius-pill)] border border-gray-100 bg-surface-card py-4 pr-5 pl-7 shadow-card ring-ring transition-colors duration-200 ease-standard outline-none hover:bg-surface-sunken focus-visible:ring-2 active:bg-gray-100"
+              >
+                <span className="font-display-en text-[1.75rem] leading-none text-foreground">
+                  Create
+                </span>
+                {/* 손으로 그린 듯 긴 화살표 라인(디자인 시안) */}
+                <span
+                  aria-hidden="true"
+                  className="flex flex-1 items-center gap-0"
+                >
+                  <span className="h-px flex-1 bg-gray-900/70" />
+                  <ArrowRight
+                    className="-ml-1 size-5 shrink-0 text-gray-900"
+                    strokeWidth={1.5}
+                  />
+                </span>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
