@@ -11,6 +11,7 @@ import {
   previewCardIdsForScreen,
   targetCountForScreen,
   TOTAL_SCREENS,
+  willResetDownstream,
 } from "@/components/test/mood-test-flow";
 import { SHADOWS } from "@/lib/mood-test/seed";
 
@@ -52,6 +53,7 @@ export function useMoodTestFlow() {
 
   const confirm = useCallback(() => dispatch({ type: "CONFIRM" }), []);
   const back = useCallback(() => dispatch({ type: "BACK" }), []);
+  const undo = useCallback(() => dispatch({ type: "UNDO" }), []);
 
   const buildJourneyFromDraft = useCallback(() => {
     const committed = commitScreen(screen, state.draft, state.committed);
@@ -66,13 +68,21 @@ export function useMoodTestFlow() {
     draft: state.draft,
     target,
     canConfirm: state.draft.length === target,
+    /** 지금 확정하면 뒤 단계 선택이 지워진다 — 확인을 받아야 한다. */
+    willResetDownstream: willResetDownstream(
+      screen,
+      state.draft,
+      state.committed,
+    ),
     isFirstScreen: state.screenIndex === 0,
     isLastScreen: state.screenIndex === TOTAL_SCREENS - 1,
+    canUndo: state.draftHistory.length > 0,
     copy,
     previewCardIds,
     toggle,
     confirm,
     back,
+    undo,
     buildJourneyFromDraft,
   };
 }

@@ -15,11 +15,12 @@ import TestHeader from "@/components/test/TestHeader";
 import { useMoodTestFlow } from "@/components/test/useMoodTestFlow";
 import { saveMoodTestSession } from "@/lib/api/save-mood-test-session";
 import { ApiClientError } from "@/lib/api-client";
-import { ensureGuestSessionId } from "@/lib/auth/guest-session";
+import { ensureGuestSession } from "@/lib/auth/guest-session";
 import {
   clearMoodTestDraft,
   saveMoodTestDraft,
 } from "@/lib/mood-test/draft-storage";
+import { clearGenerationJobId } from "@/lib/mood-test/generation-job-storage";
 
 type Props = {
   // 홈 화면의 "이어하기" 딥링크(#84/#85)가 여전히 이 값을 넘긴다. 실제 선택 상태(카드 등)까지
@@ -39,12 +40,16 @@ export default function TestLayout({ sessionId }: Props) {
     saveMoodTestDraft({ sessionId, stepIndex: flow.screenIndex });
   }, [sessionId, flow.screenIndex]);
 
-  const handleBack = () => {
-    if (flow.isFirstScreen) {
-      router.push("/");
-      return;
-    }
+  const handleHome = () => {
+    router.push("/");
+  };
+
+  const handlePrevStage = () => {
     flow.back();
+  };
+
+  const handleUndoSelection = () => {
+    flow.undo();
   };
 
   const handleNext = async () => {
@@ -60,9 +65,14 @@ export default function TestLayout({ sessionId }: Props) {
     flow.confirm();
     setIsSubmitting(true);
     try {
-      const guestSessionId = await ensureGuestSessionId();
-      await saveMoodTestSession({ sessionId, guestSessionId, journey });
+      // 게스트 신원은 서버가 쿠키로 확인한다 — 여기서는 세션이 있는 상태만 보장한다.
+      // 로그인 상태면 서버가 인증 세션을 우선하므로 이 호출은 무해하다.
+      await ensureGuestSession();
+      await saveMoodTestSession({ sessionId, journey });
       clearMoodTestDraft();
+      // 같은 sessionId로 다시 제출한 것일 수 있다(테스트 다시하기) — 이전에 이 세션으로
+      // 생성 요청을 보낸 적이 있어도, 방금 낸 새 답변에 대해 반드시 새로 생성해야 한다.
+      clearGenerationJobId(sessionId);
       router.push(`/test/${sessionId}/generating`);
     } catch (error) {
       const message =
@@ -75,57 +85,91 @@ export default function TestLayout({ sessionId }: Props) {
   };
 
   const { kicker, title, hint } = flow.copy;
+  const isDiscardScreen =
+    flow.screen.kind === "trim1" || flow.screen.kind === "trim2";
+  const isFinalScreen = flow.screen.kind === "final";
+  const counterText = isDiscardScreen
+    ? `${flow.draft.length}/${flow.target} 내려놓음`
+    : isFinalScreen
+      ? `탈락 ${flow.poolIds.length - flow.draft.length} / ${flow.poolIds.length - flow.target}`
+      : `${flow.draft.length} / ${flow.target}`;
 
   return (
-    // min-h-0: flex 자식이 콘텐츠 크기만큼 늘어나지 않고 부모(뷰포트) 높이 안에서
-    // 스스로 줄어들 수 있게 함 — 이게 없으면 아래 overflow-y-auto가 무시되고
-    // "다음" 버튼이 하단에 붙지 않는다.
-    <div className="flex min-h-0 flex-1 flex-col">
-      <TestHeader
-        current={flow.screenIndex + 1}
-        total={flow.totalScreens}
-        onBack={handleBack}
-        preview={<BuildBoardPreview cardIds={flow.previewCardIds} />}
-      />
+    <>
+      {/* min-h-0: flex 자식이 콘텐츠 크기만큼 늘어나지 않고 부모(뷰포트) 높이 안에서
+          스스로 줄어들 수 있게 함 — 이게 없으면 아래 overflow-y-auto가 무시되고
+          "다음" 버튼이 하단에 붙지 않는다. */}
+      <div className="flex min-h-0 flex-1 flex-col">
+        <TestHeader
+          current={flow.screenIndex + 1}
+          total={flow.totalScreens}
+          onHome={handleHome}
+          preview={<BuildBoardPreview cardIds={flow.previewCardIds} />}
+        />
 
-      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 py-6">
-        <section className="flex flex-col gap-4">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground">
-              {kicker}
-            </p>
-            <h2 className="mt-1 text-xl font-semibold text-foreground">
-              {title}
-            </h2>
-            {hint && (
-              <p className="mt-1 text-sm text-muted-foreground">{hint}</p>
-            )}
-          </div>
-          <StageBody
-            screen={flow.screen}
-            poolIds={flow.poolIds}
-            draft={flow.draft}
-            target={flow.target}
-            onToggle={flow.toggle}
-          />
-          <p className="text-xs text-muted-foreground" role="status">
-            {flow.draft.length} / {flow.target} 선택됨
-          </p>
-        </section>
-      </div>
+        <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto">
+          <section className="flex flex-col gap-4">
+            <div className="sticky top-0 left-0 z-[99] bg-background/90 [mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)] px-4 pt-3 pb-7 backdrop-blur-md [-webkit-mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)]">
+              <p className="font-semibold tracking-wide text-muted-foreground text-caption">
+                {kicker}
+              </p>
+              <h2 className="mt-2 font-[family-name:var(--font-display-kr)] text-[24px] leading-[1.32] font-bold text-foreground">
+                {title}
+              </h2>
+              {hint && (
+                <p className="mt-2 text-muted-foreground text-body-sm">
+                  {hint}
+                </p>
+              )}
+              {/* <span
+                className="absolute top-0 right-0 font-medium text-muted-foreground text-caption"
+                role="status"
+              >
+                {counterText}
+              </span> */}
+            </div>
+            <div className="px-3">
+              <StageBody
+                screen={flow.screen}
+                poolIds={flow.poolIds}
+                draft={flow.draft}
+                target={flow.target}
+                onToggle={flow.toggle}
+              />
+            </div>
+          </section>
+        </div>
 
-      <TestFooter
-        label={
-          flow.isLastScreen
-            ? isSubmitting
+        <TestFooter
+          showPrevStage={!flow.isFirstScreen}
+          onPrevStage={handlePrevStage}
+          nextStageLabel={
+            isSubmitting
               ? "생성 준비 중..."
-              : "무드보드 생성하기 ✨"
-            : "다음"
+              : isFinalScreen
+                ? "Create"
+                : flow.isLastScreen
+                  ? "무드보드 생성하기 ✨"
+                  : "다음"
+          }
+          tone={isFinalScreen ? "cyan" : "sand"}
+          onNextStage={handleNext}
+          nextStageDisabled={!flow.canConfirm || isSubmitting}
+          showUndoSelection={flow.canUndo}
+          onUndoSelection={handleUndoSelection}
+          errorMessage={submitError}
+        />
+      </div>
+      <style jsx>{`
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
-        onClick={handleNext}
-        disabled={!flow.canConfirm || isSubmitting}
-        errorMessage={submitError}
-      />
-    </div>
+
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+    </>
   );
 }

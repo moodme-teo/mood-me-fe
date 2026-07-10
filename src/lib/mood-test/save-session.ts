@@ -1,81 +1,116 @@
 // 완료된 추구미 테스트 세션 저장 서비스 함수. Route Handler(app/api/mood-test-sessions/route.ts)에서
-// 얇게 호출한다 (docs/convention/api.md). #35가 이 요청을 클라이언트에서 쏘게 되면
-// 이 파일의 saveSessionRequestSchema를 lib/api/의 클라이언트 요청 선언에서 재사용할 것.
+// 얇게 호출한다 (docs/convention/api.md).
 
 import "server-only";
 
 import { z } from "zod";
 
+import { getRequester, ownerColumnsOf } from "@/lib/auth/requester";
 import { journeySchema } from "@/lib/mood-test/journey";
-import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export const saveSessionRequestSchema = z.object({
   sessionId: z.uuid(),
-  guestSessionId: z.uuid().optional(),
+  // 소유자(회원·게스트)는 서버가 쿠키로만 확인한다 — 본문으로 받지 않는다 (#126).
   journey: journeySchema,
 });
 
 export type SaveSessionRequest = z.infer<typeof saveSessionRequestSchema>;
 export type SaveSessionResult = { id: string; status: "completed" };
 
+// Postgres unique_violation — 같은 sessionId의 row가 이미 있다는 뜻.
+const UNIQUE_VIOLATION = "23505";
+
+export type SaveSessionOutcome =
+  | { ok: true; value: SaveSessionResult }
+  | {
+      ok: false;
+      code: "UNAUTHORIZED" | "NOT_FOUND" | "INTERNAL_ERROR";
+      error: string;
+    };
+
 // 검증 함수/서비스 함수 반환 형태 통일: { ok: true, value } | { ok: false, error } (docs/convention/type.md)
 export async function saveMoodTestSession(
   input: SaveSessionRequest,
-): Promise<
-  { ok: true; value: SaveSessionResult } | { ok: false; error: string }
-> {
-  const { sessionId, guestSessionId, journey } = input;
+): Promise<SaveSessionOutcome> {
+  const { sessionId, journey } = input;
 
-  // 로그인 여부는 서버가 인증 세션(쿠키)으로 직접 확인한다 — user_id를 클라이언트가
-  // 요청 본문에 자칭하도록 두지 않는다. 로그인 상태가 아니면 게스트로 취급한다.
-  const authClient = await createClient();
-  const {
-    data: { user },
-  } = await authClient.auth.getUser();
-
-  if (!user && !guestSessionId) {
+  const requester = await getRequester();
+  if (requester.kind === "anonymous") {
     return {
       ok: false,
-      error: "로그인 상태가 아니면 guestSessionId가 필요합니다",
+      code: "UNAUTHORIZED",
+      error: "세션이 만료됐어요. 처음부터 다시 시작해 주세요.",
     };
   }
 
   const service = createServiceClient();
 
-  // 정상 플로우에서는 클라이언트가 이미 POST /api/guest-sessions로 발급받은 id를
-  // 보내므로 이 upsert는 no-op이다 (#52). 그래도 남겨두는 이유: 혹시 모를 경합/누락에
-  // 대비한 멱등성 안전장치 — 없어도 되는 row를 다시 만들려 하면 그냥 조용히 넘어간다.
-  if (!user && guestSessionId) {
+  // 쿠키가 가리키는 guest_sessions row가 정리됐을 수 있어 FK를 지키는 안전장치를 남긴다.
+  if (requester.kind === "guest") {
     const { error: guestError } = await service
       .from("guest_sessions")
       .upsert(
-        { id: guestSessionId },
+        { id: requester.guestSessionId },
         { onConflict: "id", ignoreDuplicates: true },
       );
     if (guestError) {
-      return { ok: false, error: guestError.message };
+      return { ok: false, code: "INTERNAL_ERROR", error: guestError.message };
     }
   }
 
-  const { data, error } = await service
+  // 신규 생성을 먼저 시도한다. "소유자 조회 후 upsert"는 두 요청이 동시에 "row 없음"을 보고
+  // 둘 다 쓰는 경합(TOCTOU)에 뚫리므로, PK 충돌 판정을 DB에 맡긴다 (#126).
+  const { data: inserted, error: insertError } = await service
     .from("mood_test_sessions")
-    .upsert(
-      {
-        id: sessionId,
-        user_id: user?.id ?? null,
-        guest_session_id: user ? null : guestSessionId,
-        status: "completed",
-        journey,
-      },
-      { onConflict: "id" },
-    )
+    .insert({
+      id: sessionId,
+      ...ownerColumnsOf(requester),
+      status: "completed",
+      journey,
+    })
     .select("id, status")
-    .single();
+    .maybeSingle();
 
-  if (error) {
-    return { ok: false, error: error.message };
+  if (!insertError && inserted) {
+    return { ok: true, value: inserted as SaveSessionResult };
+  }
+  if (insertError && insertError.code !== UNIQUE_VIOLATION) {
+    return { ok: false, code: "INTERNAL_ERROR", error: insertError.message };
   }
 
-  return { ok: true, value: data as SaveSessionResult };
+  // 이미 있는 세션 — 소유자가 일치할 때만 갱신한다. 소유자 조건을 WHERE 절에 실어 보내므로
+  // 확인과 쓰기 사이에 틈이 없고, 소유자 컬럼 자체는 갱신 대상에서 빠져 불변이다.
+  const ownerColumn =
+    requester.kind === "user" ? "user_id" : "guest_session_id";
+  const ownerValue =
+    requester.kind === "user" ? requester.userId : requester.guestSessionId;
+
+  const { data: updated, error: updateError } = await service
+    .from("mood_test_sessions")
+    .update({
+      status: "completed",
+      journey,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", sessionId)
+    .eq(ownerColumn, ownerValue)
+    .select("id, status")
+    .maybeSingle();
+
+  if (updateError) {
+    return { ok: false, code: "INTERNAL_ERROR", error: updateError.message };
+  }
+
+  // 갱신된 row가 없다 = 남의 세션이다. 403은 "존재하지만 네 것이 아니다"를 흘리므로
+  // 존재하지 않을 때와 같은 404로 뭉갠다 (#126).
+  if (!updated) {
+    return {
+      ok: false,
+      code: "NOT_FOUND",
+      error: "테스트 세션을 찾을 수 없어요.",
+    };
+  }
+
+  return { ok: true, value: updated as SaveSessionResult };
 }

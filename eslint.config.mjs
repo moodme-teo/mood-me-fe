@@ -146,6 +146,14 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  {
+    // E2E 테스트는 src 밖에 있고, `@/*` 별칭은 `./src/*` 만 가리킨다.
+    // 그래서 e2e 내부 fixture 는 상대경로로만 참조할 수 있다 (앱 코드는 여전히 절대경로 강제).
+    files: ["e2e/**/*.ts"],
+    rules: {
+      "no-restricted-imports": "off",
+    },
+  },
   // Prettier와 충돌하는 포맷 규칙 비활성화 — 항상 마지막에
   eslintConfigPrettier,
 ]);

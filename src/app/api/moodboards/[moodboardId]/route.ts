@@ -1,14 +1,22 @@
 import { moodboardSchema } from "@/lib/api/get-moodboard";
 import { updateMoodboardRequestSchema } from "@/lib/api/update-moodboard";
 import { apiError, apiSuccess } from "@/lib/api-response";
+import { getRequester } from "@/lib/auth/requester";
 import { getMoodboardById } from "@/lib/moodboard/get-moodboard";
-import { createServiceClient } from "@/lib/supabase/service";
+import { isMoodboardOwner } from "@/lib/moodboard/moodboard-owner";
+import { saveOwnedMoodboard } from "@/lib/moodboard/save-moodboard";
 
 function canUseSupabaseService() {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SECRET_KEY,
   );
 }
+
+const SAVE_ERROR_STATUS = {
+  // 남의 보드에 저장을 시도해도 존재 여부를 흘리지 않는다 (#126).
+  NOT_FOUND: 404,
+  INTERNAL_ERROR: 500,
+} as const;
 
 // moodboards.id는 uuid PK — 비-UUID id(테스트/목 흐름의 임의 라우트 등)를 그대로 upsert하면
 // Postgres가 "invalid input syntax for type uuid"로 터진다. 저장을 막지 않고 미영속으로 흘려보낸다.
@@ -31,7 +39,12 @@ export async function GET(
     return apiError(result.code, result.error, status);
   }
 
-  const parsed = moodboardSchema.safeParse(result.value);
+  // 보드 조회는 공개다 (PRD §10.1 — 공유 링크). 소유 여부만 서버가 대조해 알려주고,
+  // 편집 UI 노출은 클라이언트가 이 값으로 판단한다. 실제 방어는 PATCH의 소유자 검증이다.
+  const requester = await getRequester();
+  const isOwner = await isMoodboardOwner(moodboardId, requester);
+
+  const parsed = moodboardSchema.safeParse({ ...result.value, isOwner });
   if (!parsed.success) {
     return apiError(
       "INTERNAL_ERROR",
@@ -73,25 +86,19 @@ export async function PATCH(
     });
   }
 
-  const service = createServiceClient();
-  const { error } = await service.from("moodboards").upsert(
-    {
-      id: moodboardId,
-      base_image_url: parsed.data.baseImageUrl,
-      elements: parsed.data.elements,
-      exported_image_data_url: parsed.data.exportedImageDataUrl ?? null,
-      // moodProfile은 보낸 경우에만 갱신 — 재편집 저장이 기존 리포트를 지우지 않도록 omit.
-      ...(parsed.data.moodProfile
-        ? { mood_profile: parsed.data.moodProfile }
-        : {}),
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "id" },
-  );
+  // 소유자(회원·게스트)는 서버가 쿠키로만 확인한다 — 본문에 자칭하도록 두지 않는다 (#126).
+  const requester = await getRequester();
+  if (requester.kind === "anonymous") {
+    return apiError(
+      "UNAUTHORIZED",
+      "세션이 만료됐어요. 처음부터 다시 시작해 주세요.",
+      401,
+    );
+  }
 
-  if (error) {
-    console.error("[moodboards.PATCH] upsert 실패", error);
-    return apiError("INTERNAL_ERROR", "무드보드를 저장하지 못했어요.", 500);
+  const result = await saveOwnedMoodboard(moodboardId, requester, parsed.data);
+  if (!result.ok) {
+    return apiError(result.code, result.error, SAVE_ERROR_STATUS[result.code]);
   }
 
   return apiSuccess({

@@ -10,7 +10,12 @@
     "typecheck": "tsc --noEmit",
     "prepare": "husky",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "e2e": "playwright test --project=mobile-chromium",
+    "e2e:ui": "playwright test --project=mobile-chromium --ui",
+    "e2e:visual": "playwright test --project=visual",
+    "e2e:visual:update": "playwright test --project=visual --update-snapshots",
+    "mockup:boards": "node --conditions=react-server --env-file=.env.local --import ./scripts/alias-hook.mjs scripts/generate-mockup-boards.ts"
   },
   "lint-staged": {
     "*.{ts,tsx,mts}": [
@@ -42,6 +47,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

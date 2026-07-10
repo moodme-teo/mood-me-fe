@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -8,12 +7,18 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import FirstEntryLanding, {
   type ContinueTarget,
 } from "@/app/_components/FirstEntryLanding";
+import HistoryCarousel from "@/app/_components/HistoryCarousel";
+import {
+  BoardMark,
+  ChugumiMark,
+  ModeMark,
+  VibeMark,
+  VisionMark,
+} from "@/app/_components/HistoryWordmark";
 import ProfileMenu from "@/components/auth/ProfileMenu";
-import { listMoodboardDrafts } from "@/components/board/moodboard-draft-storage";
 import { Button } from "@/components/ui/button";
 import { getMoodboards } from "@/lib/api/get-moodboards";
 import { ApiClientError } from "@/lib/api-client";
-import { getStoredGuestSessionId } from "@/lib/auth/guest-session";
 import { loadMoodTestDraft } from "@/lib/mood-test/draft-storage";
 import type { MoodTestDraft } from "@/lib/mood-test/draft-storage";
 import type { MoodboardSummary } from "@/lib/moodboard/summary";
@@ -34,53 +39,6 @@ function getErrorMessage(error: unknown) {
 
 function getDraftStepHref(draft: MoodTestDraft) {
   return `/test/${draft.sessionId}?step=${draft.stepIndex}`;
-}
-
-function MoodboardCard({ moodboard }: { moodboard: MoodboardSummary }) {
-  const [hasImageFailed, setHasImageFailed] = useState(false);
-  const cardTitle =
-    moodboard.title === moodboard.typeName
-      ? moodboard.typeName
-      : `${moodboard.typeName} · ${moodboard.title}`;
-
-  return (
-    <Link
-      href={`/moodboard/${moodboard.id}`}
-      aria-label={`${cardTitle} 결과 열람하기`}
-      className="group block overflow-hidden rounded-lg bg-card text-foreground ring-ring transition outline-none focus-visible:ring-2"
-    >
-      <div className="relative aspect-[3/4] bg-[#dfe8dd]">
-        {hasImageFailed ? (
-          <div className="flex h-full items-end p-3 text-sm font-bold">
-            {moodboard.typeName}
-          </div>
-        ) : (
-          <Image
-            fill
-            unoptimized
-            src={moodboard.thumbnailUrl}
-            alt={`${moodboard.typeName} 무드보드 썸네일`}
-            sizes="(max-width: 768px) 50vw, 220px"
-            className="object-cover transition duration-300 group-hover:scale-[1.03]"
-            onError={() => setHasImageFailed(true)}
-          />
-        )}
-        {moodboard.isGuest ? (
-          <span className="absolute top-2 left-2 rounded-full bg-surface-inverse/82 px-2 py-1 text-[11px] font-bold text-white">
-            임시
-          </span>
-        ) : null}
-      </div>
-      <div className="min-h-16 p-3">
-        <p className="line-clamp-2 text-sm font-bold">{moodboard.typeName}</p>
-        {moodboard.title !== moodboard.typeName ? (
-          <p className="mt-1 line-clamp-1 text-xs font-bold text-muted-foreground">
-            {moodboard.title}
-          </p>
-        ) : null}
-      </div>
-    </Link>
-  );
 }
 
 function MoodboardSkeletonGrid() {
@@ -163,13 +121,21 @@ function HistoryContent({
   moodboards: MoodboardSummary[];
 }) {
   return (
-    <main className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 pt-2 pb-5">
-      <section className="mx-auto w-full max-w-[680px] space-y-5">
+    <main className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden pt-2 pb-3">
+      <div className="mx-auto w-full max-w-[680px] space-y-3 px-4">
         <div>
-          <h1 className="text-4xl leading-tight font-bold text-foreground">
-            History
+          {/* docs/design/history-page.png 워드마크 — public/assets 벡터를 그대로 인라인 SVG로 */}
+          <h1 lang="en" className="flex flex-col items-start text-foreground">
+            <span className="sr-only">Vision Mode Vibe Chugumi Board</span>
+            <VisionMark className="mb-3 h-[26px] w-auto" />
+            <ModeMark className="mb-3 h-[27px] w-auto" />
+            <VibeMark className="mb-3 h-[27px] w-auto" />
+            <span className="flex items-center gap-2">
+              <ChugumiMark className="h-[34px] w-auto" />
+              <BoardMark className="-mt-3 h-[27px] w-auto" />
+            </span>
           </h1>
-          <p className="mt-2 text-base font-bold text-gray-700">
+          <p className="mt-2 font-semibold text-gray-500 text-label">
             {isLoading
               ? "저장한 무드보드를 불러오고 있어요"
               : hasError
@@ -178,19 +144,14 @@ function HistoryContent({
           </p>
         </div>
         {errorPanel}
-        {isLoading ? (
+      </div>
+      {isLoading ? (
+        <div className="mx-auto w-full max-w-[680px]">
           <MoodboardSkeletonGrid />
-        ) : (
-          <section
-            aria-label="저장한 무드보드"
-            className="grid grid-cols-2 gap-3 sm:grid-cols-3"
-          >
-            {moodboards.map((moodboard) => (
-              <MoodboardCard key={moodboard.id} moodboard={moodboard} />
-            ))}
-          </section>
-        )}
-      </section>
+        </div>
+      ) : moodboards.length > 0 ? (
+        <HistoryCarousel moodboards={moodboards} />
+      ) : null}
     </main>
   );
 }
@@ -210,51 +171,29 @@ export default function HomeExperience({
 
   useEffect(() => {
     let isActive = true;
-    const guestSessionId = isLoggedIn ? null : getStoredGuestSessionId();
-    const testDraft = loadMoodTestDraft();
-    const testTarget = testDraft
-      ? {
-          href: getDraftStepHref(testDraft),
-          label: `${testDraft.stepIndex + 1}단계`,
-          updatedAt: testDraft.updatedAt,
-        }
-      : null;
 
-    listMoodboardDrafts()
-      .then((drafts) => {
-        if (!isActive) return;
+    Promise.resolve().then(() => {
+      if (!isActive) return;
 
-        const editTarget = [...drafts].sort(
-          (a, b) =>
-            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-        )[0];
-        const candidates = [
-          testTarget,
-          editTarget
-            ? {
-                href: `/moodboard/${editTarget.moodboardId}/edit`,
-                label: "편집 중",
-                updatedAt: editTarget.updatedAt,
-              }
-            : null,
-        ].filter((target): target is ContinueTarget => target !== null);
+      const testDraft = loadMoodTestDraft();
+      setContinueTarget(
+        testDraft
+          ? {
+              href: getDraftStepHref(testDraft),
+              label: `${testDraft.stepIndex + 1}단계`,
+              updatedAt: testDraft.updatedAt,
+            }
+          : null,
+      );
+    });
 
-        setContinueTarget(
-          [...candidates].sort(
-            (a, b) =>
-              new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-          )[0] ?? null,
-        );
-      })
-      .catch(() => {
-        if (isActive) setContinueTarget(testTarget);
-      });
-
-    if (!isLoggedIn && guestSessionId) {
+    // 게스트 신원은 httpOnly 쿠키에 있어 클라이언트가 존재 여부를 알 수 없다 — 서버가
+    // 판단하고, 신원이 없으면 빈 목록을 돌려준다 (#126). 회원 목록은 서버 렌더에서 이미 왔다.
+    if (!isLoggedIn) {
       Promise.resolve()
         .then(() => {
           if (isActive) setIsLoadingList(true);
-          return getMoodboards({ guestSessionId });
+          return getMoodboards();
         })
         .then((items) => {
           if (!isActive) return;
@@ -280,7 +219,7 @@ export default function HomeExperience({
 
   const handleRetry = useCallback(() => {
     setIsLoadingList(true);
-    getMoodboards({ guestSessionId: getStoredGuestSessionId() })
+    getMoodboards()
       .then((items) => {
         setMoodboards(items);
         setError(null);

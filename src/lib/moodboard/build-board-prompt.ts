@@ -10,7 +10,10 @@ import {
   type LifeTheme,
   type PersonaRank,
 } from "@/lib/mood-test/persona";
-import { pickLayoutStyle } from "@/lib/moodboard/layout-styles";
+import {
+  type LayoutStyle,
+  pickLayoutStyle,
+} from "@/lib/moodboard/layout-styles";
 import { PERSONA_KEYWORDS } from "@/lib/moodboard/persona-keywords";
 
 // §1 사전과 동일한 예산 — 페르소나 한 개가 100%를 먹어도 상한에 걸리지 않도록 사전 크기와 맞췄다.
@@ -156,17 +159,21 @@ const BOARD_PROMPT_TEMPLATE = `레퍼런스 수준의 세로형 Pinterest 스타
 1024×1536 세로형 이미지. 2:3 비율. 고해상도.
 현실적인 믹스드미디어 콜라주. Pinterest 레퍼런스 수준의 퀄리티.`;
 
-export function buildBoardPrompt(journey: Journey): string {
-  const persona = computePersonaResult(journey);
-  const layout = pickLayoutStyle(journey);
-
+// 두 축의 순위와 레이아웃을 직접 받아 프롬프트를 조립한다. 런타임은 여정에서 이 셋을
+// 계산하지만(buildBoardPrompt), 예시 보드처럼 비율·레이아웃을 손으로 지정해야 하는
+// 호출부(scripts/generate-mockup-boards.ts)도 있어 조립부를 따로 노출한다.
+export function buildBoardPromptFromRanks(
+  coreRanks: PersonaRank[],
+  themeRanks: PersonaRank[],
+  layout: LayoutStyle,
+): string {
   const coreBlock = buildPersonaDetailBlock(
-    persona.core,
+    coreRanks,
     CORE_KEYWORD_BUDGET,
     "미학 코어 (카드 · fate 배수 적용",
   );
   const themeBlock = buildPersonaDetailBlock(
-    persona.theme,
+    themeRanks,
     THEME_KEYWORD_BUDGET,
     "인생 테마 (카드 + 전환",
   );
@@ -174,4 +181,13 @@ export function buildBoardPrompt(journey: Journey): string {
   return BOARD_PROMPT_TEMPLATE.replace("{LAYOUT_STYLE_BLOCK}", layout.prompt)
     .replace("{CORE_PERSONA_DETAIL_BLOCK}", coreBlock)
     .replace("{THEME_PERSONA_DETAIL_BLOCK}", themeBlock);
+}
+
+export function buildBoardPrompt(journey: Journey): string {
+  const persona = computePersonaResult(journey);
+  return buildBoardPromptFromRanks(
+    persona.core,
+    persona.theme,
+    pickLayoutStyle(journey),
+  );
 }

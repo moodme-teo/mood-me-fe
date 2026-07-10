@@ -22,6 +22,7 @@ import {
   type CropExporter,
   CropShapeIcon,
   type CropShapeId,
+  type CropState,
   extractPalette,
   getCenteredTransform,
   getCropFit,
@@ -34,7 +35,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { updateMoodboard } from "@/lib/api/update-moodboard";
-import type { MoodProfile } from "@/types/moodboard";
+import type { EditState, MoodProfile } from "@/types/moodboard";
 
 type Props = {
   moodboardId: string;
@@ -42,6 +43,9 @@ type Props = {
   // 리포트(GPT-5)가 아직 안 끝났으면 없을 수 있다. 저장 시 함께 영속화해 결과 페이지가
   // 실제 분석을 노출하도록 한다(없으면 서버가 PENDING 폴백). #99 크롭 흐름 통합.
   moodProfile?: MoodProfile | null;
+  // 재편집 구도 복원(#116) — 결과물→편집 왕복 시 이전 도형·배경·확대·위치를 되살린다.
+  // sourceImageUrl이 baseImageUrl과 다르면(레거시 보드 등) 무시하고 기본값으로 진입한다.
+  initialEditState?: EditState | null;
 };
 
 type EditTab = "image" | "shape" | "background" | "color";
@@ -314,9 +318,27 @@ export default function MoodboardCropEditor({
   moodboardId,
   baseImageUrl,
   moodProfile,
+  initialEditState,
 }: Props) {
   const router = useRouter();
-  const crop = useCropEditor();
+  // sourceImageUrl이 지금 편집 대상과 다르면(레거시 보드 등) 복원하지 않는다.
+  const initialCropState = useMemo<CropState | undefined>(() => {
+    if (!initialEditState || initialEditState.sourceImageUrl !== baseImageUrl) {
+      return undefined;
+    }
+    return {
+      // CropShapeId는 확장 가능한 문자열 유니언 — 저장된 값을 그대로 신뢰한다.
+      // 알 수 없는 값이면 crop-shapes.ts가 사각형으로 안전 폴백한다.
+      shape: initialEditState.shapeId as CropShapeId,
+      background: initialEditState.background,
+      transform: {
+        zoom: initialEditState.scale,
+        offsetX: initialEditState.x,
+        offsetY: initialEditState.y,
+      },
+    };
+  }, [initialEditState, baseImageUrl]);
+  const crop = useCropEditor(initialCropState);
   const [tab, setTab] = useState<EditTab>("shape");
   const [toast, setToast] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -382,10 +404,20 @@ export default function MoodboardCropEditor({
         (await exporterRef.current?.("png")) ?? undefined;
       // 크롭 결과는 한 장의 평면 이미지 — elements는 비우고 export 이미지를 저장한다.
       // moodProfile은 있을 때만 함께 저장(없으면 서버가 기존 값 유지 / PENDING 폴백).
+      // editState는 재편집 구도 복원용으로 항상 현재 값을 함께 커밋한다 (#116).
+      // 소유자는 서버가 쿠키에서 읽는다 — 여기서 실어 보내지 않는다 (#126).
       await updateMoodboard(moodboardId, {
         baseImageUrl,
         elements: [],
         exportedImageDataUrl,
+        editState: {
+          sourceImageUrl: baseImageUrl,
+          shapeId: crop.shape,
+          background: crop.background,
+          scale: crop.transform.zoom,
+          x: crop.transform.offsetX,
+          y: crop.transform.offsetY,
+        },
         ...(moodProfile ? { moodProfile } : {}),
       });
       router.push(`/moodboard/${moodboardId}`);
@@ -394,7 +426,16 @@ export default function MoodboardCropEditor({
       showToast("저장하지 못했어요. 다시 시도해 주세요.");
       setIsSaving(false);
     }
-  }, [baseImageUrl, moodProfile, moodboardId, router, showToast]);
+  }, [
+    baseImageUrl,
+    moodProfile,
+    moodboardId,
+    router,
+    showToast,
+    crop.shape,
+    crop.background,
+    crop.transform,
+  ]);
 
   const activeSolidColor =
     crop.background.type === "solid" ? crop.background.color : null;
@@ -470,6 +511,7 @@ export default function MoodboardCropEditor({
             onImageLoad={handleImageLoad}
             onImageError={handleImageError}
             onExportReady={handleExportReady}
+            initialTransform={initialCropState?.transform}
           />
         )}
       </div>
