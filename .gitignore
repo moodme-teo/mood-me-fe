@@ -58,3 +58,5 @@ supabase/.temp/
 supabase/.branches/
 
 *.local.md
+# Claude Code 가 만드는 임시 worktree (임베디드 git 저장소)
+.claude/worktrees/
