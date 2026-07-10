@@ -20,7 +20,7 @@ export default function GeneratingBoardAnimation({
       {SAMPLE_CARDS.map((card, i) => (
         <div
           key={card.id}
-          className="relative overflow-hidden rounded-lg bg-gray-100 transition-opacity duration-700"
+          className="relative overflow-hidden rounded-lg bg-gray-100 transition-opacity duration-[var(--duration-slow)] ease-standard"
           style={{ opacity: i < revealedCount ? 1 : 0 }}
         >
           <Image
