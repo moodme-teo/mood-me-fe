@@ -3,13 +3,18 @@ import { expect, test } from "@playwright/test";
 import {
   EXPORTED_IMAGE_QUADRANTS,
   MOODBOARD,
+  MOODBOARD_ANALYSIS_FAILED,
+  MOODBOARD_ANALYSIS_PROCESSING,
   MOODBOARD_ID,
 } from "./fixtures/data";
 import { MoodboardResultPage } from "./pages/moodboard-result.page";
 import {
   mockLegacyMoodboard,
   mockMoodboard,
+  mockMoodboardAnalysisFailed,
   mockMoodboardFailure,
+  mockMoodboardSequence,
+  mockRetryAnalysis,
 } from "./utils/mock-api";
 import { downloadToDataUrl, readImagePixels } from "./utils/pixels";
 
@@ -196,5 +201,38 @@ test.describe("결과물 페이지", () => {
     await result.goto(MOODBOARD_ID);
 
     await expect(result.errorMessage).toBeVisible();
+  });
+
+  test("분석이 실패하면 그래프 대신 재시도 버튼을 보여준다", async ({
+    page,
+  }) => {
+    await mockMoodboardAnalysisFailed(page);
+
+    const result = new MoodboardResultPage(page);
+    await result.goto(MOODBOARD_ID);
+
+    // 이미지·저장·공유는 분석 실패와 무관하게 정상이어야 한다 (#122).
+    await expect(result.exportedImage).toBeVisible();
+    await expect(result.analysisFailedHeading).toBeVisible();
+    await expect(result.retryAnalysisButton).toBeVisible();
+    await expect(result.moodSpectrumHeading).toBeHidden();
+  });
+
+  test("분석 다시 시도가 완료되면 그래프를 보여준다", async ({ page }) => {
+    await mockRetryAnalysis(page);
+    await mockMoodboardSequence(page, [
+      MOODBOARD_ANALYSIS_FAILED,
+      MOODBOARD_ANALYSIS_PROCESSING,
+      MOODBOARD,
+    ]);
+
+    const result = new MoodboardResultPage(page);
+    await result.goto(MOODBOARD_ID);
+    await expect(result.retryAnalysisButton).toBeVisible();
+
+    await result.retryAnalysisButton.click();
+
+    await expect(result.moodSpectrumHeading).toBeVisible({ timeout: 15_000 });
+    await expect(result.analysisFailedHeading).toBeHidden();
   });
 });
