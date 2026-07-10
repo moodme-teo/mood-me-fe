@@ -15,6 +15,7 @@ import type { GetMoodboardResponse } from "@/lib/api/get-moodboard";
 import { getMoodboard } from "@/lib/api/get-moodboard";
 import { retryMoodboardAnalysis } from "@/lib/api/retry-moodboard-analysis";
 import { ApiClientError } from "@/lib/api-client";
+import { getLoginPath } from "@/lib/auth/redirect-url";
 import type { MoodVector } from "@/types/moodboard";
 import { MOODBOARD_HEIGHT, MOODBOARD_WIDTH } from "@/types/moodboard";
 
@@ -271,7 +272,9 @@ function StickerPhraseCloud({
   );
 }
 
-function GuestBanner() {
+function GuestBanner({ moodboardId }: { moodboardId: string }) {
+  const loginPath = getLoginPath(`/moodboard/${moodboardId}`);
+
   return (
     <Card className="gap-2 px-4 text-foreground">
       <p className="font-bold text-body-md">
@@ -281,7 +284,7 @@ function GuestBanner() {
         지금은 게스트로도 열람, 공유, 이미지 저장을 모두 사용할 수 있습니다.
       </p>
       <Link
-        href="/login"
+        href={loginPath}
         className={buttonVariants({
           tone: "violet",
           size: "md",
@@ -716,7 +719,7 @@ export default function MoodboardResult({ moodboardId }: Props) {
             onOpenSave={() => setIsSaveOpen(true)}
             onShare={handleShare}
           />
-          {moodboard.isGuest ? <GuestBanner /> : null}
+          {moodboard.isGuest ? <GuestBanner moodboardId={moodboardId} /> : null}
         </div>
       </div>
     </main>
