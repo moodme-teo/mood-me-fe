@@ -7,11 +7,11 @@ import {
   createInitialFlowState,
   flowReducer,
   getScreenCopy,
+  hasDownstreamData,
   poolIdsForScreen,
   previewCardIdsForScreen,
   targetCountForScreen,
   TOTAL_SCREENS,
-  willResetDownstream,
 } from "@/components/test/mood-test-flow";
 import { SHADOWS } from "@/lib/mood-test/seed";
 
@@ -68,12 +68,13 @@ export function useMoodTestFlow() {
     draft: state.draft,
     target,
     canConfirm: state.draft.length === target,
-    /** 지금 확정하면 뒤 단계 선택이 지워진다 — 확인을 받아야 한다. */
-    willResetDownstream: willResetDownstream(
-      screen,
-      state.draft,
-      state.committed,
-    ),
+    /**
+     * 지금 "이전" 을 누르면 뒤 단계에서 고른 내용이 지워질 수 있다 — 확인을 받아야 한다.
+     * 되돌아갈 화면 기준으로 판정한다. 첫 화면에는 "이전" 이 없다.
+     */
+    willResetOnBack:
+      state.screenIndex > 0 &&
+      hasDownstreamData(screens[state.screenIndex - 1], state.committed),
     isFirstScreen: state.screenIndex === 0,
     isLastScreen: state.screenIndex === TOTAL_SCREENS - 1,
     canUndo: state.draftHistory.length > 0,

@@ -166,6 +166,63 @@ function sameSet(a: string[], b: string[]): boolean {
   return a.every((id) => setB.has(id));
 }
 
+/**
+ * 화면별로 "이 화면을 고치면 무효가 되는 뒤 단계" 목록.
+ *
+ * commitScreen(지우는 쪽)과 hasDownstreamData(지워질 게 있는지 묻는 쪽)가 이 표 하나를
+ * 함께 읽는다. 규칙을 양쪽에 옮겨 적으면 반드시 어긋난다.
+ *
+ * 담기(gather)가 shadows를 지우지 않는 이유: 그림자는 고정된 칩 8개에서 고르므로 담은
+ * 카드와 무관하다. 반대로 그림자를 바꾸면 전환(transitions)은 그림자별 4지선다라 통째로 무효다.
+ */
+const DOWNSTREAM_OF: Record<
+  ScreenDescriptor["kind"],
+  readonly (keyof CommittedState)[]
+> = {
+  gather: ["droppedR1", "droppedR2", "final", "droppedFinal"],
+  trim1: ["droppedR2", "final", "droppedFinal"],
+  trim2: ["final", "droppedFinal"],
+  shadow: ["transitions", "final", "droppedFinal"],
+  transition: ["final", "droppedFinal"],
+  final: [],
+};
+
+/** DOWNSTREAM_OF 의 필드들을 비운 값. transitions 만 배열 모양이 달라 따로 다룬다. */
+function clearedDownstream(screen: ScreenDescriptor): Partial<CommittedState> {
+  const cleared: Partial<CommittedState> = {};
+  for (const field of DOWNSTREAM_OF[screen.kind]) {
+    if (field === "transitions") cleared.transitions = [null, null, null];
+    else cleared[field] = [] as never;
+  }
+  return cleared;
+}
+
+function isFieldEmpty(
+  committed: CommittedState,
+  field: keyof CommittedState,
+): boolean {
+  if (field === "transitions") {
+    return committed.transitions.every((t) => t === null);
+  }
+  const value = committed[field];
+  return Array.isArray(value) && value.length === 0;
+}
+
+/**
+ * 이 화면으로 되돌아가 선택을 바꾸면, 실제로 지워질 뒤 단계 데이터가 있는가?
+ *
+ * "이전" 을 누르는 시점에는 사용자가 무엇을 바꿀지 아직 모른다. 그래서 변경 여부가 아니라
+ * **잃을 것이 있는지** 만 본다 — 뒤 단계를 아직 고르지 않았으면 물을 이유가 없다 (PRD §5.3).
+ */
+export function hasDownstreamData(
+  screen: ScreenDescriptor,
+  committed: CommittedState,
+): boolean {
+  return DOWNSTREAM_OF[screen.kind].some(
+    (field) => !isFieldEmpty(committed, field),
+  );
+}
+
 export function commitScreen(
   screen: ScreenDescriptor,
   draft: string[],
@@ -177,9 +234,7 @@ export function commitScreen(
       return {
         ...committed,
         selected: draft,
-        ...(changed
-          ? { droppedR1: [], droppedR2: [], final: [], droppedFinal: [] }
-          : {}),
+        ...(changed ? clearedDownstream(screen) : {}),
       };
     }
     case "trim1": {
@@ -187,7 +242,7 @@ export function commitScreen(
       return {
         ...committed,
         droppedR1: draft,
-        ...(changed ? { droppedR2: [], final: [], droppedFinal: [] } : {}),
+        ...(changed ? clearedDownstream(screen) : {}),
       };
     }
     case "trim2": {
@@ -195,7 +250,7 @@ export function commitScreen(
       return {
         ...committed,
         droppedR2: draft,
-        ...(changed ? { final: [], droppedFinal: [] } : {}),
+        ...(changed ? clearedDownstream(screen) : {}),
       };
     }
     case "shadow": {
@@ -204,9 +259,7 @@ export function commitScreen(
       return {
         ...committed,
         shadows: draft,
-        ...(changed
-          ? { transitions: [null, null, null], final: [], droppedFinal: [] }
-          : {}),
+        ...(changed ? clearedDownstream(screen) : {}),
       };
     }
     case "transition": {
@@ -218,10 +271,11 @@ export function commitScreen(
         shadow: screen.shadowId,
         picked: pickedId,
       };
+      // 전환은 자기 자신이 transitions 에 쓰므로, 초기화 목록에서 그 필드는 빠져 있다.
       return {
         ...committed,
         transitions: nextTransitions,
-        ...(changed ? { final: [], droppedFinal: [] } : {}),
+        ...(changed ? clearedDownstream(screen) : {}),
       };
     }
     case "final": {
@@ -230,34 +284,6 @@ export function commitScreen(
       return { ...committed, final: draft, droppedFinal };
     }
   }
-}
-
-/**
- * 지금 이 화면을 확정하면 뒤 단계에서 고른 내용이 지워지는가?
- *
- * commitScreen 은 상위 단계의 선택이 바뀌면 하위 단계를 조용히 비운다 — 선택지 구성 자체가
- * 달라지므로 남겨 둘 수가 없다. 문제는 사용자가 뒤로 돌아가 카드 한 장 바꿨을 뿐인데
- * 그림자·전환·최종 대결이 통째로 사라진다는 것이다. 그래서 확정 전에 물어본다.
- *
- * 판정은 commitScreen 의 결과로 한다. 초기화 규칙을 여기 다시 옮겨 적으면 둘이 어긋난다.
- * 아직 아무것도 고르지 않은 뒤 단계는 잃을 것이 없으므로 묻지 않는다.
- */
-export function willResetDownstream(
-  screen: ScreenDescriptor,
-  draft: string[],
-  committed: CommittedState,
-): boolean {
-  const next = commitScreen(screen, draft, committed);
-  const cleared = (before: string[], after: string[]) =>
-    before.length > 0 && after.length === 0;
-
-  return (
-    cleared(committed.droppedR1, next.droppedR1) ||
-    cleared(committed.droppedR2, next.droppedR2) ||
-    cleared(committed.final, next.final) ||
-    (committed.transitions.some((t) => t !== null) &&
-      next.transitions.every((t) => t === null))
-  );
 }
 
 export function toggleDraftId(
