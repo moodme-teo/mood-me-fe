@@ -105,7 +105,7 @@ function ContinueDraftEntry({ target }: { target: ContinueTarget | null }) {
   return (
     <Link
       href={target.href}
-      className="text-md flex items-center justify-between rounded-full border px-4 py-3 font-bold text-gray-700 shadow-card ring-ring outline-none focus-visible:ring-2"
+      className="flex items-center justify-between rounded-full border bg-secondary px-4 py-3.5 text-sm font-bold text-gray-700 ring-ring outline-none focus-visible:ring-2"
     >
       <span>이어서 만들기</span>
       <span className="text-xs font-bold">{target.label}</span>
@@ -126,28 +126,18 @@ function HistoryContent({
   moodboards: MoodboardSummary[];
 }) {
   return (
-    <main className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden pt-2 pb-3">
+    <main className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden pb-3">
       <div className="mx-auto w-full max-w-[680px] space-y-3 px-4">
-        <div>
-          {/* docs/design/history-page.png 워드마크 — public/assets 벡터를 그대로 인라인 SVG로 */}
-          <h1 lang="en" className="flex flex-col items-start text-foreground">
-            <span className="sr-only">Vision Mode Vibe Chugumi Board</span>
-            <VisionMark className="mb-3 h-[26px] w-auto" />
-            <ModeMark className="mb-3 h-[27px] w-auto" />
-            <VibeMark className="mb-3 h-[27px] w-auto" />
-            <span className="flex items-center gap-2">
-              <ChugumiMark className="h-[34px] w-auto" />
-              <BoardMark className="-mt-3 h-[27px] w-auto" />
-            </span>
-          </h1>
-          <p className="mt-2 font-semibold text-gray-500 text-label">
-            {isRetrying
-              ? "저장한 무드보드를 불러오고 있어요"
-              : hasError
-                ? "저장한 무드보드를 확인하지 못했어요"
-                : `${moodboards.length}개의 무드보드를 모았어요`}
-          </p>
-        </div>
+        <h1 lang="en" className="">
+          <span className="sr-only">Vision Mode Vibe Chugumi Board</span>
+        </h1>
+        <p className="mt-2 font-semibold text-gray-500 text-label">
+          {isRetrying
+            ? "저장한 무드보드를 불러오고 있어요"
+            : hasError
+              ? "저장한 무드보드를 확인하지 못했어요"
+              : `${moodboards.length}개의 무드보드를 모았어요`}
+        </p>
         {errorPanel}
       </div>
       {isRetrying ? (
@@ -269,10 +259,20 @@ export default function HomeExperience({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-background text-foreground">
-      <header className="mx-auto flex w-full max-w-[720px] items-center justify-between px-4 py-3">
-        <Link href="/" className="text-sm font-bold tracking-normal">
-          mood·me
+      <header className="mx-auto flex w-full max-w-[720px] items-start justify-between px-4 py-3">
+        <Link
+          href="/"
+          className="flex flex-col items-start pt-2 text-foreground"
+        >
+          <VisionMark className="mb-3 h-[26px] w-auto" />
+          <ModeMark className="mb-3 h-[27px] w-auto" />
+          <VibeMark className="mb-3 h-[27px] w-auto" />
+          <span className="flex items-center gap-2">
+            <ChugumiMark className="h-[34px] w-auto" />
+            <BoardMark className="-mt-3 h-[27px] w-auto" />
+          </span>
         </Link>
+        <span />
         <ProfileMenu isLoggedIn={isLoggedIn} />
       </header>
 
