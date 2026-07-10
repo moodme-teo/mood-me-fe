@@ -302,6 +302,8 @@ format:check → lint → typecheck → build → e2e
 
 지금 8개 화면 완주 헬퍼는 `aria-pressed`와 `<p role="status">N / M 선택됨</p>`만으로 동작한다. `data-testid`는 하나도 없다.
 
+> **`dev` 를 병합하면 이 계약이 바뀐다** ([#129](https://github.com/moodme-teo/mood-me-fe/issues/129)). 추구미 테스트 화면이 다시 만들어져 `N / M 선택됨` 이 사라지고(프리뷰 보드의 카운트 배지가 대신한다), 덜어내기·최종 대결은 `aria-pressed` 토글이 아니라 드래그 UI가 된다. 이 절의 예시는 병합 전 기준이다.
+
 **`getByText()`는 부분 일치다.** 한때 `getByText("5%")`가 통과했는데, 화면에 렌더된 값은 `15%`였다. 짧은 문자열·숫자는 `getByRole` + 속성으로 확인한다.
 
 `data-testid`를 추가한다면 **PR 본문에 왜 1~3으로 안 되는지 적는다.** 대개는 접근성 이름이 없다는 뜻이고, 그건 `data-testid`가 아니라 `aria-label`을 붙일 신호다.
