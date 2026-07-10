@@ -15,7 +15,7 @@ import TestHeader from "@/components/test/TestHeader";
 import { useMoodTestFlow } from "@/components/test/useMoodTestFlow";
 import { saveMoodTestSession } from "@/lib/api/save-mood-test-session";
 import { ApiClientError } from "@/lib/api-client";
-import { ensureGuestSessionId } from "@/lib/auth/guest-session";
+import { ensureGuestSession } from "@/lib/auth/guest-session";
 import {
   clearMoodTestDraft,
   saveMoodTestDraft,
@@ -64,8 +64,10 @@ export default function TestLayout({ sessionId }: Props) {
     flow.confirm();
     setIsSubmitting(true);
     try {
-      const guestSessionId = await ensureGuestSessionId();
-      await saveMoodTestSession({ sessionId, guestSessionId, journey });
+      // 게스트 신원은 서버가 쿠키로 확인한다 — 여기서는 세션이 있는 상태만 보장한다.
+      // 로그인 상태면 서버가 인증 세션을 우선하므로 이 호출은 무해하다.
+      await ensureGuestSession();
+      await saveMoodTestSession({ sessionId, journey });
       clearMoodTestDraft();
       router.push(`/test/${sessionId}/generating`);
     } catch (error) {

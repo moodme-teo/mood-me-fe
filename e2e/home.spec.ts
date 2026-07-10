@@ -5,9 +5,7 @@ import { HomePage } from "./pages/home.page";
 import { MoodTestPage } from "./pages/mood-test.page";
 import { mockMoodboards, mockMoodboardsFailure } from "./utils/mock-api";
 import {
-  DRAFT_MOODBOARD_ID,
   seedGuestSession,
-  seedMoodboardDraft,
   seedMoodTestDraft,
   skipSplash,
 } from "./utils/session";
@@ -37,11 +35,10 @@ import {
  * - 진행 중인 작업이 있으면 "이어서 만들기" 로 마지막 지점에 복귀한다 (§5.7).
  * - 목록을 못 불러오면 History 안에 재시도 패널이 뜬다.
  *
- * "이어서 만들기" 는 저장소가 둘로 갈린다 (§5.7 — 진행 상태는 서버가 아니라 클라이언트에 둔다).
- *   추구미 테스트 드래프트 → localStorage `mood-me:test-draft:v1`  → 라벨 "N단계"
- *   편집 드래프트         → IndexedDB `mood-me` / `moodboard-drafts` → 라벨 "편집 중"
- * 요소·펜 path 가 쌓이면 localStorage 의 용량·동기 API 한계를 넘으므로 편집만 IndexedDB 다.
- * 둘 다 있으면 updatedAt 이 최신인 쪽 하나만 뜬다. 링크는 메인·History 양쪽에 모두 나온다.
+ * "이어서 만들기" 는 추구미 테스트 드래프트만 본다 (§5.7 — 진행 상태는 서버가 아니라
+ * 클라이언트에 둔다). localStorage `mood-me:test-draft:v1` → 라벨 "N단계".
+ * 편집 드래프트(IndexedDB, 라벨 "편집 중")는 #134 가 저장소째 제거하며 사라졌다.
+ * 링크는 메인·History 양쪽에 모두 나온다.
  *
  * 테스트 성격: smoke (+ 목록 로드 실패는 edge case)
  *
@@ -51,8 +48,9 @@ import {
  *     ① 서버 컴포넌트의 getMoodboardSummaries() — Supabase env 가 비어 있어 항상 `[]`.
  *        (page.tsx 의 canUseSupabase() 는 로그인 여부만 가른다. 목록 조회는 그 바깥이다)
  *     ② HomeExperience 의 useEffect 가 부르는 GET /api/moodboards — 브라우저 fetch 라
- *        page.route 로 가로챌 수 있다. 단 `!isLoggedIn && guestSessionId` 일 때만 돈다.
- *   그래서 메인 상태는 시드 없이, History 상태는 seedGuestSession + mockMoodboards 로 만든다.
+ *        page.route 로 가로챌 수 있다. 게스트(`!isLoggedIn`)일 때만 돈다. 게스트 신원은
+ *        httpOnly 쿠키라 클라이언트가 존재 여부를 알 수 없어, 서버가 판단한다 (#126).
+ *   그래서 메인 상태는 mock 없이, History 상태는 mockMoodboards 로 만든다.
  *
  * 테스트하지 않는 것:
  * - 로그인 화면 (§5.1) — 카카오·구글 OAuth 리디렉션이라 핵심 여정 밖이다
@@ -136,40 +134,9 @@ test.describe("홈", () => {
     await page.waitForURL(`**/test/${TEST_SESSION_ID}?step=2`);
   });
 
-  test("편집 중인 보드가 있으면 편집 중으로 이어간다", async ({ page }) => {
-    await seedMoodboardDraft(page, {
-      moodboardId: DRAFT_MOODBOARD_ID,
-      updatedAt: "2026-07-09T10:00:00.000Z",
-    });
-
-    const home = new HomePage(page);
-    await home.goto();
-
-    await expect(home.continueLink).toContainText("편집 중");
-
-    await home.continueLink.click();
-
-    await page.waitForURL(`**/moodboard/${DRAFT_MOODBOARD_ID}/edit`);
-  });
-
-  // 두 드래프트가 모두 있으면 updatedAt 이 최신인 쪽 하나만 뜬다.
-  test("드래프트가 둘이면 최근에 만진 쪽을 이어간다", async ({ page }) => {
-    await seedMoodTestDraft(page, {
-      sessionId: TEST_SESSION_ID,
-      stepIndex: 2,
-      updatedAt: "2026-07-09T10:00:00.000Z",
-    });
-    await seedMoodboardDraft(page, {
-      moodboardId: DRAFT_MOODBOARD_ID,
-      updatedAt: "2026-07-09T18:00:00.000Z", // 더 최신
-    });
-
-    const home = new HomePage(page);
-    await home.goto();
-
-    await expect(home.continueLink).toContainText("편집 중");
-    await expect(home.continueLink).not.toContainText("3단계");
-  });
+  // "편집 중인 보드를 이어서 만들기" 는 #134 가 IndexedDB 초안 저장소(moodboard-draft-storage)를
+  // 지우면서 함께 사라졌다 — 그 기능을 덮던 두 테스트를 여기서 정리한다. 지금 "이어서 만들기" 는
+  // 추구미 테스트 드래프트 하나만 본다.
 
   test("진행 중인 작업이 없으면 이어서 만들기를 숨긴다", async ({ page }) => {
     const home = new HomePage(page);

@@ -30,7 +30,6 @@ import {
   zoomAtPoint,
 } from "@/components/canvas";
 import { updateMoodboard } from "@/lib/api/update-moodboard";
-import { ensureGuestSessionId } from "@/lib/auth/guest-session";
 import type { EditState, MoodProfile } from "@/types/moodboard";
 
 type Props = {
@@ -482,10 +481,10 @@ export default function MoodboardCropEditor({
     try {
       const exportedImageDataUrl =
         (await exporterRef.current?.("png")) ?? undefined;
-      const guestSessionId = await ensureGuestSessionId();
       // 크롭 결과는 한 장의 평면 이미지 — elements는 비우고 export 이미지를 저장한다.
       // moodProfile은 있을 때만 함께 저장(없으면 서버가 기존 값 유지 / PENDING 폴백).
       // editState는 재편집 구도 복원용으로 항상 현재 값을 함께 커밋한다 (#116).
+      // 소유자는 서버가 쿠키에서 읽는다 — 여기서 실어 보내지 않는다 (#126).
       await updateMoodboard(moodboardId, {
         baseImageUrl,
         elements: [],
@@ -498,7 +497,6 @@ export default function MoodboardCropEditor({
           x: crop.transform.offsetX,
           y: crop.transform.offsetY,
         },
-        guestSessionId,
         ...(moodProfile ? { moodProfile } : {}),
       });
       router.push(`/moodboard/${moodboardId}`);

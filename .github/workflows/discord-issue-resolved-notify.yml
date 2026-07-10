@@ -1,0 +1,81 @@
+# 이슈 #67 의 하위 이슈가 닫히면 Discord(#github-qa-issue)로 문제·원인·해결을 알린다.
+#
+# 해결 기준은 "이슈 close" 다 — PR 머지로 닫히든, 웹 UI 나 /work-done 으로 닫히든 똑같이 발화한다.
+# 요약은 .github/scripts/issue-resolved-summary.mjs 가 이슈 본문과 닫은 PR 에서 발췌한다(LLM 없음).
+#
+# 사전 준비: 레포 시크릿 DISCORD_ISSUE_RESOLVED_WEBHOOK_URL
+#   gh secret set DISCORD_ISSUE_RESOLVED_WEBHOOK_URL --body "<웹훅 URL>"
+#   보드·리뷰 알림이 쓰는 DISCORD_WEBHOOK_URL 과는 다른 채널이다.
+#
+# 대상을 다른 상위 이슈로 옮기려면 PARENT_ISSUE 만 고치면 된다.
+# 하위 이슈 등록: gh api -X POST repos/{owner}/{repo}/issues/67/sub_issues -F sub_issue_id=<이슈 id>
+
+name: Discord issue resolved notify
+
+on:
+  issues:
+    types: [closed]
+
+env:
+  PARENT_ISSUE: "67"
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve issue and gate on parent
+        id: issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+        run: |
+          gh api graphql \
+            -f owner="$OWNER" -f repo="$REPO" -F number="$ISSUE_NUMBER" \
+            -f query='
+              query($owner: String!, $repo: String!, $number: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  issue(number: $number) {
+                    number
+                    title
+                    body
+                    url
+                    stateReason
+                    parent { number }
+                    closedByPullRequestsReferences(first: 1, includeClosedPrs: true) {
+                      nodes { number title }
+                    }
+                  }
+                }
+              }' \
+            --jq '.data.repository.issue' > issue.json
+
+          PARENT=$(jq -r '.parent.number // empty' issue.json)
+          if [ "$PARENT" != "$PARENT_ISSUE" ]; then
+            echo "::notice::#$ISSUE_NUMBER 은 #$PARENT_ISSUE 의 하위 이슈가 아닙니다 (상위: ${PARENT:-없음}). 알림을 건너뜁니다."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Send Discord notification
+        if: steps.issue.outputs.skip != 'true'
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_ISSUE_RESOLVED_WEBHOOK_URL }}
+        run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "::warning::DISCORD_ISSUE_RESOLVED_WEBHOOK_URL 시크릿이 없어 알림을 건너뜁니다."
+            exit 0
+          fi
+          node .github/scripts/issue-resolved-summary.mjs < issue.json \
+          | curl -sS --fail-with-body -H "Content-Type: application/json" -d @- "$WEBHOOK_URL"
+
+      - name: Report remaining sub-issues
+        if: steps.issue.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh api "repos/$REPO/issues/$PARENT_ISSUE" --jq '.sub_issues_summary
+            | "#'"$PARENT_ISSUE"' 하위 진행률 \(.completed)/\(.total)"' >> "$GITHUB_STEP_SUMMARY"
