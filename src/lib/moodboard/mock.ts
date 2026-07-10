@@ -112,6 +112,8 @@ export function getMockMoodboard(moodboardId: string): Moodboard {
       ],
       sticker_phrases: ["slow glow", "tiny luck", "my rhythm"],
     },
+    // 목 데이터는 재편집 복원 대상이 없다 — 편집 화면은 기본값으로 진입한다 (#116).
+    editState: null,
     isGuest: true,
     updatedAt: new Date().toISOString(),
   };

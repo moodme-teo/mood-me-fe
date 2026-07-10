@@ -33,6 +33,9 @@ type Props = {
   onImageLoad: (image: HTMLImageElement) => void;
   onImageError: () => void;
   onExportReady: (exporter: CropExporter) => void;
+  // 재편집 복원(#116) — 최초 이미지 로드 시 중앙 정렬 대신 이 구도로 스냅한다.
+  // 값은 마운트 시점에만 읽는다(진입 이후 바뀌지 않는 전제, MoodboardCropEditor 참고).
+  initialTransform?: CropTransform;
 };
 
 function useCanvasImage(src: string, onError: () => void) {
@@ -114,11 +117,14 @@ export default function CropCanvas({
   onImageLoad,
   onImageError,
   onExportReady,
+  initialTransform,
 }: Props) {
   const stageRef = useRef<Konva.Stage>(null);
   const gestureRef = useRef<Gesture | null>(null);
   const [displayScale, setDisplayScale] = useState(1);
   const { image, status } = useCanvasImage(baseImageUrl, onImageError);
+  // 마운트 시점 값만 쓴다 — 최초 이미지 로드 이후엔 참조하지 않는다.
+  const initialTransformRef = useRef(initialTransform);
 
   const metrics = useMemo<ImageMetrics | null>(
     () =>
@@ -154,13 +160,19 @@ export default function CropCanvas({
     scaleRef.current = displayScale;
   }, [displayScale]);
 
-  // 이미지 로드 시 중앙 정렬 + 팔레트 추출을 부모에 알린다.
+  // 이미지 로드 시 구도를 잡고(복원 대상이 있으면 그 구도로, 없으면 중앙 정렬) 팔레트
+  // 추출을 부모에 알린다.
   const handledImageRef = useRef<HTMLImageElement | null>(null);
   useEffect(() => {
     if (!image || !metrics) return;
     if (handledImageRef.current === image) return;
     handledImageRef.current = image;
-    onTransformChange(getCenteredTransform(metrics, CROP_SIZE, fit));
+    const restored = initialTransformRef.current;
+    onTransformChange(
+      restored
+        ? clampTransform(restored, metrics, CROP_SIZE, fit)
+        : getCenteredTransform(metrics, CROP_SIZE, fit),
+    );
     onImageLoad(image);
   }, [image, metrics, fit, onImageLoad, onTransformChange]);
 

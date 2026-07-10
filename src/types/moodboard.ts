@@ -79,12 +79,32 @@ export type MoodProfile = {
   sticker_phrases: string[];
 };
 
+// 크롭 에디터 배경 옵션 (mood-edit PRD §3.3/§3.4). components/canvas/types.ts의
+// CropBackground와 같은 모양이지만, lib/types는 components를 import할 수 없어(단방향)
+// 여기 별도로 둔다.
+export type BackgroundOption =
+  { type: "transparent" } | { type: "solid"; color: string } | { type: "blur" };
+
+// 재편집 구도 복원용 — 평면 이미지만으로는 도형·배경·확대·위치를 되살릴 수 없다
+// (mood-edit PRD §12). shapeId는 CropShapeId 값을 그대로 담되, 도형 목록이 캔버스
+// 쪽에서 확장돼도 이 타입은 영향받지 않도록 string으로 둔다.
+export type EditState = {
+  sourceImageUrl: string;
+  shapeId: string;
+  background: BackgroundOption;
+  scale: number;
+  x: number;
+  y: number;
+};
+
 export type Moodboard = {
   id: string;
   baseImageUrl: string;
   elements: MoodboardElement[];
   // 크롭 에디터(#99)가 저장한 평면 결과 이미지. 있으면 결과 화면이 이 이미지를 그대로 보여준다.
   exportedImageUrl?: string | null;
+  // 재편집 시 구도 복원용 (#116). 레거시 보드는 null — 기본값으로 진입한다.
+  editState?: EditState | null;
   moodProfile: MoodProfile;
   isGuest: boolean;
   updatedAt: string;

@@ -56,8 +56,10 @@ import {
  * 테스트 성격: smoke (+ 저장 실패는 edge case)
  *
  * 전제 조건:
- * - 서버 컴포넌트가 데이터를 조회하지 않고 moodboardId 해시로 base 이미지를 고른다.
- *   그래서 진입에는 mock 이 필요 없다. 저장(PATCH)만 mock 한다.
+ * - 서버 컴포넌트가 getMoodboardById()로 조회하지만, 그 함수는 Supabase 시크릿이 없는
+ *   환경(E2E/CI)에서 mock 무드보드(moodboardId 해시로 고른 base 이미지)로 자동 폴백한다
+ *   (get-moodboard.ts의 canUseSupabaseService 가드). 그래서 진입에는 mock 이 필요 없다.
+ *   저장(PATCH)만 mock 한다.
  * - 추천 팔레트 추출에는 tainted 되지 않은 캔버스가 필요하다. base 이미지가 같은 출처의
  *   `public/test-image/…` 라서 getImageData 가 통과한다.
  * - 픽셀 단언은 utils/pixels.ts 를 쓴다. 미리보기 캔버스와 내보낸 이미지는 해상도가
