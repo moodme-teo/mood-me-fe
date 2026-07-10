@@ -22,6 +22,7 @@ import { getMoodboards } from "@/lib/api/get-moodboards";
 import { ApiClientError } from "@/lib/api-client";
 import { loadMoodTestDraft } from "@/lib/mood-test/draft-storage";
 import type { MoodTestDraft } from "@/lib/mood-test/draft-storage";
+import { loadEditProgress } from "@/lib/mood-test/edit-progress-storage";
 import type { MoodboardSummary } from "@/lib/moodboard/summary";
 
 type Props = {
@@ -181,18 +182,38 @@ export default function HomeExperience({
     Promise.resolve().then(() => {
       if (!isActive) return;
 
+      // 이어서 만들기의 재료는 둘이다: 진행 중인 질문 드래프트(draft-storage)와, 생성이
+      // 끝나 편집까지 온 세션(edit-progress-storage). 둘 다 있을 수 있으므로 더 최근에
+      // 손댄 지점 하나만 노출한다.
+      const candidates: ContinueTarget[] = [];
+
       // 질문 세트가 바뀌었거나 손상된 드래프트(status: "stale")는 이어갈 수 없다 —
-      // 진입점을 아예 내린다. 사연은 굳이 알리지 않는다 (#121).
+      // 후보에서 아예 뺀다. 사연은 굳이 알리지 않는다 (#121).
       const stored = loadMoodTestDraft();
-      setContinueTarget(
-        stored.status === "ok"
-          ? {
-              href: getDraftStepHref(stored.draft),
-              label: `${stored.draft.stepIndex + 1}단계`,
-              updatedAt: stored.draft.updatedAt,
-            }
-          : null,
-      );
+      if (stored.status === "ok") {
+        candidates.push({
+          href: getDraftStepHref(stored.draft),
+          label: `${stored.draft.stepIndex + 1}단계`,
+          updatedAt: stored.draft.updatedAt,
+        });
+      }
+
+      // 편집 단계에서 나간 세션 — /test/{sessionId}/edit 로 되돌아가면 서버의 완료된 job
+      // 으로 편집을 그대로 이어간다 (job 이 아직이면 edit 페이지가 생성중으로 되돌린다).
+      const editStored = loadEditProgress();
+      if (editStored.status === "ok") {
+        candidates.push({
+          href: `/test/${editStored.progress.sessionId}/edit`,
+          label: "편집 단계",
+          updatedAt: editStored.progress.updatedAt,
+        });
+      }
+
+      // updatedAt 은 ISO 문자열이라 사전순 = 시간순이다.
+      const newest = candidates.sort((a, b) =>
+        b.updatedAt.localeCompare(a.updatedAt),
+      )[0];
+      setContinueTarget(newest ?? null);
     });
 
     return () => {

@@ -38,6 +38,10 @@ import { Dialog, DialogActions, DialogContent } from "@/components/ui/dialog";
 import { getGenerationJob } from "@/lib/api/get-generation-job";
 import { updateMoodboard } from "@/lib/api/update-moodboard";
 import {
+  clearEditProgress,
+  saveEditProgress,
+} from "@/lib/mood-test/edit-progress-storage";
+import {
   uploadBaseImage,
   uploadExportedImage,
 } from "@/lib/moodboard/upload-exported-image";
@@ -381,6 +385,13 @@ export default function MoodboardCropEditor({
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
+  useEffect(() => {
+    // 생성 직후 편집(sessionId 있음)만 이어하기 표시를 남긴다 — 아직 저장 전이라 여기서
+    // 나가면 완료된 job 이 서버에 남아 있어도 홈에서 편집으로 되돌아올 길이 없다. 저장한
+    // 보드 재편집(sessionId 없음)은 이미 히스토리에 있으므로 표시하지 않는다.
+    if (sessionId) saveEditProgress(sessionId);
+  }, [sessionId]);
+
   const handleImageLoad = useCallback(
     (image: HTMLImageElement) => {
       setMetrics({
@@ -484,6 +495,8 @@ export default function MoodboardCropEditor({
           : {}),
         ...(sessionId ? { sessionId } : {}),
       });
+      // 저장까지 마쳤으니 편집 이어하기 표시를 거둔다 — 이제 히스토리에서 열 수 있다.
+      if (sessionId) clearEditProgress(sessionId);
       // 결과 페이지가 "직후 진입"과 "히스토리 재열람"을 구분하는 유일한 신호 (#157).
       router.push(`/moodboard/${moodboardId}?from=complete`);
     } catch (error) {
