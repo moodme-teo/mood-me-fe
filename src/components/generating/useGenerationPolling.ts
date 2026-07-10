@@ -7,6 +7,7 @@ import {
   loadGenerationJobId,
   saveGenerationJobId,
 } from "@/lib/mood-test/generation-job-storage";
+import { preloadImage } from "@/lib/preload-image";
 
 const POLL_INTERVAL_MS = 2000;
 const FILL_TICK_MS = 200;
@@ -117,9 +118,7 @@ export function useGenerationPolling(sessionId: string) {
           // 편집 화면 도착 시점엔 이미 캐시돼 있어 "이미지를 불러오는 중"이 거의 안 보인다.
           // 같은 crossOrigin 설정으로 받아야 브라우저가 같은 캐시 엔트리로 본다.
           if (job.baseImageUrl) {
-            const preload = new window.Image();
-            preload.crossOrigin = "anonymous";
-            preload.src = job.baseImageUrl;
+            preloadImage(job.baseImageUrl, "anonymous");
           }
           router.push(`/test/${sessionId}/edit`);
           return;
