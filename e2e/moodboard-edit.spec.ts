@@ -343,4 +343,24 @@ test.describe("무드보드 재편집", () => {
 
     await page.waitForURL("/");
   });
+
+  test("브라우저 뒤로가기도 헤더 뒤로 버튼과 같은 확인 다이얼로그를 띄운다", async ({
+    page,
+  }) => {
+    const edit = new EditPage(page);
+    await edit.gotoSaved(MOODBOARD_ID);
+    await expect(edit.canvas).toBeVisible();
+
+    await page.goBack();
+
+    await expect(edit.leaveDialog).toBeVisible();
+
+    await edit.leaveCancelButton.click();
+
+    await expect(edit.leaveDialog).toBeHidden();
+    await expect(edit.canvas).toBeVisible();
+    await expect(page).toHaveURL(
+      new RegExp(`/moodboard/${MOODBOARD_ID}/edit$`),
+    );
+  });
 });
