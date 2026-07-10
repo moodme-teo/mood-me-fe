@@ -83,7 +83,7 @@
 
 **Konva는 다음 프레임에 그린다.** `aria-pressed`가 바뀌었다고 픽셀이 바뀐 게 아니다. 픽셀을 읽기 전에는 `EditPage.waitForPreviewPaint()`로 rAF를 두 번 기다린다.
 
-**추구미 테스트의 프리뷰 보드도 대상이 아니다.** 어떤 카드를 어떻게 채울지가 아직 논의 중이다(§5.3 프리뷰 연출). 확정 전까지 스냅샷을 찍으면 결정을 코드로 굳혀버린다.
+**추구미 테스트의 프리뷰 보드는 스냅샷 대상이 아니다.** 무엇이 담기는지는 확정됐고(§5.3 — 살아남은 카드를 나열한다) `mood-test.spec.ts`가 개수로 검증한다. 하지만 카드 재배치가 `framer-motion` layout 애니메이션이라 스냅샷은 프레임을 잡아 흔들린다. **무엇이 담기는지는 단언하고, 어떻게 움직이는지는 단언하지 않는다.**
 
 ## e2e 폴더 구조
 
@@ -312,6 +312,7 @@ format:check → lint → typecheck → build → e2e
 | 추구미 테스트   | 정원 도달 시 잠금 · 연타해도 초과 없음          | `mood-test.spec.ts`            | ✅             |
 | 추구미 테스트   | 재선택 해제 · 뒤로가기 시 선택 유지             | `mood-test.spec.ts`            | ✅             |
 | 추구미 테스트   | 상위 단계 변경 → 확인 후 하위 초기화            | `mood-test.spec.ts`            | ✅             |
+| 추구미 테스트   | 프리뷰 보드에 살아남은 카드가 쌓인다·빠진다     | `mood-test.spec.ts`            | ✅             |
 | 생성중          | 진행률이 채워진다                               | `mood-test-generating.spec.ts` | ✅             |
 | 생성중          | 완료 → 편집 이동                                | `mood-test-generating.spec.ts` | ✅             |
 | 생성중          | job 실패 · 생성요청 실패 · 재시도               | `mood-test-generating.spec.ts` | ✅             |

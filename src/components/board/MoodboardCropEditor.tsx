@@ -445,7 +445,7 @@ export default function MoodboardCropEditor({
         link.download = `mood-me-${moodboardId}.${format === "png" ? "png" : "jpg"}`;
         link.click();
         setIsSaveOpen(false);
-        showToast(`${format === "png" ? "PNG" : "JPG"} 이미지를 저장했어요.`);
+        showToast(`${format === "png" ? "PNG" : "JPG"} 이미지로 저장했어요.`);
       } catch (error) {
         console.error(error);
         showToast("이미지 저장에 실패했어요. 다시 시도해 주세요.");

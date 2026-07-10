@@ -381,7 +381,7 @@ export default function MoodboardResult({ moodboardId }: Props) {
       link.href = dataUrl;
       link.download = `mood-me-${moodboardId}.png`;
       link.click();
-      showToast("PNG 이미지를 저장했어요.");
+      showToast("PNG 이미지로 저장했어요.");
     } catch (error) {
       console.error(error);
       showToast("이미지 내보내기에 실패했어요.");
@@ -393,7 +393,7 @@ export default function MoodboardResult({ moodboardId }: Props) {
 
     try {
       await copyText(url);
-      showToast("링크를 복사했어요.");
+      showToast("공유 링크를 복사했어요.");
     } catch (error) {
       console.error(error);
       showToast("링크 복사에 실패했어요.");

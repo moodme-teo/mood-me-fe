@@ -30,6 +30,15 @@ export class MoodTestPage {
   /** 이미 고른 선택지. 다시 누르면 해제된다. */
   readonly pickedOptions: Locator;
 
+  /**
+   * 헤더 우측의 "완성되어 가는" 미니 보드. 지금까지 살아남은 카드가 나열된다.
+   *
+   * 카드 이미지는 장식이라 `alt=""` 다 — 접근성 트리에 이름이 없다. 그래서 개수는
+   * role 이 아니라 컨테이너 안의 `img` 로 센다.
+   */
+  readonly previewBoard: Locator;
+  readonly previewCards: Locator;
+
   /** 상위 단계를 바꿔 하위 단계가 지워질 때 뜨는 확인 다이얼로그. */
   readonly resetDialog: Locator;
   readonly resetConfirmButton: Locator;
@@ -45,6 +54,9 @@ export class MoodTestPage {
       'button[aria-pressed="false"]:not([disabled])',
     );
     this.pickedOptions = page.locator('button[aria-pressed="true"]');
+
+    this.previewBoard = page.getByLabel("완성되어 가는 추구미 무드보드");
+    this.previewCards = this.previewBoard.locator("img");
 
     this.resetDialog = page.getByRole("dialog", {
       name: "이전 선택을 바꾸면 이후에 고른 내용이 초기화돼요",

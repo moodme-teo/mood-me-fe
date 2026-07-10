@@ -50,7 +50,12 @@ import {
  * - 고른 것을 다시 누르면 해제된다 (같은 선택이 중복 저장되지 않는다).
  * - 뒤로 가면 그 화면의 선택이 그대로 남아 있다.
  * - 상위 단계를 바꾸면 확인을 거쳐야 하고, 확인하면 하위 단계가 비워진다.
+ * - 프리뷰 보드에 지금까지 살아남은 카드가 나열된다.
  * - 마지막 화면에서 "다음" 은 "무드보드 생성하기" 로 바뀐다.
+ *
+ * **프리뷰 보드는 "살아남은 카드" 를 보여준다** (§5.3 — 상실이 아니라 확정의 경험).
+ * 그래서 화면마다 의미가 뒤집힌다. 담기에서는 고른 카드가 쌓이고, 덜어내기에서는 고른
+ * 카드가 **빠진다** — 덜어내기의 선택은 "버릴 카드" 이기 때문이다.
  *
  * 테스트 성격: smoke (+ 선택 규칙은 edge case)
  *
@@ -66,9 +71,8 @@ import {
  *   올바로 쌓이는지는 순수 함수(flowReducer)의 몫이라 E2E 가 아니라 unit test 자리다.
  *   지금은 그 로직이 UI 없이 검증 가능해졌을 때 Vitest 를 붙인다 (qa.md 도입 조건).
  * - 페르소나 20종 판정·AI 해석 프레임 — 서버의 computePersonaResult 소관
- * - 프리뷰 보드 (BuildBoardPreview) — **제품 결정 보류 중.** 채워지는 내용이 의도와 달라
- *   무엇을 넣을지 논의가 필요하다. 확정 전에 단언하면 결정을 테스트로 굳혀버린다.
- *   (연출 자체도 reducedMotion 으로 꺼져 있어 지금은 검증 대상이 아니다)
+ * - 프리뷰 보드의 **연출** (재배치 스프링 모션) — reducedMotion 으로 꺼져 있다.
+ *   무엇이 담기는지는 검증하고, 어떻게 움직이는지는 검증하지 않는다.
  * - 초기화 규칙의 모든 조합 (담기·덜어내기·그림자·전환이 각각 무엇을 지우는지) —
  *   commitScreen 은 순수 함수라 조합 폭발은 unit test 자리다. 여기서는 대표 경로 하나로
  *   "확인을 거친다 · 실제로 비워진다" 만 본다.
@@ -150,6 +154,43 @@ test.describe("추구미 테스트", () => {
     // 두 번 누른 카드가 두 번 담기지 않는다 — 해제되어 하나만 남는다.
     await expect(moodTest.pickedOptions).toHaveCount(1);
     await expect(moodTest.selectionStatus).toContainText("1 / 12 선택됨");
+  });
+
+  test("담기에서 고른 카드가 프리뷰 보드에 쌓인다", async ({ page }) => {
+    const moodTest = new MoodTestPage(page);
+    await moodTest.goto(TEST_SESSION_ID);
+
+    await expect(moodTest.previewBoard).toBeVisible();
+    await expect(moodTest.previewCards).toHaveCount(0);
+
+    await moodTest.pickOne();
+    await expect(moodTest.previewCards).toHaveCount(1);
+
+    await moodTest.pickOne();
+    await expect(moodTest.previewCards).toHaveCount(2);
+
+    await moodTest.unpickOne();
+    await expect(moodTest.previewCards).toHaveCount(1);
+  });
+
+  // 덜어내기의 선택은 "버릴 카드" 다. 그래서 고를수록 프리뷰에서 빠진다 —
+  // 남은 카드가 자리를 잡아가는 연출(§5.3)이지 상실의 연출이 아니다.
+  test("덜어내기에서 고른 카드는 프리뷰에서 빠진다", async ({ page }) => {
+    const moodTest = new MoodTestPage(page);
+    await moodTest.goto(TEST_SESSION_ID);
+
+    await moodTest.fillCurrentScreen();
+    await moodTest.nextButton.click();
+
+    await expect(moodTest.previewCards).toHaveCount(GATHER_TARGET);
+
+    await moodTest.pickOne();
+    await expect(moodTest.previewCards).toHaveCount(GATHER_TARGET - 1);
+
+    await moodTest.fillCurrentScreen();
+    await expect(moodTest.previewCards).toHaveCount(
+      GATHER_TARGET - TRIM1_TARGET,
+    );
   });
 
   test("뒤로 가면 그 화면의 선택이 그대로 남는다", async ({ page }) => {

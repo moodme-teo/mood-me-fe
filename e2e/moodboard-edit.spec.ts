@@ -213,7 +213,7 @@ test.describe("무드보드 재편집", () => {
     const download = await edit.downloadPng();
 
     expect(download.suggestedFilename()).toBe(`mood-me-${MOODBOARD_ID}.png`);
-    await expect(edit.toast).toContainText("PNG 이미지를 저장했어요.");
+    await expect(edit.toast).toContainText("PNG 이미지로 저장했어요.");
     await expect(edit.saveSheet).toBeHidden();
   });
 
