@@ -33,8 +33,8 @@ export class MoodTestPage {
   /**
    * 헤더 우측의 "완성되어 가는" 미니 보드. 지금까지 살아남은 카드가 나열된다.
    *
-   * 카드 이미지는 장식이라 `alt=""` 다 — 접근성 트리에 이름이 없다. 그래서 개수는
-   * role 이 아니라 컨테이너 안의 `img` 로 센다.
+   * 카드 이미지에는 카드 이름이 alt 로 붙어 있어 접근성 트리에 그대로 드러난다.
+   * 그래서 개수도 이름도 role 로 센다 — 화면에 12px 로 보인다고 내용이 아닌 게 아니다.
    */
   readonly previewBoard: Locator;
   readonly previewCards: Locator;
@@ -56,7 +56,7 @@ export class MoodTestPage {
     this.pickedOptions = page.locator('button[aria-pressed="true"]');
 
     this.previewBoard = page.getByLabel("완성되어 가는 추구미 무드보드");
-    this.previewCards = this.previewBoard.locator("img");
+    this.previewCards = this.previewBoard.getByRole("img");
 
     this.resetDialog = page.getByRole("dialog", {
       name: "이전 선택을 바꾸면 이후에 고른 내용이 초기화돼요",

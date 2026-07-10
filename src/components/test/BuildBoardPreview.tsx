@@ -26,9 +26,11 @@ export default function BuildBoardPreview({ cardIds }: { cardIds: string[] }) {
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="relative aspect-square overflow-hidden rounded-[2px] bg-neutral-200"
           >
+            {/* 어떤 카드가 살아남았는지가 이 위젯의 내용이다. CardGrid·FinalGrid 와 같이
+                카드 이름을 붙인다 — 고정 문구를 쓰면 12장이 같은 이름으로 12번 읽힌다. */}
             <Image
               src={card.imagePath}
-              alt=""
+              alt={card.label}
               fill
               sizes="12px"
               className="object-cover"
