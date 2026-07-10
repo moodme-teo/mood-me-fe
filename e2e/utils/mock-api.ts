@@ -84,7 +84,12 @@ export async function mockCreateGenerationJobPending(page: Page) {
   return { resolve: () => resolveGate() };
 }
 
-type JobStep = { status: Parameters<typeof generationJob>[0]; percent: number };
+type JobStep = {
+  status: Parameters<typeof generationJob>[0];
+  percent: number;
+  // 서버가 실패 사유를 남긴 경우(markJobFailed)를 흉내낼 때만 채운다(#168).
+  statusMessage?: string | null;
+};
 
 // 폴링될 때마다 다음 단계를 돌려준다. 마지막 단계는 이후 호출에서도 계속 유지된다.
 export async function mockGenerationJobSequence(page: Page, steps: JobStep[]) {
@@ -92,7 +97,10 @@ export async function mockGenerationJobSequence(page: Page, steps: JobStep[]) {
   await page.route("**/api/mood-test-sessions/*/generation-job", (route) => {
     const step = steps[Math.min(index, steps.length - 1)];
     index += 1;
-    return ok(route, generationJob(step.status, step.percent));
+    return ok(
+      route,
+      generationJob(step.status, step.percent, "completed", step.statusMessage),
+    );
   });
 }
 
