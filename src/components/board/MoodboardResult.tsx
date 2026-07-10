@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { BoardPreview } from "@/components/canvas";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogActions, DialogContent } from "@/components/ui/dialog";
 import type { GetMoodboardResponse } from "@/lib/api/get-moodboard";
 import { getMoodboard } from "@/lib/api/get-moodboard";
 import { ApiClientError } from "@/lib/api-client";
@@ -231,7 +233,7 @@ function GuestBanner() {
 }
 
 // 브라우저 모달(window.confirm)은 페이지 스크립트를 멈추고 스타일도 제어할 수 없다.
-// MoodboardCropEditor 의 ConfirmLeaveDialog 와 같은 인앱 다이얼로그로 맞춘다.
+// ui/dialog 의 인앱 다이얼로그로 맞춘다.
 function ConfirmRestartDialog({
   isOpen,
   onCancel,
@@ -241,40 +243,27 @@ function ConfirmRestartDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-surface-inverse/48 p-4 sm:items-center sm:justify-center">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="restart-title"
-        className="w-full max-w-sm rounded-2xl bg-card p-5 text-foreground shadow-xl"
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent
+        title="처음부터 다시 만들까요?"
+        description="지금 보고 있는 무드보드는 그대로 남아요. 새 테스트를 시작합니다."
       >
-        <h2 id="restart-title" className="text-lg font-bold">
-          처음부터 다시 만들까요?
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-gray-700">
-          지금 보고 있는 무드보드는 그대로 남아요. 새 테스트를 시작합니다.
-        </p>
-        <div className="mt-5 grid grid-cols-2 gap-2">
-          <button
+        <DialogActions>
+          <Button
             type="button"
+            variant="secondary"
+            size="md"
             onClick={onCancel}
-            className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-bold text-foreground"
           >
             그대로 볼게요
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
-          >
+          </Button>
+          <Button type="button" tone="ink" size="md" onClick={onConfirm}>
             새로 시작할게요
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogActions>
+      </DialogContent>
+    </Dialog>
   );
 }
 

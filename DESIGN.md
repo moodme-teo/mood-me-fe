@@ -116,6 +116,7 @@ CSS 커스텀 프로퍼티는 `font` shorthand(`weight size/line-height family`)
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Button`   | Pill 형태, `tone`(ink·pink·violet·cyan·green·mustard) × `variant`(primary·secondary·ghost) × `size`(sm·md·lg + icon-*). 그라디언트 fill + 색조 그림자 + 스프링 lift/press. |
 | `Card`     | 웜화이트 카드 + 색조 그림자(테두리 없음), `tone` 옵션. Header/Title/Description/Content/Footer 조합.                                                                       |
+| `Dialog`   | radix 기반 확인 모달. 모바일 하단 시트 / sm↑ 가운데 카드. 열림·닫힘 200ms 애니메이션, 포커스 트랩, Escape. `DialogContent`(title·description) + `DialogActions`.           |
 | `Badge`    | soft 그라디언트 pill, uppercase `text-label`.                                                                                                                              |
 | `Input`    | 테두리 없는 sunken fill, focus 시 아웃라인 대신 색조 그림자 + lift.                                                                                                        |
 | `Progress` | 색조 트랙 + 그라디언트 fill(글로우), radix 기반 접근성.                                                                                                                    |

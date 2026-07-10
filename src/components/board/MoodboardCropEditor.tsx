@@ -28,6 +28,8 @@ import {
   useCropEditor,
   zoomAtPoint,
 } from "@/components/canvas";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogActions, DialogContent } from "@/components/ui/dialog";
 import { updateMoodboard } from "@/lib/api/update-moodboard";
 import type { MoodProfile } from "@/types/moodboard";
 
@@ -74,39 +76,27 @@ function ConfirmLeaveDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
-  if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-surface-inverse/48 p-4 sm:items-center sm:justify-center">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="leave-title"
-        className="w-full max-w-sm rounded-2xl bg-card p-5 text-foreground shadow-xl"
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent
+        title="편집을 그만두시겠어요?"
+        description="저장하지 않은 크롭 편집 내용은 사라져요."
       >
-        <h2 id="leave-title" className="text-lg font-bold">
-          편집을 그만두시겠어요?
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-gray-700">
-          저장하지 않은 크롭 편집 내용은 사라져요.
-        </p>
-        <div className="mt-5 grid grid-cols-2 gap-2">
-          <button
+        <DialogActions>
+          <Button
             type="button"
+            variant="secondary"
+            size="md"
             onClick={onCancel}
-            className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-bold text-foreground"
           >
             계속 편집
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
-          >
+          </Button>
+          <Button type="button" tone="ink" size="md" onClick={onConfirm}>
             나가기
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogActions>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -123,52 +113,45 @@ function SaveSheet({
   onDownload: (format: CropExportFormat) => void;
   onComplete: () => void;
 }) {
-  if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-surface-inverse/48 p-4 sm:items-center sm:justify-center">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="save-title"
-        className="w-full max-w-sm space-y-2 rounded-2xl bg-card p-5 text-foreground shadow-xl"
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        title="저장하기"
+        description="미리보기 그대로 저장돼요. 투명 배경은 PNG에서 유지됩니다."
       >
-        <h2 id="save-title" className="text-lg font-bold">
-          저장하기
-        </h2>
-        <p className="mb-2 text-sm leading-6 text-gray-700">
-          미리보기 그대로 저장돼요. 투명 배경은 PNG에서 유지됩니다.
-        </p>
-        <button
-          type="button"
-          onClick={() => onDownload("png")}
-          className="w-full rounded-xl border border-gray-300 bg-card px-4 py-3 text-sm font-bold text-foreground"
-        >
-          PNG로 저장 (투명 유지)
-        </button>
-        <button
-          type="button"
-          onClick={() => onDownload("jpeg")}
-          className="w-full rounded-xl border border-gray-300 bg-card px-4 py-3 text-sm font-bold text-foreground"
-        >
-          JPG로 저장 (흰 배경)
-        </button>
-        <button
-          type="button"
-          disabled={isSaving}
-          onClick={onComplete}
-          className="w-full rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white disabled:opacity-45"
-        >
-          {isSaving ? "저장 중" : "완성하고 공유하기"}
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="w-full rounded-xl px-4 py-2 text-sm font-bold text-gray-700"
-        >
-          닫기
-        </button>
-      </div>
-    </div>
+        {/* 선택지가 넷이라 좌우 배치(DialogActions)가 아니라 세로 목록으로 쌓는다. */}
+        <div className="flex flex-col gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            onClick={() => onDownload("png")}
+          >
+            PNG로 저장 (투명 유지)
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            onClick={() => onDownload("jpeg")}
+          >
+            JPG로 저장 (흰 배경)
+          </Button>
+          <Button
+            type="button"
+            tone="ink"
+            size="md"
+            disabled={isSaving}
+            onClick={onComplete}
+          >
+            {isSaving ? "저장 중" : "완성하고 공유하기"}
+          </Button>
+          <Button type="button" variant="ghost" size="md" onClick={onClose}>
+            닫기
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
