@@ -1,28 +1,36 @@
-import ProgressBar from "@/components/test/ProgressBar";
+import { Home } from "lucide-react";
 
+import ProgressBar from "@/components/test/ProgressBar";
+import { Button } from "@/components/ui/button";
+
+// 프로토타입 헤더: 홈으로 이동 · 가운데 진척 바 · 우측 프리뷰(완성되어 가는 보드).
+// 테스트 단계 이동(이전/다음/되돌리기)은 TestFooter가 전담한다.
 export default function TestHeader({
   current,
   total,
-  onBack,
+  onHome,
   preview,
 }: {
   current: number;
   total: number;
-  onBack: () => void;
+  onHome: () => void;
   preview?: React.ReactNode;
 }) {
   return (
-    <header className="flex items-center gap-3 border-b border-gray-100 px-4 py-3">
-      <button
+    <header className="flex items-center gap-2 py-4 pr-5 pl-3">
+      <Button
         type="button"
-        onClick={onBack}
-        aria-label="이전 질문으로"
-        className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 text-muted-foreground"
+        variant="ghost"
+        size="icon-sm"
+        onClick={onHome}
+        aria-label="홈으로 이동"
       >
-        ←
-      </button>
+        <Home size={20} strokeWidth={1.8} aria-hidden />
+      </Button>
       <ProgressBar current={current} total={total} />
-      {preview}
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center">
+        {preview}
+      </div>
     </header>
   );
 }
