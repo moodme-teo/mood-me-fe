@@ -129,7 +129,7 @@ function BoardArcCard({
 
   return (
     <motion.div
-      className="absolute overflow-hidden rounded-[var(--radius-lg)] bg-gray-100 shadow-card"
+      className="absolute overflow-hidden rounded-sm bg-gray-100 shadow-card"
       style={{
         x,
         rotateY,

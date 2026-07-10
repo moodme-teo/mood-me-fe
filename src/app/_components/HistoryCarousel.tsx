@@ -1,6 +1,5 @@
 "use client";
 
-import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -9,12 +8,11 @@ import {
   useHistoryCarousel,
   wrapDelta,
 } from "@/app/_components/useHistoryCarousel";
-import { Button } from "@/components/ui/button";
 import type { MoodboardSummary } from "@/lib/moodboard/summary";
 
 // docs/design/history-page.png — 저장한 무드보드를 화면 중앙에 가로로 겹쳐 배치하고,
 // 좌우 스와이프 또는 하단 다이얼로 원형(무한 순환) 넘겨본다. 다이얼과 카드는 같은
-// `position` 을 공유해 한쪽을 돌리면 다른 쪽도 함께 돈다. 중앙 카드의 버튼을 누르면
+// `position` 을 공유해 한쪽을 돌리면 다른 쪽도 함께 돈다. 중앙 카드를 탭하면
 // 해당 무드보드 결과(상세) 페이지로 이동한다.
 
 type Props = {
@@ -25,6 +23,21 @@ type Props = {
 const DIAL_ANGLE_PER_CARD = 18;
 // 화면 밖 카드까지 그리지 않도록, 중앙에서 이만큼 떨어진 카드까지만 렌더한다.
 const VISIBLE_RANGE = 2;
+// 다이얼 눈금의 회전 반지름(px) — 가늘고 촘촘한 눈금용이라 값이 작다.
+const DIAL_RADIUS_PX = 360;
+// delta=1 카드가 옆으로 이동하는 픽셀량(카드 상단 기준 ≈ 반지름 × sin(각도))이
+// 스테이지 폭의 이 비율이 되도록 카드 전용 반지름을 스테이지 폭에서 역산한다.
+// 너무 크면(예전 고정 760px) 카드가 overflow-hidden 밖으로 완전히 사라지고,
+// 너무 작으면 옆 카드가 중앙 카드에 겹쳐 가려진다 — 화면에서 눈으로 보며 조정한 값.
+const CARD_EDGE_SHIFT_RATIO = 0.34;
+// 카드 내부 콘텐츠를 슬롯 회전각의 이 비율만큼 반대로 되돌려 세운다.
+// 1 = 항상 완전히 똑바로, 0 = 다이얼 눈금처럼 슬롯 각도 그대로 기울어짐.
+const CARD_TILT_CORRECTION_RATIO = 0.75;
+// 무대 높이 대비 카드 높이 비율.
+const CARD_HEIGHT_RATIO = 0.78;
+// 무대 상단에서 카드까지의 오프셋(%). 옆 카드는 회전 반지름이 커진 만큼 아래로도 처지므로,
+// 중앙 정렬(공식상 (1 - CARD_HEIGHT_RATIO) * 50)보다 위쪽에 둬 바닥 여유를 확보한다.
+const CARD_TOP_PERCENT = 6;
 
 function MoodboardImage({ moodboard }: { moodboard: MoodboardSummary }) {
   const [hasFailed, setHasFailed] = useState(false);
@@ -80,8 +93,10 @@ function Dial({
       <div className="absolute top-0 left-1/2 z-10 h-4 w-0.5 -translate-x-1/2 rounded-full bg-foreground" />
       {/* 바퀴 — 화면 아래로 대부분 잠기고 윗호(arc)만 노출된다. */}
       <div
-        className="absolute top-3 left-1/2 aspect-square w-[720px] -translate-x-1/2 rounded-full"
+        className="absolute top-3 left-1/2 rounded-full"
         style={{
+          width: DIAL_RADIUS_PX * 2,
+          height: DIAL_RADIUS_PX * 2,
           transform: `translateX(-50%) rotate(${angle}deg)`,
           transition: isDragging
             ? "none"
@@ -93,10 +108,11 @@ function Dial({
           return (
             <span
               key={index}
-              className="absolute top-0 left-1/2 origin-[50%_360px] bg-gray-400"
+              className="absolute top-0 left-1/2 bg-gray-400"
               style={{
                 height: isMajor ? 14 : 9,
                 width: isMajor ? 2 : 1,
+                transformOrigin: `50% ${DIAL_RADIUS_PX}px`,
                 transform: `translateX(-50%) rotate(${index * (360 / ticks.length)}deg)`,
                 opacity: isMajor ? 0.9 : 0.5,
               }}
@@ -122,8 +138,9 @@ export default function HistoryCarousel({ moodboards }: Props) {
 
   const stageRef = useRef<HTMLDivElement>(null);
   const [spacing, setSpacing] = useState(200);
+  const [stageWidth, setStageWidth] = useState(360);
 
-  // 무대 너비에 맞춰 카드 간격을 반응형으로 계산(드래그 민감도와 배치에 함께 쓰임).
+  // 무대 너비에 맞춰 카드 간격(드래그 민감도)과 카드 회전 반지름을 반응형으로 계산한다.
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage) return;
@@ -131,6 +148,7 @@ export default function HistoryCarousel({ moodboards }: Props) {
     const update = () => {
       const width = stage.clientWidth;
       setSpacing(Math.max(140, Math.min(width * 0.42, 240)));
+      setStageWidth(width);
     };
     update();
 
@@ -139,9 +157,15 @@ export default function HistoryCarousel({ moodboards }: Props) {
     return () => observer.disconnect();
   }, []);
 
+  // delta=1 카드 상단의 수평 이동량 ≈ 반지름 × sin(각도) 이 스테이지 폭 ×
+  // CARD_EDGE_SHIFT_RATIO 가 되도록 역산한 카드 전용 회전 반지름.
+  const cardRingRadiusPx =
+    (stageWidth * CARD_EDGE_SHIFT_RATIO) /
+    Math.sin((DIAL_ANGLE_PER_CARD * Math.PI) / 180);
+
   const handleCardPointerDown = useCallback(
     (event: React.PointerEvent) => {
-      // 버튼/링크(결과 보기·좌우 이동) 위에서 시작한 포인터는 드래그로 잡지 않는다.
+      // 링크(결과 상세 이동) 위에서 시작한 포인터는 드래그로 잡지 않는다.
       // 포인터 캡처가 클릭을 삼키는 것을 막아 탭 내비게이션을 보장한다.
       if ((event.target as HTMLElement).closest("a,button")) return;
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -212,71 +236,62 @@ export default function HistoryCarousel({ moodboards }: Props) {
 
             const clamped = Math.min(distance, VISIBLE_RANGE);
             const isActive = index === activeIndex;
+            // 다이얼 눈금과 동일한 원 위의 슬롯 각도 — 원 하나를 통째로 쓰는 물리 모델.
+            const cardAngle = delta * DIAL_ANGLE_PER_CARD;
+            const transition = isDragging
+              ? "none"
+              : "transform 0.45s cubic-bezier(0.22,1,0.36,1), opacity 0.45s ease";
 
             return (
               <div
                 key={moodboard.id}
-                className="absolute top-1/2 left-1/2 aspect-[3/4] h-[78%]"
+                className="absolute left-1/2 aspect-[3/4]"
                 style={{
-                  transform: `translate(-50%, -50%) translateX(${delta * spacing}px) scale(${1 - clamped * 0.16})`,
-                  opacity: 1 - clamped * 0.4,
+                  top: `${CARD_TOP_PERCENT}%`,
+                  height: `${CARD_HEIGHT_RATIO * 100}%`,
+                  transformOrigin: `50% ${cardRingRadiusPx}px`,
+                  transform: `translateX(-50%) rotate(${cardAngle}deg)`,
                   zIndex: 100 - Math.round(distance * 10),
-                  transition: isDragging
-                    ? "none"
-                    : "transform 0.45s cubic-bezier(0.22,1,0.36,1), opacity 0.45s ease",
+                  transition,
                   pointerEvents: isActive ? "auto" : "none",
                 }}
                 aria-hidden={!isActive}
               >
-                <div className="relative h-full w-full overflow-hidden rounded-[var(--radius-lg)] bg-surface-sunken shadow-card">
-                  <MoodboardImage moodboard={moodboard} />
-                  {moodboard.isGuest ? (
-                    <span className="absolute top-3 left-3 rounded-full bg-surface-inverse/80 px-2 py-1 font-semibold text-white text-caption">
-                      임시
-                    </span>
-                  ) : null}
-                  {/* 카드 위 버튼 → 무드보드 상세(결과물) 페이지 */}
-                  {isActive ? (
-                    <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 bg-gradient-to-t from-black/55 to-transparent p-4 pt-10">
-                      <p className="line-clamp-1 font-semibold text-white/90 text-body-sm">
-                        {moodboard.typeName}
-                      </p>
-                      <Button
-                        asChild
-                        variant="primary"
-                        tone="ink"
-                        size="md"
-                        className="w-full font-semibold"
+                {/* 슬롯 각도의 일부만 되돌려 세운다 — 중앙 카드는 똑바로, 옆 카드는 살짝 기울어지게. */}
+                <div
+                  className="h-full w-full"
+                  style={{
+                    transform: `rotate(${-cardAngle * CARD_TILT_CORRECTION_RATIO}deg)`,
+                    opacity: 1 - clamped * 0.4,
+                    transition,
+                  }}
+                >
+                  <div className="relative h-full w-full overflow-hidden rounded-sm bg-surface-sunken shadow-card">
+                    <MoodboardImage moodboard={moodboard} />
+                    {moodboard.isGuest ? (
+                      <span className="absolute top-3 left-3 rounded-full bg-surface-inverse/80 px-2 py-1 font-semibold text-white text-caption">
+                        임시
+                      </span>
+                    ) : null}
+                    {/* 카드 전체 탭 → 무드보드 상세(결과물) 페이지 */}
+                    {isActive ? (
+                      <Link
+                        href={`/moodboard/${moodboard.id}`}
+                        aria-label={`${moodboard.typeName} 결과 보기`}
+                        className="absolute inset-0"
                       >
-                        <Link href={`/moodboard/${moodboard.id}`}>
-                          결과 보기
-                          <ArrowRight className="size-4" strokeWidth={2} />
-                        </Link>
-                      </Button>
-                    </div>
-                  ) : null}
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent p-4 pt-10">
+                          <p className="line-clamp-1 font-semibold text-white/90 text-body-sm">
+                            {moodboard.typeName}
+                          </p>
+                        </div>
+                      </Link>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             );
           })}
-
-          {/* 좌우 이동 버튼 — 데스크톱/키보드 접근성 보조 */}
-          <button
-            type="button"
-            onClick={() => step(-1)}
-            aria-label="이전 무드보드"
-            className="absolute top-1/2 left-2 z-[120] grid size-9 -translate-y-1/2 place-items-center rounded-full bg-surface-card/85 text-foreground shadow-card ring-ring transition outline-none hover:bg-surface-card focus-visible:ring-2"
-          >
-            <ChevronLeft className="size-5" strokeWidth={2} />
-          </button>
-          <button
-            type="button"
-            onClick={() => step(1)}
-            aria-label="다음 무드보드"
-            className="absolute top-1/2 right-2 z-[120] grid size-9 -translate-y-1/2 place-items-center rounded-full bg-surface-card/85 text-foreground shadow-card ring-ring transition outline-none hover:bg-surface-card focus-visible:ring-2"
-          >
-            <ChevronRight className="size-5" strokeWidth={2} />
-          </button>
         </div>
 
         {/* 하단 다이얼 — 돌리면 카드가 함께 회전 */}
