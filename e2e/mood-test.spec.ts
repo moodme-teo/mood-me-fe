@@ -309,7 +309,7 @@ test.describe("추구미 테스트 — 드래프트 복원", () => {
     await seedMoodTestDraft(page, {
       sessionId: TEST_SESSION_ID,
       updatedAt: "2026-07-09T10:00:00.000Z",
-      questionSetVersion: "2000-01-01",
+      questionSetVersion: "2026-06-01",
       ...AT_SHADOW_SCREEN,
     });
 

@@ -33,7 +33,10 @@ type Props = {
 // MoodboardResult 의 ConfirmRestartDialog 와 같은 인앱 다이얼로그로 맞춘다.
 function StaleDraftDialog({ onConfirm }: { onConfirm: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-surface-inverse/48 p-4 sm:items-center sm:justify-center">
+    // 덮개는 창 전체를 덮지만 앱 본문은 max-w-[430px] 가운데 칼럼이다 (app/layout.tsx).
+    // justify-center 를 sm 이상에만 걸면, 창이 칼럼보다 넓고 640px 보다 좁은 구간에서
+    // 다이얼로그가 창 왼쪽 끝에 붙어 칼럼 밖으로 삐져나온다. 가로 정렬은 항상 가운데로 둔다.
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-surface-inverse/48 p-4 sm:items-center">
       <div
         role="dialog"
         aria-modal="true"

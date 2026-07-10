@@ -58,8 +58,8 @@ import {
  * - 프로필(아바타) 버튼의 계정 메뉴·로그아웃 (§5.1)
  * - 회원(로그인) History — 서버에서 supabase.auth.getUser() 를 타므로 mock 되지 않는다.
  *   게스트 History 와 렌더 경로가 같아 잃는 커버리지는 귀속 로직뿐이다.
- * - 이어간 뒤 실제로 그 단계의 선택값이 복원되는지 — 드래프트가 sessionId·stepIndex 만
- *   담고 선택값은 담지 않는다. 복원은 추구미 테스트 화면의 몫이라 여기서는 이동까지만 본다.
+ * - 이어간 뒤 실제로 그 단계의 선택값이 복원되는지 — 복원은 추구미 테스트 화면의 몫이라
+ *   여기서는 이동까지만 본다 (mood-test.spec.ts 의 "드래프트 복원").
  * - 스플래시 애니메이션 자체
  */
 test.describe("홈", () => {
@@ -144,7 +144,7 @@ test.describe("홈", () => {
       sessionId: TEST_SESSION_ID,
       stepIndex: 2,
       updatedAt: "2026-07-09T10:00:00.000Z",
-      questionSetVersion: "2000-01-01",
+      questionSetVersion: "2026-06-01",
     });
 
     const home = new HomePage(page);
