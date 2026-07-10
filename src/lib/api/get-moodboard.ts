@@ -93,6 +93,9 @@ export const moodboardSchema = z.object({
   exportedImageUrl: z.string().nullable().optional(),
   moodProfile: moodProfileSchema,
   isGuest: z.boolean(),
+  // 서버가 쿠키의 신원과 보드 소유자를 대조한 결과. 소유자 식별값 자체는 담지 않는다 —
+  // 공유 링크는 공개라, 실으면 링크를 연 누구나 소유자로 위장할 수 있다 (#126).
+  isOwner: z.boolean(),
   updatedAt: z.string().min(1),
 });
 

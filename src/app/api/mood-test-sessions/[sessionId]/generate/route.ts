@@ -1,6 +1,7 @@
 import { after } from "next/server";
 
 import { apiError, apiSuccess } from "@/lib/api-response";
+import { getRequester } from "@/lib/auth/requester";
 import {
   createGenerationJob,
   runGenerationPipeline,
@@ -20,7 +21,9 @@ export async function POST(
 ) {
   const { sessionId } = await params;
 
-  const result = await createGenerationJob(sessionId);
+  // 소유자가 아니면 createGenerationJob이 NOT_FOUND로 막는다 — job row도, AI 호출도 없다.
+  const requester = await getRequester();
+  const result = await createGenerationJob(sessionId, requester);
 
   if (!result.ok) {
     return apiError(result.code, result.error, ERROR_STATUS[result.code]);

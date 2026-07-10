@@ -6,7 +6,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { ensureGuestSessionId } from "@/lib/auth/guest-session";
+import { ensureGuestSession } from "@/lib/auth/guest-session";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginActions() {
@@ -23,7 +23,7 @@ export default function LoginActions() {
 
   const continueAsGuest = async () => {
     setIsGuestLoading(true);
-    await ensureGuestSessionId();
+    await ensureGuestSession();
     router.push("/");
   };
 
