@@ -75,6 +75,11 @@ export default function TestLayout({ sessionId }: Props) {
   };
 
   const { kicker, title, hint } = flow.copy;
+  const isDiscardScreen =
+    flow.screen.kind === "trim1" || flow.screen.kind === "trim2";
+  const counterText = isDiscardScreen
+    ? `${flow.draft.length}/${flow.target} 내려놓음`
+    : `${flow.draft.length} / ${flow.target}`;
 
   return (
     // min-h-0: flex 자식이 콘텐츠 크기만큼 늘어나지 않고 부모(뷰포트) 높이 안에서
@@ -104,7 +109,7 @@ export default function TestLayout({ sessionId }: Props) {
               className="absolute top-0 right-0 font-medium text-muted-foreground text-caption"
               role="status"
             >
-              {flow.draft.length} / {flow.target}
+              {counterText}
             </span>
           </div>
           <StageBody
