@@ -19,6 +19,7 @@ export {
 export { CROP_SHAPES, getCropFit } from "@/components/canvas/crop-shapes";
 export { CropShapeIcon } from "@/components/canvas/crop-shape-icon";
 export { extractPalette } from "@/components/canvas/extract-palette";
+export { compositeOnWhite } from "@/components/canvas/composite-on-white";
 export {
   getCenteredTransform,
   zoomAtPoint,

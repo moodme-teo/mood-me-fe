@@ -165,7 +165,7 @@ export default function SplashScene({ phase, reduced }: Props) {
       <AnimatePresence>
         {isSplash && (
           <motion.p
-            className="absolute bottom-[8%] left-[12%] max-w-[74%] font-body font-medium text-pretty text-gray-700 text-body-sm"
+            className="absolute bottom-[8%] left-[12%] max-w-[74%] font-body font-medium text-pretty text-gray-700 text-caption"
             initial={reduced ? { opacity: 0 } : { opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}

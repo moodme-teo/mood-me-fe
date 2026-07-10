@@ -90,6 +90,8 @@ test.describe("시각 회귀", () => {
   });
 
   test("크롭 에디터 — 진입 기본 상태", async ({ page }) => {
+    await seedGuestSession(page);
+
     const edit = new EditPage(page);
     await edit.gotoSaved(MOODBOARD_ID);
 

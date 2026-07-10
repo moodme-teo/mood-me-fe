@@ -4,6 +4,7 @@ import type Konva from "konva";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Group, Image as KonvaImage, Layer, Rect, Stage } from "react-konva";
 
+import { compositeOnWhite } from "@/components/canvas/composite-on-white";
 import { createBlurredBackground } from "@/components/canvas/crop-background";
 import { getCropFit, getCropShapePath } from "@/components/canvas/crop-shapes";
 import {
@@ -33,6 +34,9 @@ type Props = {
   onImageLoad: (image: HTMLImageElement) => void;
   onImageError: () => void;
   onExportReady: (exporter: CropExporter) => void;
+  // 재편집 복원(#116) — 최초 이미지 로드 시 중앙 정렬 대신 이 구도로 스냅한다.
+  // 값은 마운트 시점에만 읽는다(진입 이후 바뀌지 않는 전제, MoodboardCropEditor 참고).
+  initialTransform?: CropTransform;
 };
 
 function useCanvasImage(src: string, onError: () => void) {
@@ -75,26 +79,6 @@ function useCanvasImage(src: string, onError: () => void) {
   return { image, status };
 }
 
-// JPG는 알파를 지원하지 않으므로 투명 영역을 흰색으로 합성한다 (mood-edit PRD §7 저장).
-async function compositeOnWhite(pngDataUrl: string): Promise<string> {
-  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const el = new window.Image();
-    el.onload = () => resolve(el);
-    el.onerror = reject;
-    el.src = pngDataUrl;
-  });
-
-  const canvas = document.createElement("canvas");
-  canvas.width = img.width;
-  canvas.height = img.height;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return pngDataUrl;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(img, 0, 0);
-  return canvas.toDataURL("image/jpeg", 0.92);
-}
-
 type Gesture =
   | { mode: "pan"; startX: number; startY: number; start: CropTransform }
   | {
@@ -114,11 +98,14 @@ export default function CropCanvas({
   onImageLoad,
   onImageError,
   onExportReady,
+  initialTransform,
 }: Props) {
   const stageRef = useRef<Konva.Stage>(null);
   const gestureRef = useRef<Gesture | null>(null);
   const [displayScale, setDisplayScale] = useState(1);
   const { image, status } = useCanvasImage(baseImageUrl, onImageError);
+  // 마운트 시점 값만 쓴다 — 최초 이미지 로드 이후엔 참조하지 않는다.
+  const initialTransformRef = useRef(initialTransform);
 
   const metrics = useMemo<ImageMetrics | null>(
     () =>
@@ -154,13 +141,19 @@ export default function CropCanvas({
     scaleRef.current = displayScale;
   }, [displayScale]);
 
-  // 이미지 로드 시 중앙 정렬 + 팔레트 추출을 부모에 알린다.
+  // 이미지 로드 시 구도를 잡고(복원 대상이 있으면 그 구도로, 없으면 중앙 정렬) 팔레트
+  // 추출을 부모에 알린다.
   const handledImageRef = useRef<HTMLImageElement | null>(null);
   useEffect(() => {
     if (!image || !metrics) return;
     if (handledImageRef.current === image) return;
     handledImageRef.current = image;
-    onTransformChange(getCenteredTransform(metrics, CROP_SIZE, fit));
+    const restored = initialTransformRef.current;
+    onTransformChange(
+      restored
+        ? clampTransform(restored, metrics, CROP_SIZE, fit)
+        : getCenteredTransform(metrics, CROP_SIZE, fit),
+    );
     onImageLoad(image);
   }, [image, metrics, fit, onImageLoad, onTransformChange]);
 
@@ -368,7 +361,7 @@ export default function CropCanvas({
       {isTransparent ? (
         <div
           aria-hidden
-          className="absolute inset-0 rounded-[22px]"
+          className="0 absolute inset-0"
           style={{
             backgroundImage:
               "linear-gradient(45deg, #d4d4d4 25%, transparent 25%), linear-gradient(-45deg, #d4d4d4 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #d4d4d4 75%), linear-gradient(-45deg, transparent 75%, #d4d4d4 75%)",
@@ -384,7 +377,7 @@ export default function CropCanvas({
         height={stagePixelSize}
         scaleX={displayScale}
         scaleY={displayScale}
-        className="relative rounded-[22px]"
+        className="0 relative"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={endGesture}
@@ -437,7 +430,7 @@ export default function CropCanvas({
         </Layer>
       </Stage>
       {status === "loading" ? (
-        <div className="absolute inset-0 flex items-center justify-center rounded-[22px] text-sm font-bold text-gray-700">
+        <div className="0 absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-700">
           이미지를 불러오는 중
         </div>
       ) : null}

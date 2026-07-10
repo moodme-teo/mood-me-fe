@@ -32,7 +32,7 @@ const PALETTE_SWATCH = 'button[aria-label$=" 배경"]';
  * 숨기는 것:
  * - 하단 탭·배경 패널·도형 목록의 접근성 이름이 서로 부분 일치해 스코프와 정확 일치가
  *   필요하다는 사실 (탭 "이미지" vs 배경 "이미지 블러", 도형 "원" vs "타원")
- * - 헤더의 "저장" 이 곧바로 저장하지 않고 저장 시트를 먼저 연다는 흐름
+ * - 헤더의 "완료" 가 현재 편집 상태를 저장하고 결과 화면으로 이동한다는 흐름
  * - 이미지 로드 전에는 확대·구도 초기화가 disabled 라는 사실
  *
  * 사용 기준:
@@ -43,7 +43,7 @@ export class EditPage {
   /** CropCanvas 는 Konva Stage 로 <canvas> 를 그린다 (배럴 경유 ssr:false). */
   readonly canvas: Locator;
   readonly backButton: Locator;
-  /** 헤더의 저장 — 곧바로 저장하지 않고 저장 시트를 연다. */
+  /** 헤더의 완료 — 현재 편집 상태를 저장하고 결과 화면으로 이동한다. */
   readonly saveButton: Locator;
   readonly toast: Locator;
 
@@ -81,8 +81,7 @@ export class EditPage {
   constructor(private readonly page: Page) {
     this.canvas = page.locator("canvas").first();
     this.backButton = page.getByRole("button", { name: "뒤로" });
-    // 저장 시트의 "PNG로 저장 …" 과 부분 일치하지 않도록 정확히 일치시킨다.
-    this.saveButton = page.getByRole("button", { name: "저장", exact: true });
+    this.saveButton = page.getByRole("button", { name: "완료", exact: true });
     this.toast = page.locator('div[role="status"]');
 
     this.saveSheet = page.getByRole("dialog", { name: "저장하기" });
@@ -137,7 +136,10 @@ export class EditPage {
     await this.page.goto(`/test/${sessionId}/edit`);
   }
 
-  /** 저장된 무드보드 재편집 — 서버 조회 없이 렌더되므로 E2E 로 검증 가능하다. */
+  /**
+   * 저장된 무드보드 재편집 — 서버 컴포넌트가 getMoodboardById()로 조회하지만, 그 함수는
+   * Supabase 시크릿이 없으면(E2E/CI) mock으로 자동 폴백해 page.route 없이도 렌더된다.
+   */
   async gotoSaved(moodboardId: string) {
     await this.page.goto(`/moodboard/${moodboardId}/edit`);
   }

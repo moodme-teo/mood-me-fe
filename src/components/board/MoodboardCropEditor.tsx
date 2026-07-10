@@ -1,14 +1,18 @@
 "use client";
 
 import {
+  ArrowLeft,
+  CloudFog,
   Image as ImageIcon,
   type LucideIcon,
   PaintBucket,
   Palette,
+  Pipette,
+  Save,
   Shapes,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   CROP_SHAPES,
@@ -16,9 +20,9 @@ import {
   type CropBackground,
   CropCanvas,
   type CropExporter,
-  type CropExportFormat,
   CropShapeIcon,
   type CropShapeId,
+  type CropState,
   extractPalette,
   getCenteredTransform,
   getCropFit,
@@ -29,9 +33,9 @@ import {
   zoomAtPoint,
 } from "@/components/canvas";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogActions, DialogContent } from "@/components/ui/dialog";
+import { Card } from "@/components/ui/card";
 import { updateMoodboard } from "@/lib/api/update-moodboard";
-import type { MoodProfile } from "@/types/moodboard";
+import type { EditState, MoodProfile } from "@/types/moodboard";
 
 type Props = {
   moodboardId: string;
@@ -39,6 +43,9 @@ type Props = {
   // 리포트(GPT-5)가 아직 안 끝났으면 없을 수 있다. 저장 시 함께 영속화해 결과 페이지가
   // 실제 분석을 노출하도록 한다(없으면 서버가 PENDING 폴백). #99 크롭 흐름 통합.
   moodProfile?: MoodProfile | null;
+  // 재편집 구도 복원(#116) — 결과물→편집 왕복 시 이전 도형·배경·확대·위치를 되살린다.
+  // sourceImageUrl이 baseImageUrl과 다르면(레거시 보드 등) 무시하고 기본값으로 진입한다.
+  initialEditState?: EditState | null;
 };
 
 type EditTab = "image" | "shape" | "background" | "color";
@@ -55,12 +62,27 @@ const SOLID_PRESETS: { label: string; color: string }[] = [
   { label: "검정", color: "#171717" },
 ];
 
+const TRANSPARENT_SWATCH_STYLE = {
+  backgroundImage:
+    "conic-gradient(var(--gray-300) 90deg, transparent 90deg 180deg, var(--gray-300) 180deg 270deg, transparent 270deg)",
+  backgroundSize: "10px 10px",
+};
+
+const SWATCH_BASE =
+  "flex size-11 shrink-0 items-center justify-center rounded-full border-2";
+
+function swatchRing(isActive: boolean) {
+  return isActive
+    ? "border-foreground ring-2 ring-foreground"
+    : "border-white shadow-card";
+}
+
 function Toast({ message }: { message: string | null }) {
   if (!message) return null;
   return (
     <div
       role="status"
-      className="fixed top-4 left-1/2 z-40 w-[calc(100%-32px)] max-w-sm -translate-x-1/2 rounded-xl bg-surface-inverse px-4 py-3 text-sm font-semibold text-white shadow-lg"
+      className="fixed top-4 left-1/2 z-40 w-[calc(100%-32px)] max-w-sm -translate-x-1/2 rounded-lg bg-surface-inverse px-4 py-3 text-sm font-semibold text-on-inverse shadow-ink"
     >
       {message}
     </div>
@@ -77,12 +99,20 @@ function ConfirmLeaveDialog({
   onConfirm: () => void;
 }) {
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent
-        title="편집을 그만두시겠어요?"
-        description="저장하지 않은 크롭 편집 내용은 사라져요."
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-inverse/48 p-4">
+      <Card
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="leave-title"
+        className="w-full max-w-sm gap-4 px-5 text-foreground"
       >
-        <DialogActions>
+        <h2 id="leave-title" className="text-heading-md">
+          편집을 그만두시겠어요?
+        </h2>
+        <p className="text-gray-700 text-caption">
+          저장하지 않은 크롭 편집 내용은 사라져요.
+        </p>
+        <div className="grid grid-cols-2 gap-2">
           <Button
             type="button"
             variant="secondary"
@@ -91,67 +121,18 @@ function ConfirmLeaveDialog({
           >
             계속 편집
           </Button>
-          <Button type="button" tone="ink" size="md" onClick={onConfirm}>
-            나가기
-          </Button>
-        </DialogActions>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function SaveSheet({
-  isOpen,
-  isSaving,
-  onClose,
-  onDownload,
-  onComplete,
-}: {
-  isOpen: boolean;
-  isSaving: boolean;
-  onClose: () => void;
-  onDownload: (format: CropExportFormat) => void;
-  onComplete: () => void;
-}) {
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent
-        title="저장하기"
-        description="미리보기 그대로 저장돼요. 투명 배경은 PNG에서 유지됩니다."
-      >
-        {/* 선택지가 넷이라 좌우 배치(DialogActions)가 아니라 세로 목록으로 쌓는다. */}
-        <div className="flex flex-col gap-2">
           <Button
             type="button"
-            variant="secondary"
-            size="md"
-            onClick={() => onDownload("png")}
-          >
-            PNG로 저장 (투명 유지)
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="md"
-            onClick={() => onDownload("jpeg")}
-          >
-            JPG로 저장 (흰 배경)
-          </Button>
-          <Button
-            type="button"
+            variant="primary"
             tone="ink"
             size="md"
-            disabled={isSaving}
-            onClick={onComplete}
+            onClick={onConfirm}
           >
-            {isSaving ? "저장 중" : "완성하고 공유하기"}
-          </Button>
-          <Button type="button" variant="ghost" size="md" onClick={onClose}>
-            닫기
+            나가기
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </Card>
+    </div>
   );
 }
 
@@ -168,7 +149,7 @@ function ImagePanel({
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm leading-6 font-semibold text-gray-700">
+      <p className="text-gray-700 text-caption">
         두 손가락으로 확대·축소, 드래그로 이동, 더블탭으로 구도를 초기화할 수
         있어요.
       </p>
@@ -182,18 +163,20 @@ function ImagePanel({
           value={zoom}
           disabled={!hasImage}
           onChange={(event) => onZoomChange(Number(event.target.value))}
-          className="mt-2 w-full accent-neutral-950 disabled:opacity-40"
+          className="mt-2 w-full accent-gray-900 disabled:opacity-40"
           aria-label="확대"
         />
       </label>
-      <button
+      <Button
         type="button"
+        variant="secondary"
+        size="md"
+        className="w-full"
         onClick={onReset}
         disabled={!hasImage}
-        className="w-full rounded-xl border border-gray-300 bg-card px-4 py-3 text-sm font-bold text-foreground disabled:opacity-40"
       >
         구도 초기화
-      </button>
+      </Button>
     </div>
   );
 }
@@ -208,24 +191,21 @@ function ShapePanel({
   return (
     <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
       {CROP_SHAPES.map((item) => (
-        <button
+        <Button
           key={item.id}
           type="button"
           aria-label={item.label}
           title={item.label}
           aria-pressed={shape === item.id}
           onClick={() => onSelect(item.id)}
-          className={`flex size-16 shrink-0 items-center justify-center rounded-2xl border bg-card p-3 transition ${
-            shape === item.id
-              ? "border-foreground ring-2 ring-foreground"
-              : "border-gray-200"
-          }`}
+          variant={"ghost"}
+          className={`flex size-16 shrink-0 items-center justify-center bg-card p-3 ${shape === item.id ? "border border-gray-300" : ""}`}
         >
           <CropShapeIcon
             shape={item.id}
             className="size-full text-foreground"
           />
-        </button>
+        </Button>
       ))}
     </div>
   );
@@ -245,59 +225,49 @@ function BackgroundPanel({
   const isTransparent = background.type === "transparent";
   const isBlur = background.type === "blur";
   const activeColor = background.type === "solid" ? background.color : null;
+  const isCustomActive =
+    activeColor !== null &&
+    !SOLID_PRESETS.some((preset) => preset.color === activeColor);
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-3">
       <button
         type="button"
+        aria-label="투명"
         aria-pressed={isTransparent}
         onClick={onTransparent}
-        className={`min-h-14 rounded-2xl border px-4 text-xs font-bold transition ${
-          isTransparent
-            ? "border-foreground bg-surface-inverse text-white"
-            : "border-gray-100 bg-card text-gray-700"
-        }`}
-      >
-        투명
-      </button>
+        style={TRANSPARENT_SWATCH_STYLE}
+        className={`${SWATCH_BASE} ${swatchRing(isTransparent)}`}
+      />
       <button
         type="button"
+        aria-label="이미지 블러"
         aria-pressed={isBlur}
         onClick={onBlur}
-        className={`min-h-14 rounded-2xl border px-4 text-xs font-bold transition ${
-          isBlur
-            ? "border-foreground bg-surface-inverse text-white"
-            : "border-gray-100 bg-card text-gray-700"
-        }`}
+        className={`${SWATCH_BASE} bg-surface-sunken ${swatchRing(isBlur)}`}
       >
-        이미지 블러
+        <CloudFog className="size-5 text-gray-700" aria-hidden />
       </button>
       {SOLID_PRESETS.map((preset) => (
         <button
           key={preset.color}
           type="button"
+          aria-label={preset.label}
           aria-pressed={activeColor === preset.color}
           onClick={() => onSolid(preset.color)}
-          className={`min-h-14 rounded-2xl border px-4 text-xs font-bold transition ${
-            activeColor === preset.color
-              ? "border-foreground ring-2 ring-foreground"
-              : "border-gray-200"
-          }`}
-          style={{
-            backgroundColor: preset.color,
-            color: preset.color === "#ffffff" ? "#171717" : "#ffffff",
-          }}
-        >
-          {preset.label}
-        </button>
+          style={{ backgroundColor: preset.color }}
+          className={`${SWATCH_BASE} ${swatchRing(activeColor === preset.color)}`}
+        />
       ))}
-      <label className="flex min-h-14 cursor-pointer items-center gap-2 rounded-2xl border border-gray-100 bg-card px-4 text-xs font-bold text-gray-700">
-        직접 선택
+      <label
+        className={`${SWATCH_BASE} relative cursor-pointer bg-surface-sunken ${swatchRing(isCustomActive)}`}
+      >
+        <Pipette className="size-5 text-gray-700" aria-hidden />
         <input
           type="color"
           value={activeColor ?? "#ffffff"}
           onChange={(event) => onSolid(event.target.value)}
-          className="h-7 w-8 cursor-pointer rounded border-0 bg-transparent p-0"
+          className="absolute inset-0 size-full cursor-pointer opacity-0"
           aria-label="배경색 직접 선택"
         />
       </label>
@@ -316,7 +286,7 @@ function ColorPanel({
 }) {
   if (palette.length === 0) {
     return (
-      <p className="text-sm leading-6 font-semibold text-gray-700">
+      <p className="text-gray-700 text-caption">
         이미지에서 추천 색을 추출하지 못했어요. 배경 탭에서 직접 색을 골라
         보세요.
       </p>
@@ -325,10 +295,8 @@ function ColorPanel({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-bold text-gray-700">
-        이미지에서 뽑은 추천 배경색
-      </p>
-      <div className="flex flex-wrap gap-2">
+      <p className="text-gray-700 text-caption">이미지에서 뽑은 추천 배경색</p>
+      <div className="flex flex-wrap gap-3">
         {palette.map((color) => (
           <button
             key={color}
@@ -336,12 +304,8 @@ function ColorPanel({
             aria-label={`${color} 배경`}
             aria-pressed={activeColor === color}
             onClick={() => onSelect(color)}
-            className={`h-11 w-11 rounded-full border-2 transition ${
-              activeColor === color
-                ? "border-foreground ring-2 ring-foreground"
-                : "border-white shadow-sm"
-            }`}
             style={{ backgroundColor: color }}
+            className={`${SWATCH_BASE} ${swatchRing(activeColor === color)}`}
           />
         ))}
       </div>
@@ -353,14 +317,31 @@ export default function MoodboardCropEditor({
   moodboardId,
   baseImageUrl,
   moodProfile,
+  initialEditState,
 }: Props) {
   const router = useRouter();
-  const crop = useCropEditor();
+  // sourceImageUrl이 지금 편집 대상과 다르면(레거시 보드 등) 복원하지 않는다.
+  const initialCropState = useMemo<CropState | undefined>(() => {
+    if (!initialEditState || initialEditState.sourceImageUrl !== baseImageUrl) {
+      return undefined;
+    }
+    return {
+      // CropShapeId는 확장 가능한 문자열 유니언 — 저장된 값을 그대로 신뢰한다.
+      // 알 수 없는 값이면 crop-shapes.ts가 사각형으로 안전 폴백한다.
+      shape: initialEditState.shapeId as CropShapeId,
+      background: initialEditState.background,
+      transform: {
+        zoom: initialEditState.scale,
+        offsetX: initialEditState.x,
+        offsetY: initialEditState.y,
+      },
+    };
+  }, [initialEditState, baseImageUrl]);
+  const crop = useCropEditor(initialCropState);
   const [tab, setTab] = useState<EditTab>("shape");
   const [toast, setToast] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isLeaveOpen, setIsLeaveOpen] = useState(false);
-  const [isSaveOpen, setIsSaveOpen] = useState(false);
   const [isBaseImageFailed, setIsBaseImageFailed] = useState(false);
   const [metrics, setMetrics] = useState<ImageMetrics | null>(null);
 
@@ -371,6 +352,33 @@ export default function MoodboardCropEditor({
   const showToast = useCallback((message: string) => {
     setToast(message);
     window.setTimeout(() => setToast(null), 2600);
+  }, []);
+
+  useEffect(() => {
+    // 브라우저 뒤로가기는 헤더의 뒤로 버튼과 달리 곧장 화면을 떠나 버린다 — 더미
+    // history 항목을 하나 쌓아 두고, popstate 가 오면 실제로 이동하는 대신 같은
+    // 확인 모달을 띄워 두 경로의 이탈 UX를 통일한다 (#119).
+    window.history.pushState(null, "", window.location.href);
+
+    const handlePopState = () => {
+      window.history.pushState(null, "", window.location.href);
+      setIsLeaveOpen(true);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    // 새로고침 · 탭 닫기는 브라우저가 직접 처리해 커스텀 모달을 띄울 수 없다 —
+    // 네이티브 확인창이라도 뜨게 해 실수로 나가 편집 내용을 잃는 걸 막는다.
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
   const handleImageLoad = useCallback(
@@ -415,28 +423,6 @@ export default function MoodboardCropEditor({
     );
   }, [crop.shape, metrics, setTransform]);
 
-  const handleDownload = useCallback(
-    async (format: CropExportFormat) => {
-      try {
-        const dataUrl = await exporterRef.current?.(format);
-        if (!dataUrl) {
-          showToast("이미지 준비가 아직 끝나지 않았어요.");
-          return;
-        }
-        const link = document.createElement("a");
-        link.href = dataUrl;
-        link.download = `mood-me-${moodboardId}.${format === "png" ? "png" : "jpg"}`;
-        link.click();
-        setIsSaveOpen(false);
-        showToast(`${format === "png" ? "PNG" : "JPG"} 이미지로 저장했어요.`);
-      } catch (error) {
-        console.error(error);
-        showToast("이미지 저장에 실패했어요. 다시 시도해 주세요.");
-      }
-    },
-    [moodboardId, showToast],
-  );
-
   const handleComplete = useCallback(async () => {
     setIsSaving(true);
     try {
@@ -444,11 +430,20 @@ export default function MoodboardCropEditor({
         (await exporterRef.current?.("png")) ?? undefined;
       // 크롭 결과는 한 장의 평면 이미지 — elements는 비우고 export 이미지를 저장한다.
       // moodProfile은 있을 때만 함께 저장(없으면 서버가 기존 값 유지 / PENDING 폴백).
+      // editState는 재편집 구도 복원용으로 항상 현재 값을 함께 커밋한다 (#116).
       // 소유자는 서버가 쿠키에서 읽는다 — 여기서 실어 보내지 않는다 (#126).
       await updateMoodboard(moodboardId, {
         baseImageUrl,
         elements: [],
         exportedImageDataUrl,
+        editState: {
+          sourceImageUrl: baseImageUrl,
+          shapeId: crop.shape,
+          background: crop.background,
+          scale: crop.transform.zoom,
+          x: crop.transform.offsetX,
+          y: crop.transform.offsetY,
+        },
         ...(moodProfile ? { moodProfile } : {}),
       });
       router.push(`/moodboard/${moodboardId}`);
@@ -457,7 +452,16 @@ export default function MoodboardCropEditor({
       showToast("저장하지 못했어요. 다시 시도해 주세요.");
       setIsSaving(false);
     }
-  }, [baseImageUrl, moodProfile, moodboardId, router, showToast]);
+  }, [
+    baseImageUrl,
+    moodProfile,
+    moodboardId,
+    router,
+    showToast,
+    crop.shape,
+    crop.background,
+    crop.transform,
+  ]);
 
   const activeSolidColor =
     crop.background.type === "solid" ? crop.background.color : null;
@@ -479,51 +483,50 @@ export default function MoodboardCropEditor({
         onCancel={() => setIsLeaveOpen(false)}
         onConfirm={() => router.push("/")}
       />
-      <SaveSheet
-        isOpen={isSaveOpen}
-        isSaving={isSaving}
-        onClose={() => setIsSaveOpen(false)}
-        onDownload={handleDownload}
-        onComplete={handleComplete}
-      />
-
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-foreground/5 bg-background/95 px-4 py-3 backdrop-blur">
-        <button
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-foreground/5 bg-background/95 px-4 pt-[max(env(safe-area-inset-top),0.75rem)] pb-3 backdrop-blur">
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-md"
+          aria-label="뒤로"
           onClick={() => setIsLeaveOpen(true)}
-          className="rounded-xl border border-gray-300 bg-card px-3 py-2 text-sm font-bold"
         >
-          뒤로
-        </button>
-        <h1 className="text-base font-bold">편집</h1>
-        <button
+          <ArrowLeft aria-hidden />
+        </Button>
+        <h1 className="text-heading-md">편집</h1>
+        <Button
           type="button"
-          disabled={isBaseImageFailed}
-          onClick={() => setIsSaveOpen(true)}
-          className="rounded-xl bg-surface-inverse px-3 py-2 text-sm font-bold text-white disabled:opacity-45"
+          variant="primary"
+          tone="ink"
+          size="icon-md"
+          aria-label={isSaving ? "저장 중" : "완료"}
+          disabled={isBaseImageFailed || isSaving}
+          onClick={handleComplete}
         >
-          저장
-        </button>
+          <Save aria-hidden />
+        </Button>
       </header>
 
       <div className="flex flex-1 items-center justify-center px-4 py-5">
         {isBaseImageFailed ? (
-          <div className="w-full max-w-sm rounded-2xl bg-card p-5 text-center shadow-sm">
-            <p className="text-lg font-bold">이미지를 불러오지 못했어요.</p>
-            <p className="mt-2 text-sm leading-6 text-gray-700">
+          <Card className="w-full max-w-sm px-5 text-center">
+            <p className="text-heading-md">이미지를 불러오지 못했어요.</p>
+            <p className="text-gray-700 text-caption">
               네트워크를 확인한 뒤 다시 시도해 주세요.
             </p>
-            <button
+            <Button
               type="button"
+              variant="primary"
+              tone="ink"
+              size="md"
               onClick={() => {
                 setIsBaseImageFailed(false);
                 router.refresh();
               }}
-              className="mt-4 rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
             >
               다시 시도
-            </button>
-          </div>
+            </Button>
+          </Card>
         ) : (
           <CropCanvas
             baseImageUrl={baseImageUrl}
@@ -534,6 +537,7 @@ export default function MoodboardCropEditor({
             onImageLoad={handleImageLoad}
             onImageError={handleImageError}
             onExportReady={handleExportReady}
+            initialTransform={initialCropState?.transform}
           />
         )}
       </div>
@@ -541,27 +545,26 @@ export default function MoodboardCropEditor({
       <div className="sticky bottom-0 z-30">
         <nav
           aria-label="크롭 편집 모드"
-          className="grid grid-cols-4 gap-2 border-t border-foreground/5 bg-surface-card px-3 py-3"
+          className="grid grid-cols-4 gap-2 border-t border-foreground/5 bg-surface-card px-3 py-1"
         >
           {TABS.map((item) => (
-            <button
+            <Button
               key={item.id}
               type="button"
               aria-label={item.label}
               title={item.label}
               aria-pressed={tab === item.id}
               onClick={() => setTab(item.id)}
-              className={`flex min-h-11 items-center justify-center rounded-2xl border transition ${
-                tab === item.id
-                  ? "border-foreground bg-surface-inverse text-white"
-                  : "border-gray-100 bg-card text-gray-700"
+              variant={"ghost"}
+              className={`flex min-h-11 items-center justify-center ${
+                tab === item.id ? "border border-gray-300" : ""
               }`}
             >
               <item.Icon className="size-5" aria-hidden strokeWidth={2.25} />
-            </button>
+            </Button>
           ))}
         </nav>
-        <section className="rounded-t-3xl bg-card px-4 pt-3 pb-5 shadow-[0_-8px_24px_rgba(0,0,0,0.10)]">
+        <section className="border-t bg-card px-4 pt-3 pb-[max(env(safe-area-inset-bottom),1.25rem)]">
           {tab === "image" ? (
             <ImagePanel
               zoom={crop.transform.zoom}

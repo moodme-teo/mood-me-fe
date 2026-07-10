@@ -6,7 +6,11 @@ import "server-only";
 import type { Requester } from "@/lib/auth/requester";
 import { ownerColumnsOf } from "@/lib/auth/requester";
 import { createServiceClient } from "@/lib/supabase/service";
-import type { MoodboardElement, MoodProfile } from "@/types/moodboard";
+import type {
+  EditState,
+  MoodboardElement,
+  MoodProfile,
+} from "@/types/moodboard";
 
 // Postgres unique_violation — 같은 moodboardId의 row가 이미 있다는 뜻.
 const UNIQUE_VIOLATION = "23505";
@@ -15,6 +19,8 @@ export type SaveMoodboardInput = {
   baseImageUrl: string;
   elements: MoodboardElement[];
   exportedImageDataUrl?: string;
+  // 재편집 구도 복원용 (#116) — "완료" 시 항상 현재 값을 함께 커밋한다.
+  editState?: EditState;
   moodProfile?: MoodProfile;
 };
 
@@ -29,11 +35,12 @@ export async function saveOwnedMoodboard(
 ): Promise<SaveMoodboardOutcome> {
   const service = createServiceClient();
 
-  // moodProfile은 보낸 경우에만 갱신 — 재편집 저장이 기존 리포트를 지우지 않도록 omit.
+  // moodProfile·editState는 보낸 경우에만 갱신 — 재편집 저장이 기존 값을 지우지 않도록 omit.
   const content = {
     base_image_url: input.baseImageUrl,
     elements: input.elements,
     exported_image_data_url: input.exportedImageDataUrl ?? null,
+    ...(input.editState ? { edit_state: input.editState } : {}),
     ...(input.moodProfile ? { mood_profile: input.moodProfile } : {}),
     updated_at: new Date().toISOString(),
   };

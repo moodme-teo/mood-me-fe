@@ -10,11 +10,48 @@ import type { Requester } from "@/lib/auth/requester";
 import { isOwnerOf } from "@/lib/auth/requester";
 import { createServiceClient } from "@/lib/supabase/service";
 
-export async function isMoodboardOwner(
+export type MoodboardOwnerCheck =
+  | { ok: true; isOwner: boolean }
+  | { ok: false; code: "OWNER_CHECK_UNAVAILABLE"; error: string };
+
+function canUseSupabaseService() {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SECRET_KEY,
+  );
+}
+
+function canUseE2EMockOwner() {
+  return process.env.MOOD_ME_E2E_MOCK_OWNER === "1";
+}
+
+function isE2EMockMoodboardOwner(moodboardId: string, requester: Requester) {
+  return (
+    moodboardId === "33333333-3333-4333-8333-333333333333" &&
+    requester.kind === "guest" &&
+    requester.guestSessionId === "11111111-1111-4111-8111-111111111111"
+  );
+}
+
+export async function checkMoodboardOwner(
   moodboardId: string,
   requester: Requester,
-): Promise<boolean> {
-  if (requester.kind === "anonymous") return false;
+): Promise<MoodboardOwnerCheck> {
+  if (requester.kind === "anonymous") return { ok: true, isOwner: false };
+
+  if (!canUseSupabaseService()) {
+    if (canUseE2EMockOwner()) {
+      return {
+        ok: true,
+        isOwner: isE2EMockMoodboardOwner(moodboardId, requester),
+      };
+    }
+
+    return {
+      ok: false,
+      code: "OWNER_CHECK_UNAVAILABLE",
+      error: "무드보드 소유자 검증을 할 수 없어요.",
+    };
+  }
 
   const service = createServiceClient();
   const { data, error } = await service
@@ -23,10 +60,29 @@ export async function isMoodboardOwner(
     .eq("id", moodboardId)
     .maybeSingle();
 
-  if (error || !data) return false;
+  if (error) {
+    console.error("[moodboards] owner check 실패", error);
+    return {
+      ok: false,
+      code: "OWNER_CHECK_UNAVAILABLE",
+      error: "무드보드 소유자 검증을 할 수 없어요.",
+    };
+  }
+  if (!data) return { ok: true, isOwner: false };
 
-  return isOwnerOf(
-    requester,
-    data as { user_id: string | null; guest_session_id: string | null },
-  );
+  return {
+    ok: true,
+    isOwner: isOwnerOf(
+      requester,
+      data as { user_id: string | null; guest_session_id: string | null },
+    ),
+  };
+}
+
+export async function isMoodboardOwner(
+  moodboardId: string,
+  requester: Requester,
+): Promise<boolean> {
+  const result = await checkMoodboardOwner(moodboardId, requester);
+  return result.ok ? result.isOwner : false;
 }
