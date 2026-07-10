@@ -1,4 +1,5 @@
 import CardGrid from "@/components/test/CardGrid";
+import DiscardStack from "@/components/test/DiscardStack";
 import FinalGrid from "@/components/test/FinalGrid";
 import type { ScreenDescriptor } from "@/components/test/mood-test-flow";
 import ShadowChips from "@/components/test/ShadowChips";
@@ -24,14 +25,26 @@ export default function StageBody({
   onToggle,
 }: Props) {
   switch (screen.kind) {
-    case "gather":
+    case "gather": {
+      const cards = poolIds
+        .map((id) => CARD_MAP.get(id))
+        .filter((card): card is NonNullable<typeof card> => Boolean(card));
+      return (
+        <CardGrid
+          cards={cards}
+          selectedIds={draft}
+          atCapacity={draft.length >= target}
+          onToggle={onToggle}
+        />
+      );
+    }
     case "trim1":
     case "trim2": {
       const cards = poolIds
         .map((id) => CARD_MAP.get(id))
         .filter((card): card is NonNullable<typeof card> => Boolean(card));
       return (
-        <CardGrid
+        <DiscardStack
           cards={cards}
           selectedIds={draft}
           atCapacity={draft.length >= target}
@@ -68,9 +81,9 @@ export default function StageBody({
       return (
         <FinalGrid
           poolIds={poolIds}
-          selectedIds={draft}
-          atCapacity={draft.length >= target}
-          onToggle={onToggle}
+          keptIds={draft}
+          target={target}
+          onReject={onToggle}
         />
       );
   }

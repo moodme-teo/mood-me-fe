@@ -39,12 +39,16 @@ export default function TestLayout({ sessionId }: Props) {
     saveMoodTestDraft({ sessionId, stepIndex: flow.screenIndex });
   }, [sessionId, flow.screenIndex]);
 
-  const handleBack = () => {
-    if (flow.isFirstScreen) {
-      router.push("/");
-      return;
-    }
+  const handleHome = () => {
+    router.push("/");
+  };
+
+  const handlePrevStage = () => {
     flow.back();
+  };
+
+  const handleUndoSelection = () => {
+    flow.undo();
   };
 
   const handleNext = async () => {
@@ -75,57 +79,89 @@ export default function TestLayout({ sessionId }: Props) {
   };
 
   const { kicker, title, hint } = flow.copy;
+  const isDiscardScreen =
+    flow.screen.kind === "trim1" || flow.screen.kind === "trim2";
+  const isFinalScreen = flow.screen.kind === "final";
+  const counterText = isDiscardScreen
+    ? `${flow.draft.length}/${flow.target} 내려놓음`
+    : isFinalScreen
+      ? `탈락 ${flow.poolIds.length - flow.draft.length} / ${flow.poolIds.length - flow.target}`
+      : `${flow.draft.length} / ${flow.target}`;
 
   return (
-    // min-h-0: flex 자식이 콘텐츠 크기만큼 늘어나지 않고 부모(뷰포트) 높이 안에서
-    // 스스로 줄어들 수 있게 함 — 이게 없으면 아래 overflow-y-auto가 무시되고
-    // "다음" 버튼이 하단에 붙지 않는다.
-    <div className="flex min-h-0 flex-1 flex-col">
-      <TestHeader
-        current={flow.screenIndex + 1}
-        total={flow.totalScreens}
-        onBack={handleBack}
-        preview={<BuildBoardPreview cardIds={flow.previewCardIds} />}
-      />
+    <>
+      {/* min-h-0: flex 자식이 콘텐츠 크기만큼 늘어나지 않고 부모(뷰포트) 높이 안에서
+          스스로 줄어들 수 있게 함 — 이게 없으면 아래 overflow-y-auto가 무시되고
+          "다음" 버튼이 하단에 붙지 않는다. */}
+      <div className="flex min-h-0 flex-1 flex-col">
+        <TestHeader
+          current={flow.screenIndex + 1}
+          total={flow.totalScreens}
+          onHome={handleHome}
+          preview={<BuildBoardPreview cardIds={flow.previewCardIds} />}
+        />
 
-      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 py-6">
-        <section className="flex flex-col gap-4">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground">
-              {kicker}
-            </p>
-            <h2 className="mt-1 text-xl font-semibold text-foreground">
-              {title}
-            </h2>
-            {hint && (
-              <p className="mt-1 text-sm text-muted-foreground">{hint}</p>
-            )}
-          </div>
-          <StageBody
-            screen={flow.screen}
-            poolIds={flow.poolIds}
-            draft={flow.draft}
-            target={flow.target}
-            onToggle={flow.toggle}
-          />
-          <p className="text-xs text-muted-foreground" role="status">
-            {flow.draft.length} / {flow.target} 선택됨
-          </p>
-        </section>
-      </div>
+        <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 pt-4 pb-6">
+          <section className="flex flex-col gap-5">
+            <div className="relative">
+              <p className="font-semibold tracking-wide text-muted-foreground text-caption">
+                {kicker}
+              </p>
+              <h2 className="mt-2 font-[family-name:var(--font-display-kr)] text-[24px] leading-[1.32] font-bold text-foreground">
+                {title}
+              </h2>
+              {hint && (
+                <p className="mt-2 text-muted-foreground text-body-sm">
+                  {hint}
+                </p>
+              )}
+              <span
+                className="absolute top-0 right-0 font-medium text-muted-foreground text-caption"
+                role="status"
+              >
+                {counterText}
+              </span>
+            </div>
+            <StageBody
+              screen={flow.screen}
+              poolIds={flow.poolIds}
+              draft={flow.draft}
+              target={flow.target}
+              onToggle={flow.toggle}
+            />
+          </section>
+        </div>
 
-      <TestFooter
-        label={
-          flow.isLastScreen
-            ? isSubmitting
+        <TestFooter
+          showPrevStage={!flow.isFirstScreen}
+          onPrevStage={handlePrevStage}
+          nextStageLabel={
+            isSubmitting
               ? "생성 준비 중..."
-              : "무드보드 생성하기 ✨"
-            : "다음"
+              : isFinalScreen
+                ? "Create →"
+                : flow.isLastScreen
+                  ? "무드보드 생성하기 ✨"
+                  : "다음"
+          }
+          tone={isFinalScreen ? "violet" : "ink"}
+          onNextStage={handleNext}
+          nextStageDisabled={!flow.canConfirm || isSubmitting}
+          showUndoSelection={flow.canUndo}
+          onUndoSelection={handleUndoSelection}
+          errorMessage={submitError}
+        />
+      </div>
+      <style jsx>{`
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
-        onClick={handleNext}
-        disabled={!flow.canConfirm || isSubmitting}
-        errorMessage={submitError}
-      />
-    </div>
+
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+    </>
   );
 }

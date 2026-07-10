@@ -1,8 +1,16 @@
 "use client";
 
+import { motion } from "framer-motion";
 import Image from "next/image";
 
 import type { Card } from "@/lib/mood-test/seed";
+
+// 담기·덜어내기 공용 카드 그리드. 프로토타입(prototype-test-page)의 3열 매스너리 콜라주 +
+// 탭 시 "쏙 담기는" pop 연출을 따른다. 선택은 상태 기계(useMoodTestFlow)의 toggle 을 그대로 쓰고,
+// 여기서는 시각/모션만 담당한다 — 정원(target)을 채우면 미선택 카드는 흐려지며 잠긴다.
+
+// 카드 세로비를 인덱스로 번갈아 줘 콜라주 리듬을 만든다(전부 정사각이면 격자처럼 딱딱해진다).
+const ASPECTS = ["3 / 4", "1 / 1", "4 / 5", "3 / 4", "5 / 6", "1 / 1"];
 
 type Props = {
   cards: Card[];
@@ -18,34 +26,58 @@ export default function CardGrid({
   onToggle,
 }: Props) {
   return (
-    <div className="grid grid-cols-3 gap-2">
-      {cards.map((card) => {
-        const selected = selectedIds.includes(card.id);
+    <div className="[columns:3] gap-x-2">
+      {cards.map((card, index) => {
+        const order = selectedIds.indexOf(card.id);
+        const selected = order !== -1;
         const disabled = !selected && atCapacity;
         return (
-          <button
+          <motion.button
             key={card.id}
             type="button"
+            layout
             onClick={() => onToggle(card.id)}
             disabled={disabled}
             aria-pressed={selected}
-            className={`relative flex aspect-square items-end overflow-hidden rounded-lg border p-1 text-center text-xs transition ${
-              selected
-                ? "border-neutral-900 ring-2 ring-neutral-900"
-                : "border-neutral-300"
-            } ${disabled ? "opacity-40" : ""}`}
+            aria-label={card.label}
+            // whileTap={{ scale: 0.92 }}
+            animate={{
+              y: selected ? 4 : 0,
+              opacity: disabled ? 0.35 : selected ? 1 : 0.8,
+            }}
+            transition={{ type: "spring", stiffness: 320, damping: 26 }}
+            style={{ aspectRatio: ASPECTS[index % ASPECTS.length] }}
+            className={`relative mb-2.5 block w-full break-inside-avoid overflow-hidden rounded-sm transition-shadow outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${
+              selected ? "shadow-card-press" : "shadow-card-hover"
+            } ${disabled ? "cursor-default" : "cursor-pointer"}`}
           >
             <Image
               src={card.imagePath}
-              alt={card.label}
+              alt=""
               fill
-              sizes="(max-width: 480px) 30vw, 160px"
+              sizes="(max-width: 430px) 30vw, 130px"
               className="object-cover"
+              loading={index === 0 ? "eager" : "lazy"}
+              draggable={false}
             />
-            <span className="relative z-10 w-full truncate rounded bg-black/50 px-1 py-0.5 text-white">
+            {/* 선택 시 보라 링 + 담긴 순번 배지로 "확정" 피드백을 준다. */}
+            {/* <span
+              aria-hidden
+              className={`pointer-events-none absolute inset-0 rounded-md ring-2 transition-opacity ${
+                selected
+                  ? "opacity-100 ring-accent-violet"
+                  : "opacity-0 ring-transparent"
+              }`}
+            /> */}
+            {selected && (
+              <span className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-[var(--gray-500)] bg-surface-inverse text-[10px] font-bold text-white">
+                {order + 1}
+              </span>
+            )}
+            <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/55 to-transparent px-1.5 pt-4 pb-1 text-left text-[11px] font-medium text-white">
               {card.label}
             </span>
-          </button>
+          </motion.button>
         );
       })}
     </div>
