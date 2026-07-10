@@ -36,7 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogActions, DialogContent } from "@/components/ui/dialog";
 import { updateMoodboard } from "@/lib/api/update-moodboard";
-import type { EditState, MoodProfile } from "@/types/moodboard";
+import type { AnalysisStatus, EditState, MoodProfile } from "@/types/moodboard";
 
 type Props = {
   moodboardId: string;
@@ -44,6 +44,12 @@ type Props = {
   // 리포트(GPT-5)가 아직 안 끝났으면 없을 수 있다. 저장 시 함께 영속화해 결과 페이지가
   // 실제 분석을 노출하도록 한다(없으면 서버가 PENDING 폴백). #99 크롭 흐름 통합.
   moodProfile?: MoodProfile | null;
+  // moodProfile과 세트 — 결과 페이지가 "아직 안 끝남"과 "실패"를 구별하는 데 쓴다(#122).
+  analysisStatus?: AnalysisStatus;
+  // 원본 테스트 세션 id. 생성 직후 편집(/test/[sessionId]/edit)에서만 넘어온다 — 최초 저장
+  // 시점에만 의미가 있어 재편집(/moodboard/[id]/edit)에서는 비워 둔다. "분석 다시 시도"가
+  // journey를 되찾아갈 연결고리다(#122).
+  sessionId?: string;
   // 재편집 구도 복원(#116) — 결과물→편집 왕복 시 이전 도형·배경·확대·위치를 되살린다.
   // sourceImageUrl이 baseImageUrl과 다르면(레거시 보드 등) 무시하고 기본값으로 진입한다.
   initialEditState?: EditState | null;
@@ -304,6 +310,8 @@ export default function MoodboardCropEditor({
   moodboardId,
   baseImageUrl,
   moodProfile,
+  analysisStatus,
+  sessionId,
   initialEditState,
 }: Props) {
   const router = useRouter();
@@ -416,8 +424,10 @@ export default function MoodboardCropEditor({
       const exportedImageDataUrl =
         (await exporterRef.current?.("png")) ?? undefined;
       // 크롭 결과는 한 장의 평면 이미지 — elements는 비우고 export 이미지를 저장한다.
-      // moodProfile은 있을 때만 함께 저장(없으면 서버가 기존 값 유지 / PENDING 폴백).
-      // editState는 재편집 구도 복원용으로 항상 현재 값을 함께 커밋한다 (#116).
+      // moodProfile·analysisStatus는 있을 때만 함께 저장(없으면 서버가 기존 값 유지 / PENDING
+      // 폴백). editState는 재편집 구도 복원용으로 항상 현재 값을 함께 커밋한다 (#116).
+      // sessionId는 최초 저장(생성 직후 편집)에서만 온다 — 재편집 저장에서는 보내지 않아
+      // 서버가 기존 test_session_id를 그대로 둔다(#122).
       // 소유자는 서버가 쿠키에서 읽는다 — 여기서 실어 보내지 않는다 (#126).
       await updateMoodboard(moodboardId, {
         baseImageUrl,
@@ -432,6 +442,8 @@ export default function MoodboardCropEditor({
           y: crop.transform.offsetY,
         },
         ...(moodProfile ? { moodProfile } : {}),
+        ...(analysisStatus ? { analysisStatus } : {}),
+        ...(sessionId ? { sessionId } : {}),
       });
       router.push(`/moodboard/${moodboardId}`);
     } catch (error) {
@@ -442,6 +454,8 @@ export default function MoodboardCropEditor({
   }, [
     baseImageUrl,
     moodProfile,
+    analysisStatus,
+    sessionId,
     moodboardId,
     router,
     showToast,

@@ -102,6 +102,15 @@ export const editStateSchema = z.object({
   y: z.number(),
 });
 
+// 이미지 갈래와 독립된 분석 갈래 상태 — moodProfile === null만으로는 "아직 안 끝남"과
+// "실패"를 구별할 수 없어 별도로 둔다(#122). 레거시 보드(이 컬럼이 생기기 전 저장분)는 null.
+export const analysisStatusSchema = z.enum([
+  "queued",
+  "processing",
+  "completed",
+  "failed",
+]);
+
 export const moodboardSchema = z.object({
   id: z.string().min(1),
   baseImageUrl: z.string().min(1),
@@ -111,6 +120,7 @@ export const moodboardSchema = z.object({
   // 재편집 구도 복원 (#116). 레거시 무드보드에는 없다.
   editState: editStateSchema.nullable().optional(),
   moodProfile: moodProfileSchema,
+  analysisStatus: analysisStatusSchema.nullable(),
   isGuest: z.boolean(),
   // 서버가 쿠키의 신원과 보드 소유자를 대조한 결과. 소유자 식별값 자체는 담지 않는다 —
   // 공유 링크는 공개라, 실으면 링크를 연 누구나 소유자로 위장할 수 있다 (#126).

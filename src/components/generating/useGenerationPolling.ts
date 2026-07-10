@@ -17,6 +17,18 @@ const FILL_CEILING_PERCENT = 92;
 // 두 단계뿐). 그래서 예상 소요 시간 기준으로 클라이언트가 채운다 — "로딩은 기다림이 아니라
 // 연출"(docs/convention/ai.md §Streaming/진행 표시). 완료 신호가 오기 전까지는 상한 밑에서만 찬다.
 const EXPECTED_DURATION_MS = 60_000;
+// 폴링(GET .../generation-job) 한 번 튀는 것으로 40~70초짜리 작업의 UI를 죽이지 않는다 —
+// 서버 job은 멀쩡히 도는 중일 수 있다. 연속 실패가 이 횟수를 넘어야 진짜 에러로 본다(#122).
+const MAX_CONSECUTIVE_POLL_FAILURES = 3;
+// runGenerationPipeline의 첫 문장이 status:"processing" UPDATE라(generate-mood-analysis.ts),
+// queued에 이만큼 머문다는 것은 AI 호출이 시작도 못 했다는 뜻이다(after() 인계 실패) — "AI가
+// 오래 걸린다"가 아니라 "시작조차 못 했다"이므로 별도 문구로 실패 처리한다(#122, PRD §10.3).
+const QUEUED_STALL_TIMEOUT_MS = 15_000;
+
+// 생성중 화면의 실패 원인 — 문구가 갈래마다 다르다(PRD §10.3).
+// - "generation": 이미지 생성·조립 실패, 또는 폴링이 연속 실패를 견디지 못함
+// - "queued_stall": after() 인계 자체가 시작되지 못함. AI는 시작도 안 했다
+export type GenerationFailureReason = "generation" | "queued_stall";
 
 // 생성중 화면 전용 폴링 — 마운트 시 생성을 트리거하고, completed면 편집 화면으로 이동,
 // failed면 에러 상태를 노출한다. 현재 폴링 지점이 여기 한 곳뿐이라 TanStack Query 없이
@@ -24,8 +36,13 @@ const EXPECTED_DURATION_MS = 60_000;
 export function useGenerationPolling(sessionId: string) {
   const router = useRouter();
   const [percent, setPercent] = useState(0);
-  const [hasError, setHasError] = useState(false);
+  const [failureReason, setFailureReason] =
+    useState<GenerationFailureReason | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  // 재진입(새로고침·뒤로가기)으로 기존 job을 이어 폴링하는 중인지 — "당신이 고른 공기를
+  // 모으는 중…" 같은 신규 생성 문구 대신 "만들던 무드보드를 다시 불러오고 있어요."를
+  // 보여주는 데 쓴다(#115 문구, PRD §10.3).
+  const [isReentry, setIsReentry] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const timerRef = useRef<number | null>(null);
   const fillTimerRef = useRef<number | null>(null);
@@ -40,6 +57,10 @@ export function useGenerationPolling(sessionId: string) {
 
   useEffect(() => {
     let cancelled = false;
+    let consecutiveFailures = 0;
+    // queued를 처음 관측한 시각(클라이언트 기준) — 이 값을 기준으로 정체를 판정한다.
+    // 진행 상태(processing 이상)로 넘어가면 null로 되돌린다.
+    let queuedSince: number | null = null;
 
     function clearTimers() {
       if (timerRef.current !== null) {
@@ -63,10 +84,16 @@ export function useGenerationPolling(sessionId: string) {
       }, FILL_TICK_MS);
     }
 
+    function fail(reason: GenerationFailureReason) {
+      clearTimers();
+      setFailureReason(reason);
+    }
+
     async function poll() {
       try {
         const job = await getGenerationJob(sessionId);
         if (cancelled) return;
+        consecutiveFailures = 0;
 
         if (job.status === "completed") {
           clearTimers();
@@ -75,16 +102,28 @@ export function useGenerationPolling(sessionId: string) {
           return;
         }
         if (job.status === "failed") {
-          clearTimers();
-          setHasError(true);
+          fail("generation");
           return;
+        }
+        if (job.status === "queued") {
+          queuedSince ??= Date.now();
+          if (Date.now() - queuedSince >= QUEUED_STALL_TIMEOUT_MS) {
+            fail("queued_stall");
+            return;
+          }
+        } else {
+          queuedSince = null;
         }
         timerRef.current = window.setTimeout(poll, POLL_INTERVAL_MS);
       } catch {
-        if (!cancelled) {
-          clearTimers();
-          setHasError(true);
+        if (cancelled) return;
+        consecutiveFailures += 1;
+        if (consecutiveFailures >= MAX_CONSECUTIVE_POLL_FAILURES) {
+          fail("generation");
+          return;
         }
+        // 아직 견딜 수 있는 실패 — 진행률 연출은 그대로 두고 다음 주기에 다시 본다.
+        timerRef.current = window.setTimeout(poll, POLL_INTERVAL_MS);
       }
     }
 
@@ -94,6 +133,7 @@ export function useGenerationPolling(sessionId: string) {
       // 폴링을 이어간다. 재시도(attempt > 0)는 사용자가 명시적으로 새 생성을 원한
       // 것이므로 로컬 보존 값을 보지 않고 항상 새 job을 만든다(#115).
       const storedJobId = attempt === 0 ? loadGenerationJobId(sessionId) : null;
+      setIsReentry(Boolean(storedJobId));
 
       if (!storedJobId) {
         try {
@@ -101,7 +141,7 @@ export function useGenerationPolling(sessionId: string) {
           saveGenerationJobId(sessionId, jobId);
         } catch {
           if (!cancelled) {
-            setHasError(true);
+            setFailureReason("generation");
             setIsRetrying(false);
           }
           return;
@@ -109,7 +149,7 @@ export function useGenerationPolling(sessionId: string) {
       }
 
       if (cancelled) return;
-      setHasError(false);
+      setFailureReason(null);
       setPercent(0);
       setIsRetrying(false);
       startFillAnimation();
@@ -124,5 +164,12 @@ export function useGenerationPolling(sessionId: string) {
     };
   }, [attempt, router, sessionId]);
 
-  return { percent, hasError, isRetrying, retry };
+  return {
+    percent,
+    hasError: failureReason !== null,
+    failureReason,
+    isRetrying,
+    isReentry,
+    retry,
+  };
 }

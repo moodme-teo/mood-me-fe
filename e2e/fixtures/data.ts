@@ -85,6 +85,7 @@ export const MOODBOARD: GetMoodboardResponse = {
     keywords: ["고요", "몽환", "여백"],
     sticker_phrases: ["오늘도 내 속도로"],
   },
+  analysisStatus: "completed",
   // 크롭 에디터(#102)가 저장한 평면 결과 이미지. 이게 있으면 결과물 페이지는 Konva 캔버스가
   // 아니라 <img> 로 렌더한다 — 지금 실사용자가 만드는 모든 보드가 이 경로다.
   exportedImageUrl: EXPORTED_IMAGE_DATA_URL,
@@ -92,6 +93,18 @@ export const MOODBOARD: GetMoodboardResponse = {
   // 서버가 쿠키의 신원과 보드 소유자를 대조해 내려준다 (#126). 소유자 식별값은 응답에 없다.
   isOwner: true,
   updatedAt: "2026-07-09T00:00:00.000Z",
+};
+
+// 분석(GPT-5)이 실패한 보드 — 이미지·저장·공유는 정상이고 그래프 자리만 재시도로 바뀐다(#122).
+export const MOODBOARD_ANALYSIS_FAILED: GetMoodboardResponse = {
+  ...MOODBOARD,
+  analysisStatus: "failed",
+};
+
+// "분석 다시 시도" 폴링 중간 상태 — 아직 안 끝남. 실패와 구별해야 한다(#122).
+export const MOODBOARD_ANALYSIS_PROCESSING: GetMoodboardResponse = {
+  ...MOODBOARD,
+  analysisStatus: "processing",
 };
 
 // #102 이전에 저장된 보드 — exportedImageUrl 이 없어 뷰어(BoardPreview)가 elements 를
@@ -120,13 +133,17 @@ export const MOODBOARD_SUMMARIES: MoodboardSummary[] = [
   },
 ];
 
+// analysisStatus는 기본 "completed"로 둔다 — 이미지 갈래(status)만 다루는 대부분의 테스트는
+// 분석 갈래에 신경 쓸 필요가 없다(#122). 분석 갈래 자체를 검증하는 테스트만 명시로 덮어쓴다.
 export function generationJob(
   status: GenerationJob["status"],
   progressPercent: number,
+  analysisStatus: GenerationJob["analysisStatus"] = "completed",
 ): GenerationJob {
   return {
     id: JOB_ID,
     status,
+    analysisStatus,
     progressPercent,
     statusMessage: null,
     elements: status === "completed" ? ELEMENTS : [],
