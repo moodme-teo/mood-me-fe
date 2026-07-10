@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-import { moodboardElementSchema } from "@/lib/api/get-moodboard";
+import {
+  moodboardElementSchema,
+  moodProfileSchema,
+} from "@/lib/api/get-moodboard";
 import { apiClient } from "@/lib/api-client";
 
 export const generationJobSchema = z.object({
@@ -13,6 +16,10 @@ export const generationJobSchema = z.object({
   statusMessage: z.string().nullable(),
   elements: z.array(moodboardElementSchema),
   baseImageUrl: z.string().nullable(),
+  // 서버(getLatestGenerationJob)는 이미 이 값을 내려주고 있었다 — 클라이언트 타입에
+  // 없어서 못 읽었을 뿐이다. 저장 직전 최신 job을 재조회할 때(MoodboardCropEditor) 이
+  // 값을 쓴다(#125) — 편집 화면 렌더 시점의 스냅샷이 그 사이 끝난 리포트를 놓치지 않도록.
+  moodProfile: moodProfileSchema.nullable(),
 });
 
 export type GenerationJob = z.infer<typeof generationJobSchema>;
