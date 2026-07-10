@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import GeneratingBoardAnimation from "@/components/generating/GeneratingBoardAnimation";
 import GeneratingError from "@/components/generating/GeneratingError";
 import GeneratingMessages from "@/components/generating/GeneratingMessages";
+import GenerationPercent from "@/components/generating/GenerationPercent";
 import GenerationProgressBar from "@/components/generating/GenerationProgressBar";
 import { useGenerationPolling } from "@/components/generating/useGenerationPolling";
 
@@ -41,17 +42,16 @@ export default function GeneratingLayout({ sessionId }: { sessionId: string }) {
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-12">
-      <GeneratingBoardAnimation revealedCount={revealedCount} />
-
-      <div className="flex w-full flex-col items-center gap-3">
+    <div className="flex flex-1 flex-col items-center justify-center gap-16 px-6 py-12">
+      {/* 상단: 진행률 → 상태 문구 → 프로그레스바 */}
+      <div className="flex w-full max-w-xs flex-col items-center gap-4">
+        <GenerationPercent percent={percent} />
         <GeneratingMessages isReentry={isReentry} />
         <GenerationProgressBar percent={percent} />
       </div>
 
-      <p className="text-xs text-muted-foreground" role="status">
-        세션 {sessionId}
-      </p>
+      {/* 하단: 인터랙티브하게 채워지는 무드보드 생성 연출 */}
+      <GeneratingBoardAnimation revealedCount={revealedCount} />
     </div>
   );
 }
