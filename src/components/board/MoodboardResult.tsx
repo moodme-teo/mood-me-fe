@@ -278,7 +278,7 @@ function StickerPhraseCloud({
   if (stickerPhrases.length === 0) return null;
 
   return (
-    <section className="grid gap-2 sm:grid-cols-3">
+    <section className="grid gap-2">
       {stickerPhrases.map((phrase) => (
         <div key={phrase} className="flex items-center justify-center gap-1">
           <span lang="en" className="-mb-3 font-display-en text-[32px]">
