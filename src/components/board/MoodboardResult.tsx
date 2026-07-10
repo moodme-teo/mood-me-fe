@@ -858,17 +858,10 @@ export default function MoodboardResult({ moodboardId }: Props) {
         </header>
 
         {exportedImageUrl ? (
-          // 크롭 에디터(#99) 결과 — 평면 이미지를 그대로 보여준다. 투명 영역은 체크보드로 표시.
-          <section
-            className="mx-auto flex aspect-square w-[360px] max-w-full items-center justify-center overflow-hidden"
-            style={{
-              backgroundImage:
-                "linear-gradient(45deg, #e5e5e5 25%, transparent 25%), linear-gradient(-45deg, #e5e5e5 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e5e5e5 75%), linear-gradient(-45deg, transparent 75%, #e5e5e5 75%)",
-              backgroundSize: "18px 18px",
-              backgroundPosition: "0 0, 0 9px, 9px -9px, -9px 0",
-              backgroundColor: "#ffffff",
-            }}
-          >
+          // 크롭 에디터(#99) 결과 — 평면 이미지를 그대로 보여준다. 투명 배경으로 만든
+          // 이미지는 결과 화면에서도 진짜 투명(페이지 배경이 비쳐 보임)으로 둔다. 체크보드는
+          // 편집 중 "여기는 투명"을 알리는 에디터 전용 표시일 뿐, 결과물엔 노출하지 않는다 (#176).
+          <section className="mx-auto flex aspect-square w-[360px] max-w-full items-center justify-center overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element -- 크롭 결과는 원격/데이터 URL이라 next/image 최적화 대상이 아니다. */}
             <img
               src={exportedImageUrl}
