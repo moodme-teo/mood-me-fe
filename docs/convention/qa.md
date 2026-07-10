@@ -21,19 +21,33 @@
 
 아래에서 위로 갈수록 느리고 비싸다. **아래 레이어가 잡을 수 있는 건 위에서 잡지 않는다.**
 
-| 레이어                | 도구                  | 명령                   | 언제 돌아가나             | 상태      |
-| --------------------- | --------------------- | ---------------------- | ------------------------- | --------- |
-| **Lint**              | ESLint (flat config)  | `npm run lint`         | 저장 시 · pre-commit · CI | ✅ 적용됨 |
-| **Format**            | Prettier              | `npm run format:check` | 저장 시 · pre-commit · CI | ✅ 적용됨 |
-| **Typecheck**         | `tsc --noEmit`        | `npm run typecheck`    | CI                        | ✅ 적용됨 |
-| **Unit test**         | Vitest                | —                      | —                         | 🔜 보류   |
-| **Build**             | `next build`          | `npm run build`        | CI                        | ✅ 적용됨 |
-| **E2E**               | Playwright            | `npm run e2e`          | CI · 필요할 때 로컬       | ✅ 적용됨 |
-| **Visual regression** | Playwright screenshot | `npm run e2e:visual`   | **로컬에서만** (CI 제외)  | ✅ 적용됨 |
+| 레이어                | 도구                  | 명령                   | 언제 돌아가나                 | 상태      |
+| --------------------- | --------------------- | ---------------------- | ----------------------------- | --------- |
+| **Lint**              | ESLint (flat config)  | `npm run lint`         | 저장 시 · pre-commit · CI     | ✅ 적용됨 |
+| **Format**            | Prettier              | `npm run format:check` | 저장 시 · pre-commit · CI     | ✅ 적용됨 |
+| **Typecheck**         | `tsc --noEmit`        | `npm run typecheck`    | CI                            | ✅ 적용됨 |
+| **Unit test**         | Vitest                | —                      | —                             | 🔜 보류   |
+| **Build**             | `next build`          | `npm run build`        | CI                            | ✅ 적용됨 |
+| **E2E**               | Playwright            | `npm run e2e`          | **로컬에서만** (CI 잠시 내림) | ⚠️ 적용됨 |
+| **Visual regression** | Playwright screenshot | `npm run e2e:visual`   | **로컬에서만** (CI 제외)      | ✅ 적용됨 |
 
 **"—"는 아직 없다는 뜻이다.** Unit test는 계획만 있고 코드가 없다 — 명령을 적어 두면 있는 것처럼 읽히므로 적지 않는다. 도입 조건은 아래 §Unit test에 있다.
 
 로컬 저장·커밋 시에는 lint/format만 돈다(lint-staged, 스테이징된 파일만). 전체 검사는 CI가 한다 — **커밋은 빠르게 유지한다.** 단 visual regression은 예외로, CI에 올리지 않는다(아래 §Visual regression).
+
+### ⚠️ E2E 게이트를 잠시 내렸다
+
+CI(`.github/workflows/ci.yml`)에서 E2E 스텝을 뺐다. `npm run e2e`는 로컬에서만 돈다.
+
+**스펙이 틀려서가 아니다.** 스펙은 PRD를 기준으로 쓰여 있고, 구현이 아직 그 기준에 닿지 않았다. `dev`의 디자인 프로토타입([#109](https://github.com/moodme-teo/mood-me-fe/issues/109) 추구미 테스트 · [#110](https://github.com/moodme-teo/mood-me-fe/issues/110) 히스토리 캐러셀)이 화면을 다시 만들면서 스펙이 기대는 접근성 계약이 사라졌다 — `N / M 선택됨`(`role="status"`), `이전 질문으로`, 덜어내기·최종 대결의 `aria-pressed`, History 카드 링크의 식별 가능한 이름.
+
+지금 `npm run e2e`를 돌리면 **12개가 실패한다** (`mood-test.spec.ts` 10개 + `home.spec.ts` 2개).
+
+- **스펙을 구현에 맞춰 무르지 않는다.** 그러면 회귀를 잡는 기준 자체가 사라진다. 스펙이 옳고 구현이 따라와야 한다.
+- 그렇다고 CI를 빨간불로 두면 이 화면과 무관한 PR까지 전부 막힌다.
+- 그래서 **게이트만 내리고 스펙은 그대로 둔다.** 실패 목록이 곧 [#129](https://github.com/moodme-teo/mood-me-fe/issues/129)의 할 일이다.
+
+`#129`를 끝내면 워크플로 주석에 적어 둔 세 스텝을 되살린다. **그전까지 E2E 회귀는 아무도 잡아주지 않는다** — 화면을 만졌으면 로컬에서 직접 돌린다.
 
 ### Unit test를 아직 넣지 않은 이유
 
@@ -60,7 +74,7 @@ npm run e2e:visual:update   # UI를 의도적으로 바꿨을 때 기준 갱신
 - UI를 만질 때마다 갱신되므로 저장소에 쌓이면 계속 무거워진다. 실제로 5장에 약 500KB였다.
 - 처음 돌리면 기준이 없어 **한 번 실패하면서 기준을 만든다.** 그 상태에서 UI를 고치고 다시 돌려 비교한다. 이게 정상 흐름이다.
 
-리뷰에서 "이 화면 안 깨졌나" 를 확인하려면 스냅샷이 아니라 **픽셀 단언**(아래)이나 E2E로 잡는다. 그건 CI에서 돈다.
+리뷰에서 "이 화면 안 깨졌나" 를 확인하려면 스냅샷이 아니라 **픽셀 단언**(아래)이나 E2E로 잡는다. 다만 **지금은 그것도 CI에서 돌지 않는다** — 위 §E2E 게이트 참조. 화면을 만졌으면 로컬에서 `npm run e2e`를 돌린다.
 
 **CI에서 도는 것을 막는 장치.** `playwright.config.ts`가 프로젝트를 둘로 가른다. `mobile-chromium`은 `**/visual/**`을 `testIgnore`하고, `visual`은 그것만 `testMatch`한다. CI가 부르는 `npm run e2e`는 `--project=mobile-chromium`이므로 스냅샷이 실릴 경로 자체가 없다. 워크플로를 고칠 필요도 없다.
 
@@ -118,7 +132,10 @@ e2e/
 │  └─ moodboard-result.page.ts
 ├─ utils/
 │  ├─ mock-api.ts           page.route 기반 API mock
+│  ├─ pixels.ts             픽셀 단언 (좌표 몇 개의 색만 읽는다)
 │  └─ session.ts            sessionStorage 시드 (스플래시 skip 등)
+├─ visual/                  시각 회귀 — 로컬 전용 `visual` 프로젝트
+│  └─ screens.visual.spec.ts
 ├─ home.spec.ts             시나리오
 ├─ mood-test.spec.ts
 ├─ mood-test-generating.spec.ts
