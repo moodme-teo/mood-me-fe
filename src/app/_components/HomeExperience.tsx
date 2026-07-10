@@ -15,6 +15,7 @@ import {
   VibeMark,
   VisionMark,
 } from "@/app/_components/HistoryWordmark";
+import { useBlockBackNavigation } from "@/app/_components/useBlockBackNavigation";
 import ProfileMenu from "@/components/auth/ProfileMenu";
 import { Button } from "@/components/ui/button";
 import { getMoodboards } from "@/lib/api/get-moodboards";
@@ -163,6 +164,10 @@ export default function HomeExperience({
   isLoggedIn,
 }: Props) {
   const router = useRouter();
+
+  // 홈에서는 브라우저 뒤로가기를 가로채 아무 동작도 하지 않게 한다 (앱 밖으로 이탈 방지).
+  useBlockBackNavigation();
+
   const [moodboards, setMoodboards] = useState(initialMoodboards);
   const [error, setError] = useState(initialError);
   const [isRetrying, setIsRetrying] = useState(false);
