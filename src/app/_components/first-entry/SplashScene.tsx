@@ -16,7 +16,6 @@ type Phase = "splash" | "entry";
 
 type Props = {
   phase: Phase;
-  reduced: boolean;
 };
 
 // 흩뿌려진 소형 워드(스플래시에서만 보이고 entry 로 사라짐). top/left 는 앱 프레임 대비 %.
@@ -29,7 +28,7 @@ const SCATTER_WORDS = [
 
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
-export default function SplashScene({ phase, reduced }: Props) {
+export default function SplashScene({ phase }: Props) {
   const isSplash = phase === "splash";
 
   return (
@@ -47,7 +46,7 @@ export default function SplashScene({ phase, reduced }: Props) {
             "radial-gradient(circle at 40% 40%, rgba(255,143,196,0.22), rgba(139,92,246,0.1) 55%, transparent 72%)",
         }}
         animate={{ opacity: isSplash ? 1 : 0, scale: isSplash ? 1 : 1.15 }}
-        transition={{ duration: reduced ? 0 : 0.7, ease: EASE_OUT }}
+        transition={{ duration: 0.7, ease: EASE_OUT }}
       />
 
       <h1 lang="en" className="font-display-en text-foreground">
@@ -67,21 +66,13 @@ export default function SplashScene({ phase, reduced }: Props) {
                   fontSize: `clamp(2.25rem, ${word.size}, 3.1rem)`,
                   fontStyle: word.italic ? "italic" : "normal",
                 }}
-                initial={
-                  reduced
-                    ? { opacity: 0 }
-                    : { opacity: 0, y: -28, filter: "blur(6px)" }
-                }
+                initial={{ opacity: 0, y: -28, filter: "blur(6px)" }}
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                exit={
-                  reduced
-                    ? { opacity: 0 }
-                    : { opacity: 0, y: -18, filter: "blur(4px)" }
-                }
+                exit={{ opacity: 0, y: -18, filter: "blur(4px)" }}
                 transition={{
-                  duration: reduced ? 0 : 0.55,
+                  duration: 0.55,
                   ease: EASE_OUT,
-                  delay: reduced ? 0 : index * 0.14,
+                  delay: index * 0.14,
                 }}
               >
                 {word.text}
@@ -97,13 +88,13 @@ export default function SplashScene({ phase, reduced }: Props) {
               aria-hidden="true"
               className="absolute"
               style={{ top: "30%", left: "5%", width: "21%" }}
-              initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.4 }}
+              initial={{ opacity: 0, scale: 0.4 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.6 }}
               transition={{
-                duration: reduced ? 0 : 0.6,
+                duration: 0.6,
                 ease: [0.34, 1.56, 0.64, 1],
-                delay: reduced ? 0 : 0.2,
+                delay: 0.2,
               }}
             >
               <BowMark className="block w-full" />
@@ -119,17 +110,13 @@ export default function SplashScene({ phase, reduced }: Props) {
               aria-hidden="true"
               className="absolute"
               style={{ top: "40%", left: "60%", width: "20%" }}
-              initial={
-                reduced
-                  ? { opacity: 0 }
-                  : { opacity: 0, scale: 0.5, rotate: -20 }
-              }
+              initial={{ opacity: 0, scale: 0.5, rotate: -20 }}
               animate={{ opacity: 1, scale: 1, rotate: 0 }}
               exit={{ opacity: 0, scale: 0.6 }}
               transition={{
-                duration: reduced ? 0 : 0.6,
+                duration: 0.6,
                 ease: [0.34, 1.56, 0.64, 1],
-                delay: reduced ? 0 : 0.5,
+                delay: 0.5,
               }}
             >
               <SparkleMark className="block w-full" />
@@ -152,9 +139,9 @@ export default function SplashScene({ phase, reduced }: Props) {
             scale: isSplash ? 1 : 0.98,
           }}
           transition={{
-            duration: reduced ? 0 : 0.75,
+            duration: 0.75,
             ease: EASE_OUT,
-            delay: reduced || isSplash ? 0 : 0.15,
+            delay: isSplash ? 0 : 0.15,
           }}
         >
           Board
@@ -166,14 +153,10 @@ export default function SplashScene({ phase, reduced }: Props) {
         {isSplash && (
           <motion.p
             className="absolute bottom-[8%] left-[12%] max-w-[74%] font-body font-medium text-pretty text-gray-700 text-caption"
-            initial={reduced ? { opacity: 0 } : { opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            transition={{
-              duration: reduced ? 0 : 0.6,
-              ease: EASE_OUT,
-              delay: reduced ? 0 : 0.7,
-            }}
+            transition={{ duration: 0.6, ease: EASE_OUT, delay: 0.7 }}
           >
             무드보드 만들고 싶은데, 핀터레스트에서만 세 시간째 이미지 찾고
             배치하다가 지치는 게 현실. 질문 몇 개에 답하면 AI가 나의 추구미를 한

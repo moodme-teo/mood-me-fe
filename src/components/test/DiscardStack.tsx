@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  AnimatePresence,
-  motion,
-  type PanInfo,
-  useReducedMotion,
-} from "framer-motion";
+import { AnimatePresence, motion, type PanInfo } from "framer-motion";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
@@ -41,7 +36,6 @@ export default function DiscardStack({
   atCapacity,
   onToggle,
 }: Props) {
-  const prefersReducedMotion = useReducedMotion();
   const remaining = cards.filter((card) => !selectedIds.includes(card.id));
   const remainingIds = remaining.map((card) => card.id);
 
@@ -142,17 +136,13 @@ export default function DiscardStack({
                 animate={{
                   x: offset.x,
                   y: offset.y,
-                  rotate: prefersReducedMotion ? 0 : offset.rotate,
+                  rotate: offset.rotate,
                   scale: 1,
                   opacity: 1,
                 }}
-                exit={
-                  prefersReducedMotion
-                    ? { opacity: 0 }
-                    : { y: 260, opacity: 0, rotate: -8 }
-                }
+                exit={{ y: 260, opacity: 0, rotate: -8 }}
                 transition={{ type: "spring", stiffness: 340, damping: 30 }}
-                drag={draggable && !prefersReducedMotion}
+                drag={draggable}
                 dragSnapToOrigin
                 dragElastic={0.6}
                 whileDrag={{ cursor: "grabbing" }}
