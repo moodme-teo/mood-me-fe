@@ -6,6 +6,7 @@ import { buildMoodAnalysisPayload } from "@/lib/mood-test/build-analysis-payload
 import { getCompletedMoodTestSession } from "@/lib/mood-test/get-completed-session";
 import type { Journey } from "@/lib/mood-test/journey";
 import { assembleBoard } from "@/lib/moodboard/assemble-board";
+import { uploadGeneratedBaseImage } from "@/lib/moodboard/upload-generated-image";
 import {
   buildMoodAnalysisRetryMessage,
   buildMoodAnalysisSystemPrompt,
@@ -412,11 +413,27 @@ export async function runGenerationPipeline(
     return;
   }
 
+  // gpt-image-2 결과(base64)를 job 컬럼에 그대로 남기면, 편집 완료 시 그 값이 그대로
+  // PATCH body(baseImageUrl)에 실려 나가 Vercel 요청 바디 제한(413)에 걸린다 — Storage에
+  // 올려 URL만 남긴다 (#163 후속, uploadExportedImage와 같은 패턴).
+  let baseImageUrl: string;
+  try {
+    baseImageUrl = await uploadGeneratedBaseImage(
+      jobId,
+      assembled.baseImageUrl,
+    );
+  } catch (error) {
+    console.error("[runGenerationPipeline] 보드 이미지 업로드 실패:", error);
+    await markJobFailed(service, jobId, "보드 이미지 업로드에 실패했습니다");
+    await analysisSettled;
+    return;
+  }
+
   await service
     .from("moodboard_generation_jobs")
     .update({
       elements: assembled.elements,
-      base_image_url: assembled.baseImageUrl,
+      base_image_url: baseImageUrl,
       status: "completed",
       progress_percent: 100,
       updated_at: new Date().toISOString(),

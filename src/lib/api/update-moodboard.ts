@@ -70,7 +70,10 @@ export const moodboardElementSchema = z.discriminatedUnion("type", [
 ]);
 
 export const updateMoodboardRequestSchema = z.object({
-  baseImageUrl: z.string().min(1),
+  // mock 폴백(getMockMoodboard)이 상대 경로(/test-image/...)를 쓰기도 해 .url()은
+  // 강제하지 않는다 — 방어적으로 길이만 제한해 base64 dataURL류 폭주를 400으로 걸러낸다
+  // (#163 후속 — baseImageUrl도 exportedImageUrl과 같은 413 위험이 있었다).
+  baseImageUrl: z.string().min(1).max(2048),
   elements: z.array(moodboardElementSchema),
   // Storage에 업로드한 결과 URL — base64 dataURL이 아니다. 방어적으로 길이도 제한한다
   // (#163, docs/convention/canvas.md — dataURL을 DB에 직접 저장하지 않는다).

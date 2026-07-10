@@ -8,15 +8,16 @@ import { createExportUploadUrl } from "@/lib/api/create-export-upload-url";
 import { createClient } from "@/lib/supabase/client";
 import { MOODBOARD_EXPORT_BUCKET } from "@/types/moodboard";
 
-export async function uploadExportedImage(
+async function uploadDataUrlToStorage(
   moodboardId: string,
   pngDataUrl: string,
+  kind: "export" | "base",
 ): Promise<string | undefined> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
     return undefined;
   }
 
-  const { path, token } = await createExportUploadUrl(moodboardId);
+  const { path, token } = await createExportUploadUrl(moodboardId, kind);
 
   const blob = await (await fetch(pngDataUrl)).blob();
   const supabase = createClient();
@@ -30,4 +31,16 @@ export async function uploadExportedImage(
 
   return supabase.storage.from(MOODBOARD_EXPORT_BUCKET).getPublicUrl(path).data
     .publicUrl;
+}
+
+export function uploadExportedImage(moodboardId: string, pngDataUrl: string) {
+  return uploadDataUrlToStorage(moodboardId, pngDataUrl, "export");
+}
+
+// baseImageUrl(gpt-image-2 원본 보드 이미지)은 생성 시점(uploadGeneratedBaseImage,
+// generate-mood-analysis.ts)에 Storage URL로 저장되는 게 정상 경로다 — 이 함수는 그
+// 전에 만들어진 레거시 보드(base64가 그대로 baseImageUrl에 남아있는 경우)를 재편집·
+// 재저장할 때 자가 치유하는 용도다. dataURL이 아니면(이미 URL이면) 호출하지 않는다.
+export function uploadBaseImage(moodboardId: string, pngDataUrl: string) {
+  return uploadDataUrlToStorage(moodboardId, pngDataUrl, "base");
 }

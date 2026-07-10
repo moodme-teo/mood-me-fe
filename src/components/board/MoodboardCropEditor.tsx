@@ -37,7 +37,10 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogActions, DialogContent } from "@/components/ui/dialog";
 import { getGenerationJob } from "@/lib/api/get-generation-job";
 import { updateMoodboard } from "@/lib/api/update-moodboard";
-import { uploadExportedImage } from "@/lib/moodboard/upload-exported-image";
+import {
+  uploadBaseImage,
+  uploadExportedImage,
+} from "@/lib/moodboard/upload-exported-image";
 import type { AnalysisStatus, EditState, MoodProfile } from "@/types/moodboard";
 
 type Props = {
@@ -431,6 +434,14 @@ export default function MoodboardCropEditor({
         ? await uploadExportedImage(moodboardId, exportedImageDataUrl)
         : undefined;
 
+      // baseImageUrl은 생성 시점에 이미 Storage URL이어야 정상이다(uploadGeneratedBaseImage,
+      // generate-mood-analysis.ts) — 그 전에 만들어진 레거시 보드만 아직 base64일 수 있어
+      // 재저장 시 여기서 자가 치유한다. 그러지 않으면 이 값도 exportedImageUrl과 같은
+      // 이유로 PATCH body에서 413을 일으킨다 (#163 후속).
+      const persistedBaseImageUrl = baseImageUrl.startsWith("data:")
+        ? ((await uploadBaseImage(moodboardId, baseImageUrl)) ?? baseImageUrl)
+        : baseImageUrl;
+
       // 이 화면은 서버 컴포넌트가 렌더 시점에 job을 1회만 읽어 moodProfile을 prop으로
       // 내려받는다 — 그 이후 리포트(GPT-5)가 끝나도 이 prop은 갱신되지 않는다. 저장
       // 직전에 최신 job을 한 번 더 조회해 그 스냅샷 대신 쓴다 — 그래야 편집 화면에
@@ -456,11 +467,11 @@ export default function MoodboardCropEditor({
       // 서버가 기존 test_session_id를 그대로 둔다(#122).
       // 소유자는 서버가 쿠키에서 읽는다 — 여기서 실어 보내지 않는다 (#126).
       await updateMoodboard(moodboardId, {
-        baseImageUrl,
+        baseImageUrl: persistedBaseImageUrl,
         elements: [],
         exportedImageUrl,
         editState: {
-          sourceImageUrl: baseImageUrl,
+          sourceImageUrl: persistedBaseImageUrl,
           shapeId: crop.shape,
           background: crop.background,
           scale: crop.transform.zoom,
