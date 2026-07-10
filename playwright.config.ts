@@ -55,10 +55,10 @@ export default defineConfig({
     },
   ],
 
-  // 기준 이미지는 러너가 아니라 **개발자 기기**에 묶인다. 파일명에 플랫폼을 박아 두면
-  // 다른 OS 에서 돌렸을 때 남의 기준과 비교하다 깨지는 대신 "기준 없음" 으로 명확히 실패한다.
-  snapshotPathTemplate:
-    "{testDir}/visual/__screenshots__/{arg}-{platform}{ext}",
+  // 기준 이미지는 커밋하지 않는다 (.gitignore) — 각자 자기 기기에서 만들어 쓴다.
+  // 그래서 Playwright 기본 경로(스펙 옆 `*-snapshots/`)에 두지 않고 한 폴더로 모은다.
+  // 무시 규칙 한 줄로 덮이고, 지울 때도 이 폴더만 지우면 된다.
+  snapshotPathTemplate: "{testDir}/visual/__screenshots__/{arg}{ext}",
 
   webServer: {
     command: process.env.CI

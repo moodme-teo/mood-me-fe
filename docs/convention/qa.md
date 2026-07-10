@@ -48,11 +48,19 @@
 ### Visual regression — 도입했다. 로컬에서만 돈다
 
 ```bash
-npm run e2e:visual          # 기준 이미지와 비교
+npm run e2e:visual          # 기준 이미지와 비교 (없으면 만들고 실패한다)
 npm run e2e:visual:update   # UI를 의도적으로 바꿨을 때 기준 갱신
 ```
 
-스펙은 `e2e/visual/`, 기준 이미지는 `e2e/visual/__screenshots__/`에 **플랫폼 접미사와 함께** 저장된다(`*-darwin.png`). 다른 OS에서 처음 돌리면 비교가 아니라 "기준 없음"으로 실패한다 — 남의 기준과 비교하다 애매하게 깨지는 것보다 낫다.
+스펙은 `e2e/visual/`, 기준 이미지는 `e2e/visual/__screenshots__/`에 저장된다.
+
+**기준 이미지는 커밋하지 않는다** (`.gitignore`). 각자 자기 기기에서 만들어 쓰는 로컬 도구다.
+
+- 폰트·GPU 래스터라이즈가 기기마다 달라 **남의 기준과는 어차피 비교할 수 없다.** 공유해 봐야 남의 diff만 본다.
+- UI를 만질 때마다 갱신되므로 저장소에 쌓이면 계속 무거워진다. 실제로 5장에 약 500KB였다.
+- 처음 돌리면 기준이 없어 **한 번 실패하면서 기준을 만든다.** 그 상태에서 UI를 고치고 다시 돌려 비교한다. 이게 정상 흐름이다.
+
+리뷰에서 "이 화면 안 깨졌나" 를 확인하려면 스냅샷이 아니라 **픽셀 단언**(아래)이나 E2E로 잡는다. 그건 CI에서 돈다.
 
 **CI에서 도는 것을 막는 장치.** `playwright.config.ts`가 프로젝트를 둘로 가른다. `mobile-chromium`은 `**/visual/**`을 `testIgnore`하고, `visual`은 그것만 `testMatch`한다. CI가 부르는 `npm run e2e`는 `--project=mobile-chromium`이므로 스냅샷이 실릴 경로 자체가 없다. 워크플로를 고칠 필요도 없다.
 

@@ -21,12 +21,12 @@ import { seedGuestSession, skipSplash } from "../utils/session";
  * 쉽게 깨져서, 러너 환경을 고정하기 전까지 CI 스냅샷은 신호가 아니라 소음이다.
  *
  * 쓰는 법:
- *   npm run e2e:visual          # 기준 이미지와 비교
+ *   npm run e2e:visual          # 기준 이미지와 비교 (없으면 만들고 한 번 실패한다)
  *   npm run e2e:visual:update   # UI 를 의도적으로 바꿨을 때 기준을 갱신
  *
- * 기준 이미지는 `e2e/visual/__screenshots__/` 에 플랫폼 접미사와 함께 저장된다.
- * 다른 OS 에서 처음 돌리면 비교가 아니라 **기준 없음으로 실패**한다 — 남의 기준과
- * 비교해 애매하게 깨지는 것보다 낫다.
+ * **기준 이미지는 커밋하지 않는다** (`e2e/visual/__screenshots__/` 는 gitignore).
+ * 폰트·GPU 래스터라이즈가 기기마다 달라 남의 기준과는 비교할 수 없고, UI 를 만질 때마다
+ * 갱신되어 저장소만 무거워진다. 각자 자기 기기에서 만들어 쓰는 로컬 도구다.
  *
  * 이 화면들만 찍는 이유 — 전부 고정 mock 위에서 렌더되어 매번 같은 픽셀이 나온다:
  * - 홈(첫진입): 저장 보드 0개. 스플래시를 건너뛰어 phase 를 entry 로 고정한다.

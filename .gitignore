@@ -60,3 +60,6 @@ supabase/.branches/
 *.local.md
 # Claude Code 가 만드는 임시 worktree (임베디드 git 저장소)
 .claude/worktrees/
+
+# 시각 회귀 기준 이미지 — 로컬에서만 쓴다 (docs/convention/qa.md §Visual regression)
+e2e/visual/__screenshots__/
