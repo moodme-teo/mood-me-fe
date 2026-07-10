@@ -57,7 +57,10 @@ function MoodboardImage({ moodboard }: { moodboard: MoodboardSummary }) {
       src={moodboard.thumbnailUrl}
       alt={`${moodboard.typeName} 무드보드 썸네일`}
       sizes="(max-width: 768px) 70vw, 320px"
-      className="object-cover"
+      // 크롭 에디터 결과는 1:1 정사각(원·별 등 비사각형 모양 + 투명/블러 배경 포함)이라
+      // object-cover 로 카드 비율(3:4)에 맞춰 다시 잘라내면 사용자가 고른 크롭이 잘린다.
+      // contain 으로 전체를 보여주고, 남는 여백은 래퍼의 bg-surface-sunken 이 채운다.
+      className="object-contain"
       draggable={false}
       onError={() => setHasFailed(true)}
     />
@@ -266,7 +269,7 @@ export default function HistoryCarousel({ moodboards }: Props) {
                     transition,
                   }}
                 >
-                  <div className="relative h-full w-full overflow-hidden rounded-sm bg-surface-sunken shadow-card">
+                  <div className="relative h-full w-full overflow-hidden rounded-sm">
                     <MoodboardImage moodboard={moodboard} />
                     {moodboard.isGuest ? (
                       <span className="absolute top-3 left-3 rounded-full bg-surface-inverse/80 px-2 py-1 font-semibold text-white text-caption">
@@ -280,11 +283,9 @@ export default function HistoryCarousel({ moodboards }: Props) {
                         aria-label={`${moodboard.typeName} 결과 보기`}
                         className="absolute inset-0"
                       >
-                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent p-4 pt-10">
-                          <p className="line-clamp-1 font-semibold text-white/90 text-body-sm">
-                            {moodboard.typeName}
-                          </p>
-                        </div>
+                        <p className="line-clamp-1 text-center font-semibold text-body-sm">
+                          {moodboard.typeName}
+                        </p>
                       </Link>
                     ) : null}
                   </div>
