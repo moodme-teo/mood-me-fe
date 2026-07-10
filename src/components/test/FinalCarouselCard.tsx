@@ -161,7 +161,7 @@ export default function FinalCarouselCard({
         isFocused
           ? "cursor-grab shadow-card active:cursor-grabbing"
           : "cursor-pointer shadow-card"
-      } ${imagePath ? "bg-background" : "bg-surface-sunken"}`}
+      } ${imagePath ? "bg-background" : "bg-white"}`}
     >
       {imagePath && (
         <Image

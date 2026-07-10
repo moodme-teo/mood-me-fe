@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { ArrowDownLeft, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -106,7 +107,7 @@ export default function FinalGrid({
               }}
               className={`relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-sm shadow-card ${
                 COMPLETE_GRID_SPAN[index] ?? "col-span-2"
-              } ${imagePath ? "" : "bg-[image:var(--gradient-violet-soft)]"}`}
+              } ${imagePath ? "" : "bg-white"}`}
             >
               {imagePath && (
                 <Image
@@ -143,6 +144,35 @@ export default function FinalGrid({
       onKeyDown={handleKeyDown}
       className="relative h-[min(540px,56dvh)] overflow-hidden outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
     >
+      <button
+        type="button"
+        aria-label="현재 카드 버리기"
+        onClick={() => onReject(remainingIds[focusIndex])}
+        className="absolute right-3 bottom-3 z-[110] flex cursor-pointer items-center gap-0.5 text-[10px] text-muted-foreground/70 hover:text-muted-foreground"
+      >
+        끌어서 버리기
+        <ArrowDownRight className="size-3" />
+      </button>
+      <button
+        type="button"
+        aria-label="이전 카드 보기"
+        disabled={focusIndex <= 0}
+        onClick={() => moveFocus("prev")}
+        className="absolute top-3 right-3 z-[110] flex cursor-pointer items-center gap-0.5 text-[10px] text-muted-foreground/70 hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-0"
+      >
+        이전 카드
+        <ArrowUpRight className="size-3" />
+      </button>
+      <button
+        type="button"
+        aria-label="다음 카드 보기"
+        disabled={focusIndex >= remainingIds.length - 1}
+        onClick={() => moveFocus("next")}
+        className="absolute bottom-3 left-3 z-[110] flex cursor-pointer items-center gap-0.5 text-[10px] text-muted-foreground/70 hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-0"
+      >
+        <ArrowDownLeft className="size-3" />
+        다음 카드
+      </button>
       <AnimatePresence>
         {remainingIds.map((id, index) => {
           const { label, imagePath } = resolveCardVisual(id);
