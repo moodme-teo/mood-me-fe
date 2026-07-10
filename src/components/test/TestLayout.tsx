@@ -29,11 +29,58 @@ type Props = {
   sessionId: string;
 };
 
+// 상위 단계를 바꾸면 하위 단계의 선택지 구성 자체가 달라져 뒤 단계를 비울 수밖에 없다.
+// 조용히 지우면 사용자는 왜 사라졌는지 모른다 — 확정 전에 알리고 되돌릴 기회를 준다.
+function ConfirmResetDialog({
+  isOpen,
+  onCancel,
+  onConfirm,
+}: {
+  isOpen: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-surface-inverse/48 p-4 sm:items-center sm:justify-center">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reset-title"
+        className="w-full max-w-sm rounded-2xl bg-card p-5 text-foreground shadow-xl"
+      >
+        <h2 id="reset-title" className="text-lg font-bold">
+          이전 선택을 바꾸면 이후에 고른 내용이 초기화돼요
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-gray-700">변경할까요?</p>
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-bold text-foreground"
+          >
+            그대로 둘게요
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
+          >
+            변경할게요
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function TestLayout({ sessionId }: Props) {
   const router = useRouter();
   const flow = useMoodTestFlow();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
   useEffect(() => {
     saveMoodTestDraft({ sessionId, stepIndex: flow.screenIndex });
@@ -51,6 +98,11 @@ export default function TestLayout({ sessionId }: Props) {
     if (!flow.canConfirm) return;
 
     if (!flow.isLastScreen) {
+      // 뒤 단계에 고른 내용이 있고 그게 지워질 참이면 먼저 확인을 받는다.
+      if (flow.willResetDownstream) {
+        setIsResetConfirmOpen(true);
+        return;
+      }
       flow.confirm();
       return;
     }
@@ -125,6 +177,15 @@ export default function TestLayout({ sessionId }: Props) {
         onClick={handleNext}
         disabled={!flow.canConfirm || isSubmitting}
         errorMessage={submitError}
+      />
+
+      <ConfirmResetDialog
+        isOpen={isResetConfirmOpen}
+        onCancel={() => setIsResetConfirmOpen(false)}
+        onConfirm={() => {
+          setIsResetConfirmOpen(false);
+          flow.confirm();
+        }}
       />
     </div>
   );

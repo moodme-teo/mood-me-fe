@@ -11,6 +11,7 @@ import {
   previewCardIdsForScreen,
   targetCountForScreen,
   TOTAL_SCREENS,
+  willResetDownstream,
 } from "@/components/test/mood-test-flow";
 import { SHADOWS } from "@/lib/mood-test/seed";
 
@@ -66,6 +67,12 @@ export function useMoodTestFlow() {
     draft: state.draft,
     target,
     canConfirm: state.draft.length === target,
+    /** 지금 확정하면 뒤 단계 선택이 지워진다 — 확인을 받아야 한다. */
+    willResetDownstream: willResetDownstream(
+      screen,
+      state.draft,
+      state.committed,
+    ),
     isFirstScreen: state.screenIndex === 0,
     isLastScreen: state.screenIndex === TOTAL_SCREENS - 1,
     copy,

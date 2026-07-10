@@ -309,6 +309,9 @@ format:check → lint → typecheck → build → e2e
 | 홈              | 게스트가 로그인 없이 진입, Create → 테스트 이동 | `home.spec.ts`                 | ✅             |
 | 추구미 테스트   | 8개 화면 완주 → 생성중 이동                     | `mood-test.spec.ts`            | ✅             |
 | 추구미 테스트   | 목표치 전 "다음" 비활성                         | `mood-test.spec.ts`            | ✅             |
+| 추구미 테스트   | 정원 도달 시 잠금 · 연타해도 초과 없음          | `mood-test.spec.ts`            | ✅             |
+| 추구미 테스트   | 재선택 해제 · 뒤로가기 시 선택 유지             | `mood-test.spec.ts`            | ✅             |
+| 추구미 테스트   | 상위 단계 변경 → 확인 후 하위 초기화            | `mood-test.spec.ts`            | ✅             |
 | 생성중          | 진행률이 채워진다                               | `mood-test-generating.spec.ts` | ✅             |
 | 생성중          | 완료 → 편집 이동                                | `mood-test-generating.spec.ts` | ✅             |
 | 생성중          | job 실패 · 생성요청 실패 · 재시도               | `mood-test-generating.spec.ts` | ✅             |

@@ -18,20 +18,41 @@ const SELECTION_PATTERN = /(\d+)\s*\/\s*(\d+)\s*선택됨/;
  * 사용 기준:
  * - complete() 는 완주가 목적일 때만 쓴다. 선택 규칙 자체를 검증한다면 pickOne() 으로
  *   한 번에 한 칸씩 눌러 spec 이 중간 상태를 단언할 수 있게 한다.
+ * - 목표치를 채우면 고르지 않은 선택지가 `disabled` 된다. unpickedOptions 가 그때
+ *   비는 것은 버그가 아니라 정원 초과 방지다 — 바꾸려면 pickedOptions 를 먼저 해제한다.
  */
 export class MoodTestPage {
   readonly nextButton: Locator;
+  readonly backButton: Locator;
   readonly selectionStatus: Locator;
-  private readonly unpickedOptions: Locator;
+  /** 아직 고르지 않았고 아직 누를 수 있는 선택지. 정원이 차면 0개가 된다. */
+  readonly unpickedOptions: Locator;
+  /** 이미 고른 선택지. 다시 누르면 해제된다. */
+  readonly pickedOptions: Locator;
+
+  /** 상위 단계를 바꿔 하위 단계가 지워질 때 뜨는 확인 다이얼로그. */
+  readonly resetDialog: Locator;
+  readonly resetConfirmButton: Locator;
+  readonly resetCancelButton: Locator;
 
   constructor(private readonly page: Page) {
     this.nextButton = page.getByRole("button", {
       name: /^(다음|무드보드 생성하기)/,
     });
+    this.backButton = page.getByRole("button", { name: "이전 질문으로" });
     this.selectionStatus = page.locator('p[role="status"]');
     this.unpickedOptions = page.locator(
       'button[aria-pressed="false"]:not([disabled])',
     );
+    this.pickedOptions = page.locator('button[aria-pressed="true"]');
+
+    this.resetDialog = page.getByRole("dialog", {
+      name: "이전 선택을 바꾸면 이후에 고른 내용이 초기화돼요",
+    });
+    this.resetConfirmButton = page.getByRole("button", { name: "변경할게요" });
+    this.resetCancelButton = page.getByRole("button", {
+      name: "그대로 둘게요",
+    });
   }
 
   async goto(sessionId: string) {
@@ -58,6 +79,51 @@ export class MoodTestPage {
     await expect(this.selectionStatus).toContainText(
       `${picked + 1} / ${target} 선택됨`,
     );
+  }
+
+  /** 이미 고른 선택지 하나를 해제하고, 상태 텍스트에 반영될 때까지 기다린다. */
+  async unpickOne() {
+    const { picked, target } = await this.readSelection();
+    await this.pickedOptions.first().click();
+    await expect(this.selectionStatus).toContainText(
+      `${picked - 1} / ${target} 선택됨`,
+    );
+  }
+
+  /**
+   * 목록 끝쪽의 선택지를 고른다.
+   *
+   * pickOne() 은 항상 첫 번째 미선택 항목을 누른다. 방금 unpickOne() 으로 해제한 카드가
+   * 바로 그 자리로 돌아오므로, 이어서 pickOne() 을 부르면 같은 카드를 다시 골라 선택
+   * 집합이 그대로다. "선택을 바꿨다" 를 만들려면 다른 카드를 눌러야 한다.
+   */
+  async pickAnother() {
+    const { picked, target } = await this.readSelection();
+    await this.unpickedOptions.last().click();
+    await expect(this.selectionStatus).toContainText(
+      `${picked + 1} / ${target} 선택됨`,
+    );
+  }
+
+  /**
+   * 대기 없이 선택지를 연달아 누른다 — 리듀서의 정원 초과 방어(toggleDraftId)를 직접 친다.
+   *
+   * Playwright 의 click() 은 매번 actionability 를 확인하느라 리렌더를 기다린다. 그러면
+   * 정원이 찬 순간 나머지 카드가 disabled 되어 클릭이 멈추고, 검증하려던 경합 자체가
+   * 일어나지 않는다. 그래서 한 태스크 안에서 DOM 클릭을 직접 쏴 리렌더 전의 상태를 노린다.
+   */
+  async burstPick(count: number) {
+    await this.page.evaluate((total) => {
+      const options = Array.from(
+        document.querySelectorAll<HTMLButtonElement>("button[aria-pressed]"),
+      );
+      for (const option of options.slice(0, total)) option.click();
+    }, count);
+  }
+
+  /** 이전 화면으로 돌아간다. 첫 화면에서 누르면 홈으로 나간다. */
+  async back() {
+    await this.backButton.click();
   }
 
   /** 현재 화면의 목표치를 채운다. */
