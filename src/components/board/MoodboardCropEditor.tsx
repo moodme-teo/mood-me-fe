@@ -445,7 +445,8 @@ export default function MoodboardCropEditor({
         ...(analysisStatus ? { analysisStatus } : {}),
         ...(sessionId ? { sessionId } : {}),
       });
-      router.push(`/moodboard/${moodboardId}`);
+      // 결과 페이지가 "직후 진입"과 "히스토리 재열람"을 구분하는 유일한 신호 (#157).
+      router.push(`/moodboard/${moodboardId}?from=complete`);
     } catch (error) {
       console.error(error);
       showToast("저장하지 못했어요. 다시 시도해 주세요.");

@@ -40,4 +40,5 @@ export const apiClient = {
   get: <T>(path: string) => request<T>(path),
   post: withBody("POST"),
   patch: withBody("PATCH"),
+  delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
 };

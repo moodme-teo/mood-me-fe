@@ -359,6 +359,8 @@ format:check → lint → typecheck → build → e2e
 | 결과물          | 공유 — 링크 복사                                | `moodboard-result.spec.ts`     | ✅             |
 | 결과물          | "다시 만들기" 확인 다이얼로그 (확인·취소)       | `moodboard-result.spec.ts`     | ✅             |
 | 결과물          | 로드 실패 화면                                  | `moodboard-result.spec.ts`     | ✅             |
+| 결과물          | 접근 시나리오 분기 (직후/히스토리/공유)         | `moodboard-result.spec.ts`     | ✅             |
+| 결과물          | 히스토리 삭제 (확인·취소·실패)                  | `moodboard-result.spec.ts`     | ✅             |
 | 재편집          | 도형·배경·확대 전환, 탭 전환                    | `moodboard-edit.spec.ts`       | ✅             |
 | 재편집          | 저장 시트 — PNG 다운로드 · 완성 후 결과물 이동  | `moodboard-edit.spec.ts`       | ✅             |
 | 재편집          | 저장 결과물 = 미리보기 (픽셀)                   | `moodboard-edit.spec.ts`       | ✅             |

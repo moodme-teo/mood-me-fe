@@ -3,6 +3,7 @@
 export type ApiErrorCode =
   | "INVALID_INPUT"
   | "UNAUTHORIZED"
+  | "FORBIDDEN"
   | "NOT_FOUND"
   | "AI_TIMEOUT"
   | "GENERATION_FAILED"

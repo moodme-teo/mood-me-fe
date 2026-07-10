@@ -1,6 +1,13 @@
 "use client";
 
-import { Download, Home, Pencil, RotateCcw, Share2 } from "lucide-react";
+import {
+  Download,
+  Home,
+  Pencil,
+  RotateCcw,
+  Share2,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -11,6 +18,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogActions, DialogContent } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import { deleteMoodboard } from "@/lib/api/delete-moodboard";
 import type { GetMoodboardResponse } from "@/lib/api/get-moodboard";
 import { getMoodboard } from "@/lib/api/get-moodboard";
 import { retryMoodboardAnalysis } from "@/lib/api/retry-moodboard-analysis";
@@ -36,6 +44,22 @@ type LoadState =
   | { status: "loading" }
   | { status: "error"; message: string; isMissing: boolean }
   | { status: "ready"; moodboard: GetMoodboardResponse };
+
+// 결과 페이지 3가지 접근 시나리오 (#157) — isOwner(서버 대조값)와 "직후 진입" 신호를 조합한다.
+// justCompleted는 URL을 벗어나면(새로고침·재방문) 사라지는 일회성 신호라 history와 구분된다.
+type ResultScenario = "justCompleted" | "history" | "shared";
+
+function resolveScenario(
+  isOwner: boolean,
+  justCompleted: boolean,
+): ResultScenario {
+  if (!isOwner) return "shared";
+  return justCompleted ? "justCompleted" : "history";
+}
+
+// MoodboardCropEditor.tsx의 테스트 완료 리다이렉트가 붙이는 "직후 진입" 신호.
+const JUST_COMPLETED_QUERY_KEY = "from";
+const JUST_COMPLETED_QUERY_VALUE = "complete";
 
 type SpectrumTone = "pink" | "violet" | "cyan" | "green" | "mustard";
 
@@ -352,21 +376,41 @@ function SaveFormatSheet({
 
 // 브라우저 모달(window.confirm)은 페이지 스크립트를 멈추고 스타일도 제어할 수 없다.
 // ui/dialog 의 인앱 다이얼로그로 맞춘다.
+//
+// history 열람 맥락은 "방금 만든 걸 다시"라는 현재 문구와 어긋나지만, 최종 카피는
+// UXUI 리더 리뷰에서 확정한다 — 여기서는 시나리오별로 분기할 수 있는 지점만 마련한다 (#157).
+const RESTART_DIALOG_COPY: Record<
+  "justCompleted" | "history",
+  { title: string; description: string }
+> = {
+  justCompleted: {
+    title: "처음부터 다시 만들까요?",
+    description:
+      "지금 보고 있는 무드보드는 그대로 남아요. 새 테스트를 시작합니다.",
+  },
+  history: {
+    title: "처음부터 다시 만들까요?",
+    description:
+      "지금 보고 있는 무드보드는 그대로 남아요. 새 테스트를 시작합니다.",
+  },
+};
+
 function ConfirmRestartDialog({
+  scenario,
   isOpen,
   onCancel,
   onConfirm,
 }: {
+  scenario: "justCompleted" | "history";
   isOpen: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const { title, description } = RESTART_DIALOG_COPY[scenario];
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent
-        title="처음부터 다시 만들까요?"
-        description="지금 보고 있는 무드보드는 그대로 남아요. 새 테스트를 시작합니다."
-      >
+      <DialogContent title={title} description={description}>
         <DialogActions>
           <Button
             type="button"
@@ -385,17 +429,89 @@ function ConfirmRestartDialog({
   );
 }
 
+function ConfirmDeleteDialog({
+  isOpen,
+  isDeleting,
+  onCancel,
+  onConfirm,
+}: {
+  isOpen: boolean;
+  isDeleting: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent
+        title="이 무드보드를 삭제할까요?"
+        description="삭제하면 되돌릴 수 없어요."
+      >
+        <DialogActions>
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            onClick={onCancel}
+            disabled={isDeleting}
+          >
+            취소
+          </Button>
+          <Button
+            type="button"
+            tone="pink"
+            size="md"
+            onClick={onConfirm}
+            disabled={isDeleting}
+          >
+            {isDeleting ? "삭제하는 중" : "삭제할게요"}
+          </Button>
+        </DialogActions>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// !owner(공유) 전용 — 소유 관계가 없는 사람에게는 "다시 만들까요"가 아니라 신규 유입 유도가 맞다.
+function TryItYourselfCta() {
+  const router = useRouter();
+
+  return (
+    <Card className="gap-2 px-4 text-center text-foreground">
+      <p className="font-bold text-body-md">나도 이런 무드보드 만들어볼까요?</p>
+      <p className="text-gray-700 text-body-sm">
+        짧은 테스트로 나만의 AI 무드보드를 만들 수 있어요.
+      </p>
+      <Button
+        type="button"
+        tone="violet"
+        size="md"
+        className="mt-1 w-full"
+        onClick={() => router.push(`/test/${crypto.randomUUID()}`)}
+      >
+        나도 만들어보기
+      </Button>
+    </Card>
+  );
+}
+
 function ResultActions({
   moodboard,
+  scenario,
+  isDeleting,
   onOpenSave,
   onShare,
+  onDelete,
 }: {
   moodboard: GetMoodboardResponse;
+  scenario: ResultScenario;
+  isDeleting: boolean;
   onOpenSave: () => void;
   onShare: () => void;
+  onDelete: () => void;
 }) {
   const router = useRouter();
   const [isRestartOpen, setIsRestartOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   return (
     <section className="space-y-4">
@@ -421,16 +537,18 @@ function ResultActions({
             <Pencil aria-hidden />
           </Link>
         ) : null}
-        <Button
-          type="button"
-          variant="secondary"
-          size="icon-md"
-          title="다시 만들기"
-          aria-label="다시 만들기"
-          onClick={() => setIsRestartOpen(true)}
-        >
-          <RotateCcw aria-hidden />
-        </Button>
+        {scenario !== "shared" ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon-md"
+            title="다시 만들기"
+            aria-label="다시 만들기"
+            onClick={() => setIsRestartOpen(true)}
+          >
+            <RotateCcw aria-hidden />
+          </Button>
+        ) : null}
 
         <Button
           type="button"
@@ -442,22 +560,48 @@ function ResultActions({
         >
           <Download aria-hidden />
         </Button>
-        <Button
-          type="button"
-          tone="pink"
-          size="md"
-          title="SNS 공유"
-          aria-label="SNS 공유"
-          onClick={onShare}
-        >
-          <Share2 aria-hidden /> 공유
-        </Button>
+        {scenario === "history" ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon-md"
+            title="삭제"
+            aria-label="무드보드 삭제"
+            className="text-destructive"
+            onClick={() => setIsDeleteOpen(true)}
+          >
+            <Trash2 aria-hidden />
+          </Button>
+        ) : null}
+        {moodboard.isOwner ? (
+          <Button
+            type="button"
+            tone="pink"
+            size="md"
+            title="SNS 공유"
+            aria-label="SNS 공유"
+            onClick={onShare}
+          >
+            <Share2 aria-hidden /> 공유
+          </Button>
+        ) : null}
       </div>
-      <ConfirmRestartDialog
-        isOpen={isRestartOpen}
-        onCancel={() => setIsRestartOpen(false)}
-        onConfirm={() => router.push(`/test/${crypto.randomUUID()}`)}
-      />
+      {scenario !== "shared" ? (
+        <ConfirmRestartDialog
+          scenario={scenario}
+          isOpen={isRestartOpen}
+          onCancel={() => setIsRestartOpen(false)}
+          onConfirm={() => router.push(`/test/${crypto.randomUUID()}`)}
+        />
+      ) : null}
+      {scenario === "history" ? (
+        <ConfirmDeleteDialog
+          isOpen={isDeleteOpen}
+          isDeleting={isDeleting}
+          onCancel={() => setIsDeleteOpen(false)}
+          onConfirm={onDelete}
+        />
+      ) : null}
     </section>
   );
 }
@@ -481,10 +625,13 @@ async function copyText(text: string) {
 }
 
 export default function MoodboardResult({ moodboardId }: Props) {
+  const router = useRouter();
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [toast, setToast] = useState<string | null>(null);
   const [isRetryingAnalysis, setIsRetryingAnalysis] = useState(false);
   const [isSaveOpen, setIsSaveOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [justCompleted, setJustCompleted] = useState(false);
   const exportRef = useRef<(() => string | null) | null>(null);
   const analysisPollTimerRef = useRef<number | null>(null);
 
@@ -492,6 +639,20 @@ export default function MoodboardResult({ moodboardId }: Props) {
     setToast(message);
     window.setTimeout(() => setToast(null), 2600);
   }, []);
+
+  // "직후 진입" 신호는 한 번 읽고 나면 URL에서 지운다 — 남아 있으면 새로고침·재방문에서도
+  // "직후"로 오인된다 (#157). setState를 effect 본문에서 바로 부르면 react-hooks/
+  // set-state-in-effect에 걸려 microtask로 한 단계 늦춘다(아래 폴링 setState들과 같은 이유).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get(JUST_COMPLETED_QUERY_KEY) !== JUST_COMPLETED_QUERY_VALUE) {
+      return;
+    }
+    queueMicrotask(() => {
+      setJustCompleted(true);
+      router.replace(`/moodboard/${moodboardId}`, { scroll: false });
+    });
+  }, [moodboardId, router]);
 
   useEffect(() => {
     return () => {
@@ -631,6 +792,21 @@ export default function MoodboardResult({ moodboardId }: Props) {
     }
   }, [showToast]);
 
+  // history 시나리오 전용 — 삭제 성공 시 메인으로 이동한다(#157). 실패는 조용히 삼키지
+  // 않고 토스트로 알린다(docs/convention/error.md).
+  const handleDelete = useCallback(() => {
+    setIsDeleting(true);
+    deleteMoodboard(moodboardId)
+      .then(() => {
+        router.push("/");
+      })
+      .catch((error: unknown) => {
+        console.error(error);
+        setIsDeleting(false);
+        showToast("삭제하지 못했어요. 다시 시도해 주세요.");
+      });
+  }, [moodboardId, router, showToast]);
+
   if (state.status === "loading") return <LoadingView />;
   if (state.status === "error") {
     return state.isMissing ? (
@@ -642,6 +818,7 @@ export default function MoodboardResult({ moodboardId }: Props) {
 
   const { moodboard } = state;
   const exportedImageUrl = moodboard.exportedImageUrl ?? null;
+  const scenario = resolveScenario(moodboard.isOwner, justCompleted);
 
   return (
     <main className="flex flex-1 justify-center overflow-y-auto bg-background text-foreground">
@@ -716,10 +893,17 @@ export default function MoodboardResult({ moodboardId }: Props) {
           )}
           <ResultActions
             moodboard={moodboard}
+            scenario={scenario}
+            isDeleting={isDeleting}
             onOpenSave={() => setIsSaveOpen(true)}
             onShare={handleShare}
+            onDelete={handleDelete}
           />
-          {moodboard.isGuest ? <GuestBanner moodboardId={moodboardId} /> : null}
+          {scenario === "shared" ? (
+            <TryItYourselfCta />
+          ) : moodboard.isGuest ? (
+            <GuestBanner moodboardId={moodboardId} />
+          ) : null}
         </div>
       </div>
     </main>
