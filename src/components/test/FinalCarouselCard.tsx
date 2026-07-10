@@ -5,7 +5,6 @@ import {
   type PanInfo,
   useDragControls,
   useIsPresent,
-  useReducedMotion,
 } from "framer-motion";
 import Image from "next/image";
 
@@ -56,7 +55,6 @@ export default function FinalCarouselCard({
   onSwipe,
   onReject,
 }: Props) {
-  const prefersReducedMotion = useReducedMotion();
   const controls = useDragControls();
   // 탈락한 카드는 exit 애니메이션 동안에도 AnimatePresence가 마운트를 유지한다 — 그때의
   // props(isFocused=true 등)가 그대로 남아 있어서 손대지 않으면 화면 밖으로 날아가는
@@ -64,7 +62,7 @@ export default function FinalCarouselCard({
   // useIsPresent로 exit 중임을 감지해 상호작용을 전부 꺼서 아래 카드로 흘려보낸다.
   const isPresent = useIsPresent();
   const isInteractive = isPresent;
-  const draggable = isFocused && isInteractive && !prefersReducedMotion;
+  const draggable = isFocused && isInteractive;
 
   const scale = Math.max(1 - Math.abs(distance) * 0.13, 0.42);
   const opacity = Math.max(1 - Math.abs(distance) * 0.32, 0);
@@ -141,15 +139,11 @@ export default function FinalCarouselCard({
       initial={false}
       animate={{
         x: distance * STEP_X,
-        y: prefersReducedMotion ? 0 : distance * STEP_Y,
-        scale: prefersReducedMotion ? 1 : scale,
+        y: distance * STEP_Y,
+        scale,
         opacity,
       }}
-      exit={
-        prefersReducedMotion
-          ? { opacity: 0 }
-          : { x: 480, y: 480, opacity: 0, rotate: 16 }
-      }
+      exit={{ x: 480, y: 480, opacity: 0, rotate: 16 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
       drag={draggable}
       dragControls={controls}

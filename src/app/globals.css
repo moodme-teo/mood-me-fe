@@ -616,11 +616,4 @@
     animation: mood-button-gradient-stops-in 420ms
       cubic-bezier(0.22, 1, 0.36, 1) both;
   }
-
-  @media (prefers-reduced-motion: reduce) {
-    .mood-button-gradient,
-    .mood-button-gradient:hover {
-      animation: none;
-    }
-  }
 }

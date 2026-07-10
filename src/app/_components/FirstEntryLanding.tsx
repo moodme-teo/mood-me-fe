@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -59,8 +59,6 @@ export default function FirstEntryLanding({
   continueTarget,
   onCreate,
 }: Props) {
-  const prefersReduced = useReducedMotion();
-  const reduced = prefersReduced ?? false;
   const [minElapsed, setMinElapsed] = useState(false);
   const [imagesReady, setImagesReady] = useState(false);
   // 화면 탭 또는 상한 타이머로 두 조건을 건너뛴 경우.
@@ -82,8 +80,6 @@ export default function FirstEntryLanding({
     }
 
     // 이미 본 세션이면 최소 시간을 두지 않는다 — 이미지가 캐시에서 바로 올라오므로 곧장 넘어간다.
-    // 모션 최소화 선호 시에도 스플래시 자체는 그대로 노출하고 등장·전환 애니메이션만 끈다
-    // (DESIGN.md: reduced-motion 대안은 "제거"가 아니라 "즉시 전환").
     const shown = elapsedSinceSplashShown();
     const remaining = (budget: number) => Math.max(0, budget - shown);
 
@@ -128,12 +124,8 @@ export default function FirstEntryLanding({
           />
         )}
 
-        <BoardCardStack
-          active={isEntry}
-          onAboveFoldReady={handleImagesReady}
-          reduced={reduced}
-        />
-        <SplashScene phase={phase} reduced={reduced} />
+        <BoardCardStack active={isEntry} onAboveFoldReady={handleImagesReady} />
+        <SplashScene phase={phase} />
 
         {/* 상단 프로필(아바타) — 두 페이즈 상시 노출 (PRD §6) */}
         <div className="absolute top-3 right-4 z-30">
@@ -149,13 +141,9 @@ export default function FirstEntryLanding({
                 background:
                   "linear-gradient(to top, var(--surface-page) 42%, transparent)",
               }}
-              initial={reduced ? { opacity: 0 } : { opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: reduced ? 0 : 0.5,
-                ease: EASE_IN,
-                delay: reduced ? 0 : 0.35,
-              }}
+              transition={{ duration: 0.5, ease: EASE_IN, delay: 0.35 }}
             >
               {continueTarget && (
                 <Link

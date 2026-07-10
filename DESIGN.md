@@ -106,7 +106,7 @@ CSS 커스텀 프로퍼티는 `font` shorthand(`weight size/line-height family`)
 - 커브: `--ease-standard` `cubic-bezier(0.4,0,0.2,1)`, `--ease-spring` `cubic-bezier(0.34,1.56,0.64,1)`(lift/press 스프링)
 - 지속: `--duration-fast` 120ms · `--duration-base` 200ms · `--duration-slow` 360ms
 - **Lift-on-hover / Press-down 패턴:** 인터랙티브 표면은 hover 시 `translateY(-3px)` + 그림자 확대, press 시 `translateY(1px) scale(0.97)` + 그림자 축소. 재색상만이 아니라 "떠오르고 눌리는" 물리감으로 반응한다.
-- 모든 애니메이션에 `prefers-reduced-motion` 대안을 둔다.
+- `prefers-reduced-motion` 분기를 두지 않는다 — 모든 사용자에게 같은 애니메이션을 보여준다. 이 설정은 서버에서 알 수 없어 SSR 과 클라이언트 첫 렌더가 갈리고, 그대로 하이드레이션 불일치가 된다(#144).
 
 ## 6. Components
 
@@ -138,10 +138,11 @@ CSS 커스텀 프로퍼티는 `font` shorthand(`weight size/line-height family`)
 - **Do** 로딩·생성 상태를 "채워지는 설렘"으로 연출한다(실시간 미리보기, 단계별 리듬).
 - **Do** 본문 대비 ≥4.5:1을 지키고, 색만이 아니라 아이콘·밑줄·텍스트로 상태를 구분한다.
 - **Do** 본문/UI는 Pretendard, 한글 display는 Nanum Myeongjo, 영문 display는 Instrument Serif로 구분한다.
-- **Do** 시맨틱 HTML(`a` vs `button`), 의미 있는 `alt`, `prefers-reduced-motion` 대안을 둔다.
+- **Do** 시맨틱 HTML(`a` vs `button`)과 의미 있는 `alt` 를 쓴다.
 
 ### Don't:
 
+- **Don't** `useReducedMotion()` 이나 `@media (prefers-reduced-motion)` 으로 애니메이션을 분기한다.
 - **Don't** 악센트 표면을 flat 단색으로 채운다(그라디언트 규칙 위반).
 - **Don't** `background-clip:text` 그라디언트 텍스트나 장식용 글래스모피즘을 쓴다.
 - **Don't** 순수 검정/opacity 그림자를 쓴다(색조 그림자만).
