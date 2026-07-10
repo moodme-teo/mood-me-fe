@@ -55,6 +55,31 @@ export async function mockCreateGenerationJobFailure(page: Page) {
   );
 }
 
+// 재진입 시 새 job을 만들지 않는지(#115) 확인할 때 호출 횟수를 센다. 이 route가 나중에
+// 등록될수록 우선하므로, mockCreateGenerationJob 뒤에 이어 붙여도 이게 실제 응답을 맡는다.
+export async function mockCreateGenerationJobCounting(page: Page) {
+  const state = { count: 0 };
+  await page.route("**/api/mood-test-sessions/*/generate", (route) => {
+    state.count += 1;
+    return ok(route, { jobId: JOB_ID });
+  });
+  return state;
+}
+
+// 재시도 버튼 잠금(PRD §11)을 확인할 때 쓴다 — resolve() 를 부르기 전까지 POST
+// .../generate 응답을 미뤄, 그사이 버튼이 disabled 상태를 유지하는지 관찰할 수 있게 한다.
+export async function mockCreateGenerationJobPending(page: Page) {
+  let resolveGate: () => void = () => {};
+  const gate = new Promise<void>((resolve) => {
+    resolveGate = resolve;
+  });
+  await page.route("**/api/mood-test-sessions/*/generate", async (route) => {
+    await gate;
+    return ok(route, { jobId: JOB_ID });
+  });
+  return { resolve: () => resolveGate() };
+}
+
 type JobStep = { status: Parameters<typeof generationJob>[0]; percent: number };
 
 // 폴링될 때마다 다음 단계를 돌려준다. 마지막 단계는 이후 호출에서도 계속 유지된다.
