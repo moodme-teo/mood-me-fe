@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { Requester } from "@/lib/auth/requester";
 import { getEliceClient, GPT_MODEL } from "@/lib/elice-ai";
 import { buildMoodAnalysisPayload } from "@/lib/mood-test/build-analysis-payload";
 import { getCompletedMoodTestSession } from "@/lib/mood-test/get-completed-session";
@@ -33,10 +34,17 @@ export type CreateGenerationJobResult =
 
 // 세션 검증 + job row 생성만 하는 빠른 경로 — Route Handler가 응답을 돌려주기 전에 동기로
 // 기다리는 부분은 이만큼만이다. 무거운 분석·조립은 runGenerationPipeline이 after()로 이어받는다.
+//
+// 소유자 확인이 여기서 끝나므로 after()로 넘어가는 journey는 이미 검증된 값이다 — 남의
+// sessionId만으로 GPT-5·gpt-image-2를 돌려 실비용을 발생시킬 수 없다 (#126).
 export async function createGenerationJob(
   testSessionId: string,
+  requester: Requester,
 ): Promise<CreateGenerationJobResult> {
-  const sessionResult = await getCompletedMoodTestSession(testSessionId);
+  const sessionResult = await getCompletedMoodTestSession(
+    testSessionId,
+    requester,
+  );
   if (!sessionResult.ok) {
     return { ok: false, code: "NOT_FOUND", error: sessionResult.error };
   }

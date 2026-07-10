@@ -5,19 +5,21 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { BoardPreview } from "@/components/canvas";
+import type { GetMoodboardResponse } from "@/lib/api/get-moodboard";
 import { getMoodboard } from "@/lib/api/get-moodboard";
 import { ApiClientError } from "@/lib/api-client";
-import type { Moodboard, MoodVector } from "@/types/moodboard";
+import type { MoodVector } from "@/types/moodboard";
 import { MOODBOARD_HEIGHT, MOODBOARD_WIDTH } from "@/types/moodboard";
 
 type Props = {
   moodboardId: string;
 };
 
+// 서버가 대조해준 isOwner가 필요해 도메인 타입(Moodboard) 대신 API 응답 타입을 쓴다 (#126).
 type LoadState =
   | { status: "loading" }
-  | { status: "error"; message: string }
-  | { status: "ready"; moodboard: Moodboard };
+  | { status: "error"; message: string; isMissing: boolean }
+  | { status: "ready"; moodboard: GetMoodboardResponse };
 
 const MOOD_AXES: {
   key: keyof MoodVector;
@@ -53,6 +55,39 @@ function LoadingView() {
         <div className="h-28 rounded-2xl bg-gray-100" />
         <div className="h-44 rounded-2xl bg-gray-100" />
       </div>
+    </main>
+  );
+}
+
+// 없는 보드 · 삭제된 보드 모두 같은 화면이다. 소유자가 아닌 사람에게 보드의 존재 여부를
+// 흘리지 않으려고 서버도 같은 404로 답한다 (#126).
+const MISSING_REDIRECT_MS = 2400;
+
+function MissingView() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const timer = window.setTimeout(
+      () => router.replace("/"),
+      MISSING_REDIRECT_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [router]);
+
+  return (
+    <main className="flex flex-1 items-center justify-center bg-background px-4 text-foreground">
+      <section className="w-full max-w-sm rounded-2xl bg-card p-5 text-center">
+        <h1 className="text-xl font-bold">존재하지 않는 무드보드예요.</h1>
+        <p className="mt-3 text-sm leading-6 text-gray-700">
+          링크가 만료됐거나 삭제된 보드예요. 잠시 뒤 홈으로 이동할게요.
+        </p>
+        <Link
+          href="/"
+          className="mt-5 block rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
+        >
+          지금 홈으로 가기
+        </Link>
+      </section>
     </main>
   );
 }
@@ -121,7 +156,7 @@ function MoodSpectrum({ vector }: { vector: MoodVector }) {
   );
 }
 
-function ReadingBlock({ moodboard }: { moodboard: Moodboard }) {
+function ReadingBlock({ moodboard }: { moodboard: GetMoodboardResponse }) {
   const { moodProfile } = moodboard;
 
   return (
@@ -143,7 +178,7 @@ function ReadingBlock({ moodboard }: { moodboard: Moodboard }) {
   );
 }
 
-function KeywordCloud({ moodboard }: { moodboard: Moodboard }) {
+function KeywordCloud({ moodboard }: { moodboard: GetMoodboardResponse }) {
   const { keywords, sticker_phrases: stickerPhrases } = moodboard.moodProfile;
 
   if (keywords.length === 0 && stickerPhrases.length === 0) return null;
@@ -248,7 +283,7 @@ function ResultActions({
   onDownload,
   onShare,
 }: {
-  moodboard: Moodboard;
+  moodboard: GetMoodboardResponse;
   onDownload: () => void;
   onShare: () => void;
 }) {
@@ -273,13 +308,23 @@ function ResultActions({
           이미지 내보내기
         </button>
       </div>
-      <div className="grid grid-cols-3 gap-2">
-        <Link
-          href={`/moodboard/${moodboard.id}/edit`}
-          className="rounded-xl border border-gray-300 bg-card px-3 py-3 text-center text-xs font-bold text-foreground"
-        >
-          편집
-        </Link>
+      {/* 편집은 소유자에게만 보인다 — 공유 링크로 들어온 사람에게는 감춘다. 실제 방어는
+          서버의 PATCH 소유자 검증이고, 이 숨김은 그 위에 얹는 안내다 (#126). */}
+      <div
+        className={
+          moodboard.isOwner
+            ? "grid grid-cols-3 gap-2"
+            : "grid grid-cols-2 gap-2"
+        }
+      >
+        {moodboard.isOwner ? (
+          <Link
+            href={`/moodboard/${moodboard.id}/edit`}
+            className="rounded-xl border border-gray-300 bg-card px-3 py-3 text-center text-xs font-bold text-foreground"
+          >
+            편집
+          </Link>
+        ) : null}
         <button
           type="button"
           onClick={() => setIsRestartOpen(true)}
@@ -332,11 +377,14 @@ export default function MoodboardResult({ moodboardId }: Props) {
   }, []);
 
   const handleLoadError = useCallback((error: unknown) => {
-    const message =
-      error instanceof ApiClientError
+    const isMissing =
+      error instanceof ApiClientError && error.code === "NOT_FOUND";
+    const message = isMissing
+      ? "존재하지 않는 무드보드예요."
+      : error instanceof ApiClientError
         ? error.message
         : "잠시 뒤 다시 시도해 주세요.";
-    setState({ status: "error", message });
+    setState({ status: "error", message, isMissing });
   }, []);
 
   const reloadMoodboard = useCallback(() => {
@@ -402,7 +450,11 @@ export default function MoodboardResult({ moodboardId }: Props) {
 
   if (state.status === "loading") return <LoadingView />;
   if (state.status === "error") {
-    return <ErrorView message={state.message} onRetry={reloadMoodboard} />;
+    return state.isMissing ? (
+      <MissingView />
+    ) : (
+      <ErrorView message={state.message} onRetry={reloadMoodboard} />
+    );
   }
 
   const { moodboard } = state;

@@ -17,9 +17,9 @@ export type CropShapeLabel =
   | "하트"
   | "다이아몬드";
 
-// 저장 후 이동하는 곳. 생성 직후 편집(/test/[sessionId]/edit)에서는 moodboardId 를
-// 서버가 진입할 때마다 randomUUID 로 새로 발급하므로 값을 미리 알 수 없다
-// (PRD §5.7 — 완성 전까지 서버에 쓰지 않는다).
+// 저장 후 이동하는 곳. 생성 직후 편집(/test/[sessionId]/edit)의 moodboardId 는 서버가
+// sessionId 에서 단방향으로 유도하므로(lib/moodboard/moodboard-id.ts) 값을 미리 알 수 없다.
+// (PRD §5.7 — 완성 전까지 서버에 쓰지 않는다.)
 const MOODBOARD_URL = /\/moodboard\/[0-9a-f-]{36}$/;
 
 // ColorPanel 의 추천 배경색 버튼 — aria-label 이 `{hex} 배경` 이다.
