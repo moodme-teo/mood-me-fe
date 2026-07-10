@@ -43,9 +43,9 @@ export default function DiscardStack({
   const remaining = cards.filter((card) => !selectedIds.includes(card.id));
   const remainingIds = remaining.map((card) => card.id);
 
-  const [stackOrder, setStackOrder] = useState<string[]>(() =>
-    remainingIds.slice(0, STACK_SIZE),
-  );
+  // 전체 remaining 풀의 순환 순서. 화면에는 이 중 앞 STACK_SIZE 장만 겹쳐 보이지만
+  // (아래 visible), 좌우 미리보기는 이 배열 전체를 돌려 풀 전체가 순환 대상이 되게 한다.
+  const [stackOrder, setStackOrder] = useState<string[]>(() => remainingIds);
 
   // 렌더 중 상태 조정(React 공식 패턴) — remaining 집합이 바뀐 프레임에만 재계산해
   // 폐기로 사라진 카드를 걷어내고 다음 카드를 채운다. 좌우 순환은 이 값을 건드리지 않는다.
@@ -57,7 +57,7 @@ export default function DiscardStack({
     setStackOrder((prev) => {
       const kept = prev.filter((id) => stillRemaining.has(id));
       const fresh = remainingIds.filter((id) => !kept.includes(id));
-      return [...kept, ...fresh].slice(0, STACK_SIZE);
+      return [...kept, ...fresh];
     });
   }
 
@@ -83,6 +83,7 @@ export default function DiscardStack({
 
   const cardMap = new Map(cards.map((card) => [card.id, card]));
   const visible = stackOrder
+    .slice(0, STACK_SIZE)
     .map((id) => cardMap.get(id))
     .filter((card): card is Card => Boolean(card));
 
