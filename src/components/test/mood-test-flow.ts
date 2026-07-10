@@ -220,6 +220,10 @@ export function commitScreen(
     }
     case "transition": {
       const pickedId = draft[0];
+      // 아직 아무것도 안 고른 전환 화면에서 뒤로 갔을 때(BACK 이 커밋을 부른다) — picked: undefined 를
+      // 기록하면 최종 화면 풀과 여정이 깨진다. 고른 게 없으면 아무것도 남기지 않는다.
+      // (CONFIRM 은 canConfirm 일 때만 오므로 여기서 pickedId 는 항상 존재한다.)
+      if (!pickedId) return committed;
       const prev = committed.transitions[screen.order];
       const changed = !prev || prev.picked !== pickedId;
       const nextTransitions = [...committed.transitions];
@@ -430,11 +434,17 @@ export function flowReducer(state: FlowState, action: FlowAction): FlowState {
     }
     case "BACK": {
       const prevIndex = Math.max(state.screenIndex - 1, 0);
-      const prevScreen = screens[prevIndex];
+      // 뒤로 가도 지금 화면에서 고른 것을 잃지 않도록, 떠나기 전에 현재 draft 를 확정해 둔다 —
+      // 다음으로 갈 때의 CONFIRM 과 같은 저장이되 화면만 한 칸 뒤로 간다. 선택이 바뀌었다면
+      // commitScreen 이 하위 단계를 알아서 무효화한다(변경 없으면 그대로).
+      const committed = commitScreen(screen, state.draft, state.committed);
+      const prevScreens = buildScreens(committed.shadows);
+      const prevScreen = prevScreens[prevIndex];
       return {
         ...state,
         screenIndex: prevIndex,
-        draft: initialDraftForScreen(prevScreen, state.committed),
+        committed,
+        draft: initialDraftForScreen(prevScreen, committed),
         draftHistory: [],
       };
     }
