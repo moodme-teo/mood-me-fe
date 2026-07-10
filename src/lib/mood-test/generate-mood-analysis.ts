@@ -387,15 +387,20 @@ export async function runGenerationPipeline(
     })
     .eq("id", jobId);
 
-  if (!analysisAlreadyDone) {
-    void runReportAnalysis(service, jobId, journey).catch((error) => {
-      console.error(
-        "[runReportAnalysis] 예기치 못한 실패 — mood_profile 없이 진행:",
-        error,
-      );
-      void markAnalysisFailed(service, jobId);
-    });
-  }
+  // after()는 이 함수가 반환할 때까지만 서버리스 인스턴스를 살려둔다 — void로 던지고
+  // 신경 끄면, 이미지가 먼저 끝나 이 함수가 먼저 반환되는 순간 아직 도는 GPT-5 요청이
+  // 조용히 잘린다(로그도 안 남음). 이미지·분석 둘 다 끝난 뒤에야 이 함수가 반환되도록
+  // analysisSettled를 끝까지 붙잡는다 — 그렇다고 클라이언트를 기다리게 하지는 않는다,
+  // job.status는 이미지가 끝나는 즉시(아래) completed로 올라가 편집 진입을 막지 않는다(#125).
+  const analysisSettled: Promise<void> = analysisAlreadyDone
+    ? Promise.resolve()
+    : runReportAnalysis(service, jobId, journey).catch((error) => {
+        console.error(
+          "[runReportAnalysis] 예기치 못한 실패 — mood_profile 없이 진행:",
+          error,
+        );
+        return markAnalysisFailed(service, jobId);
+      });
 
   let assembled: Awaited<ReturnType<typeof assembleBoard>>;
   try {
@@ -403,6 +408,7 @@ export async function runGenerationPipeline(
   } catch (error) {
     console.error("[runGenerationPipeline] 보드 조립 실패:", error);
     await markJobFailed(service, jobId, "보드 조립에 실패했습니다");
+    await analysisSettled;
     return;
   }
 
@@ -416,4 +422,6 @@ export async function runGenerationPipeline(
       updated_at: new Date().toISOString(),
     })
     .eq("id", jobId);
+
+  await analysisSettled;
 }
