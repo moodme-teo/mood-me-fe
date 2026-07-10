@@ -26,6 +26,7 @@ const buttonVariants = cva(
         cyan: "",
         green: "",
         mustard: "",
+        sand: "",
       },
       size: {
         lg: "px-[38px] py-[14px] text-body-md font-bold [&_svg]:size-[22px]",
@@ -68,6 +69,11 @@ const buttonVariants = cva(
         tone: "mustard",
         className:
           "bg-[image:var(--gradient-mustard)] text-white shadow-mustard",
+      },
+      {
+        variant: "primary",
+        tone: "sand",
+        className: "bg-[image:var(--gradient-sand)] shadow-ink",
       },
     ],
     defaultVariants: {

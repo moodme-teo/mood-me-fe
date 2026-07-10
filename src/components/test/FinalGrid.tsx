@@ -107,7 +107,7 @@ export default function FinalGrid({
                 damping: 28,
                 delay: index * 0.05,
               }}
-              className={`relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-md shadow-violet ${
+              className={`relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-sm shadow-card ${
                 COMPLETE_GRID_SPAN[index] ?? "col-span-2"
               } ${imagePath ? "" : "bg-[image:var(--gradient-violet-soft)]"}`}
             >

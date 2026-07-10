@@ -101,9 +101,9 @@ export default function TestLayout({ sessionId }: Props) {
           preview={<BuildBoardPreview cardIds={flow.previewCardIds} />}
         />
 
-        <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 pt-4 pb-6">
-          <section className="flex flex-col gap-5">
-            <div className="relative">
+        <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto">
+          <section className="flex flex-col gap-4">
+            <div className="sticky top-0 left-0 z-[99] bg-background/90 [mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)] px-4 pt-3 pb-7 backdrop-blur-md [-webkit-mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)]">
               <p className="font-semibold tracking-wide text-muted-foreground text-caption">
                 {kicker}
               </p>
@@ -115,20 +115,22 @@ export default function TestLayout({ sessionId }: Props) {
                   {hint}
                 </p>
               )}
-              <span
+              {/* <span
                 className="absolute top-0 right-0 font-medium text-muted-foreground text-caption"
                 role="status"
               >
                 {counterText}
-              </span>
+              </span> */}
             </div>
-            <StageBody
-              screen={flow.screen}
-              poolIds={flow.poolIds}
-              draft={flow.draft}
-              target={flow.target}
-              onToggle={flow.toggle}
-            />
+            <div className="px-3">
+              <StageBody
+                screen={flow.screen}
+                poolIds={flow.poolIds}
+                draft={flow.draft}
+                target={flow.target}
+                onToggle={flow.toggle}
+              />
+            </div>
           </section>
         </div>
 
@@ -139,12 +141,12 @@ export default function TestLayout({ sessionId }: Props) {
             isSubmitting
               ? "생성 준비 중..."
               : isFinalScreen
-                ? "Create →"
+                ? "Create"
                 : flow.isLastScreen
                   ? "무드보드 생성하기 ✨"
                   : "다음"
           }
-          tone={isFinalScreen ? "violet" : "ink"}
+          tone={isFinalScreen ? "cyan" : "sand"}
           onNextStage={handleNext}
           nextStageDisabled={!flow.canConfirm || isSubmitting}
           showUndoSelection={flow.canUndo}

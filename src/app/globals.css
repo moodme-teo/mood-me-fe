@@ -137,6 +137,14 @@
     #f0e3af var(--mood-gradient-stop-4, 95%),
     #f0e3af 100%
   );
+  --gradient-sand: linear-gradient(
+    205deg,
+    #f1dec8 var(--mood-gradient-stop-1, 0%),
+    #f1dec8 var(--mood-gradient-stop-2, 21%),
+    #ebe7e4 var(--mood-gradient-stop-3, 54%),
+    #f7f5f3 var(--mood-gradient-stop-4, 95%),
+    #f7f5f3 100%
+  );
 
   /* Softer/lighter — compact fill(badge/chip)용, 텍스트 가독성 유지 */
   --gradient-pink-soft: linear-gradient(
@@ -584,6 +592,14 @@
       #290009 var(--mood-gradient-stop-3, 54%),
       #0d0d98 var(--mood-gradient-stop-4, 95%),
       #0d0d98 100%
+    );
+    --gradient-sand: linear-gradient(
+      205deg,
+      #f1dec8 var(--mood-gradient-stop-1, 0%),
+      #ebe7e4 var(--mood-gradient-stop-2, 21%),
+      #ebe7e4 var(--mood-gradient-stop-3, 54%),
+      #ebe7e4 var(--mood-gradient-stop-4, 95%),
+      #f7f5f3 100%
     );
   }
 

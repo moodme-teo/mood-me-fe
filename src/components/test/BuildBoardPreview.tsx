@@ -14,7 +14,7 @@ export default function BuildBoardPreview({ cardIds }: { cardIds: string[] }) {
   return (
     <div
       aria-label="완성되어 가는 추구미 무드보드"
-      className="grid h-12 w-12 shrink-0 grid-cols-4 content-start gap-0.5 rounded-md border border-dashed border-gray-300 p-0.5"
+      className="relative grid h-12 w-12 shrink-0 grid-cols-4 content-start gap-0.5 rounded-md p-1 pt-3 shadow-[inset_0_8px_3px_0_rgba(84,64,56,0.3),inset_0_2px_3px_0_rgba(84,64,56,0.6),inset_0_-1px_2px_0_rgba(84,64,56,0.6)] outline outline-gray-300"
     >
       {cardIds.map((id) => {
         const card = CARD_MAP.get(id);
@@ -37,6 +37,9 @@ export default function BuildBoardPreview({ cardIds }: { cardIds: string[] }) {
           </motion.div>
         );
       })}
+      <div className="absolute top-0 left-0 flex h-full w-full items-start justify-center rounded-md bg-white/50 pt-0.5 font-black backdrop-blur-[1px]">
+        {cardIds.length}
+      </div>
     </div>
   );
 }

@@ -26,7 +26,7 @@ export default function CardGrid({
   onToggle,
 }: Props) {
   return (
-    <div className="[columns:3] gap-x-2">
+    <div className="[columns:3] gap-x-2 pt-12 pb-[14dvh]">
       {cards.map((card, index) => {
         const order = selectedIds.indexOf(card.id);
         const selected = order !== -1;

@@ -22,7 +22,7 @@ export default function ShadowChips({
   onToggle,
 }: Props) {
   return (
-    <div className="flex flex-col items-start gap-3.5 py-2">
+    <div className="flex flex-col items-center gap-3.5 py-2">
       {shadows.map((shadow, index) => {
         const selected = selectedIds.includes(shadow.id);
         const disabled = !selected && atCapacity;
@@ -33,17 +33,17 @@ export default function ShadowChips({
             onClick={() => onToggle(shadow.id)}
             disabled={disabled}
             aria-pressed={selected}
-            whileTap={{ scale: 0.96 }}
             animate={{
-              scale: selected ? 1.04 : 1,
-              opacity: disabled ? 0.4 : 1,
+              boxShadow: selected
+                ? "inset 0 12px 6px rgba(84, 64, 56, 0.6), inset 0 16px 32px rgba(84, 64, 56, 0.4)"
+                : "inset 0 3px 6px rgba(84, 64, 56, 0.1), inset 0 6px 16px rgba(84, 64, 56, 0.2)",
             }}
             transition={{ type: "spring", stiffness: 320, damping: 24 }}
             style={{ marginLeft: OFFSETS[index % OFFSETS.length] }}
-            className={`rounded-pill px-6 py-3.5 whitespace-nowrap outline-none text-body-sm focus-visible:ring-3 focus-visible:ring-ring/50 ${
+            className={`rounded-pill border bg-background px-10 py-3.5 whitespace-nowrap outline-none text-body-sm focus-visible:ring-3 focus-visible:ring-ring/50 ${
               selected
-                ? "bg-surface-card font-semibold text-foreground shadow-card-hover ring-1 ring-accent-violet"
-                : "bg-surface-card font-medium text-muted-foreground shadow-card"
+                ? "bg-surface-card font-semibold text-foreground"
+                : "font-medium text-muted-foreground"
             } ${disabled ? "cursor-default" : "cursor-pointer"}`}
           >
             {shadow.label}

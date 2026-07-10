@@ -163,13 +163,13 @@ export default function FinalCarouselCard({
       }}
       onDragEnd={handleDragEnd}
       style={{ zIndex: isInteractive ? zIndex : -1, touchAction: "none" }}
-      className={`absolute top-1/2 left-1/2 flex aspect-[3/4] w-[148px] -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${
+      className={`absolute top-1/2 left-1/2 flex aspect-[3/4] w-[148px] -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden rounded-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${
         !isInteractive || opacity <= 0.04 ? "pointer-events-none" : ""
       } ${
         isFocused
-          ? "cursor-grab shadow-violet active:cursor-grabbing"
+          ? "cursor-grab shadow-card active:cursor-grabbing"
           : "cursor-pointer shadow-card"
-      } ${imagePath ? "" : "bg-[image:var(--gradient-violet-soft)]"}`}
+      } ${imagePath ? "bg-background" : "bg-surface-sunken"}`}
     >
       {imagePath && (
         <Image
@@ -190,59 +190,6 @@ export default function FinalCarouselCard({
       >
         {label}
       </span>
-
-      {isFocused && isInteractive && (
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            onReject();
-          }}
-          aria-label={`${label} 제외하기`}
-          className="absolute top-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/45 text-white outline-none focus-visible:ring-2 focus-visible:ring-white"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden
-          >
-            <path
-              d="M6 6L18 18M18 6L6 18"
-              stroke="currentColor"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-            />
-          </svg>
-        </button>
-      )}
-
-      {showHint && isInteractive && !prefersReducedMotion && (
-        <motion.svg
-          aria-hidden
-          initial={{ opacity: 0 }}
-          animate={{ opacity: [0, 1, 1, 0] }}
-          transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 0.6 }}
-          className="pointer-events-none absolute -right-5 -bottom-5 h-9 w-9 text-accent-violet"
-          viewBox="0 0 40 40"
-          fill="none"
-        >
-          <path
-            d="M6 8C10 20 16 28 30 30"
-            stroke="currentColor"
-            strokeWidth="2.4"
-            strokeLinecap="round"
-          />
-          <path
-            d="M22 27L31 31L28 22"
-            stroke="currentColor"
-            strokeWidth="2.4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </motion.svg>
-      )}
     </motion.div>
   );
 }

@@ -17,7 +17,7 @@ export default function TestHeader({
   preview?: React.ReactNode;
 }) {
   return (
-    <header className="flex items-center gap-2 pt-4 pr-5 pb-1 pl-3">
+    <header className="flex items-center gap-2 py-4 pr-5 pl-3">
       <Button
         type="button"
         variant="ghost"
