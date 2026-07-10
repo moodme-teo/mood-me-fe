@@ -38,7 +38,27 @@ export default defineConfig({
   },
 
   // 무드미는 모바일 우선(PRD §11)이라 모바일 뷰포트를 기본 프로젝트로 둔다.
-  projects: [{ name: "mobile-chromium", use: { ...devices["Pixel 5"] } }],
+  //
+  // visual 을 별도 프로젝트로 갈라 두는 이유: 스냅샷 비교는 폰트 렌더링·GPU 래스터라이즈에
+  // 의존해 러너가 바뀌면 깨진다. CI 는 `npm run e2e`(= --project=mobile-chromium)만 돌리므로
+  // 스냅샷이 CI 에 실려 가지 않는다 (docs/convention/qa.md §Visual regression).
+  projects: [
+    {
+      name: "mobile-chromium",
+      use: { ...devices["Pixel 5"] },
+      testIgnore: "**/visual/**",
+    },
+    {
+      name: "visual",
+      use: { ...devices["Pixel 5"] },
+      testMatch: "**/visual/**/*.spec.ts",
+    },
+  ],
+
+  // 기준 이미지는 러너가 아니라 **개발자 기기**에 묶인다. 파일명에 플랫폼을 박아 두면
+  // 다른 OS 에서 돌렸을 때 남의 기준과 비교하다 깨지는 대신 "기준 없음" 으로 명확히 실패한다.
+  snapshotPathTemplate:
+    "{testDir}/visual/__screenshots__/{arg}-{platform}{ext}",
 
   webServer: {
     command: process.env.CI

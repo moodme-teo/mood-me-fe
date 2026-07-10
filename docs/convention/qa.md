@@ -29,11 +29,11 @@
 | **Unit test**         | Vitest                | —                      | —                         | 🔜 보류   |
 | **Build**             | `next build`          | `npm run build`        | CI                        | ✅ 적용됨 |
 | **E2E**               | Playwright            | `npm run e2e`          | CI · 필요할 때 로컬       | ✅ 적용됨 |
-| **Visual regression** | Playwright screenshot | —                      | —                         | 🔜 계획   |
+| **Visual regression** | Playwright screenshot | `npm run e2e:visual`   | **로컬에서만** (CI 제외)  | ✅ 적용됨 |
 
-**"—"는 아직 없다는 뜻이다.** Unit test와 visual regression은 계획만 있고 코드가 없다 — 명령을 적어 두면 있는 것처럼 읽히므로 적지 않는다. 도입 조건은 아래 각 절에 있다.
+**"—"는 아직 없다는 뜻이다.** Unit test는 계획만 있고 코드가 없다 — 명령을 적어 두면 있는 것처럼 읽히므로 적지 않는다. 도입 조건은 아래 §Unit test에 있다.
 
-로컬 저장·커밋 시에는 lint/format만 돈다(lint-staged, 스테이징된 파일만). 전체 검사는 CI가 한다 — **커밋은 빠르게 유지한다.** 단 visual regression은 도입하더라도 CI에 올리지 않는다(아래 §Visual regression).
+로컬 저장·커밋 시에는 lint/format만 돈다(lint-staged, 스테이징된 파일만). 전체 검사는 CI가 한다 — **커밋은 빠르게 유지한다.** 단 visual regression은 예외로, CI에 올리지 않는다(아래 §Visual regression).
 
 ### Unit test를 아직 넣지 않은 이유
 
@@ -45,9 +45,16 @@
 
 경계는 명확하다. `useCropEditor.ts`와 `crop-transform.ts`는 Konva를 import하지 않으므로 jsdom에서 테스트할 수 있고, `CropCanvas.tsx`는 import하므로 못 한다. **Konva를 건드리는 순간 그건 E2E의 몫이다.**
 
-### Visual regression — 아직 없다. 도입한다면 로컬에서만 돈다
+### Visual regression — 도입했다. 로컬에서만 돈다
 
-> **현재 상태: 미구현.** `e2e/`에 `toHaveScreenshot` 단언이 하나도 없고 전용 스크립트도 없다. 아래는 붙일 때의 설계이지 지금 돌아가는 것이 아니다.
+```bash
+npm run e2e:visual          # 기준 이미지와 비교
+npm run e2e:visual:update   # UI를 의도적으로 바꿨을 때 기준 갱신
+```
+
+스펙은 `e2e/visual/`, 기준 이미지는 `e2e/visual/__screenshots__/`에 **플랫폼 접미사와 함께** 저장된다(`*-darwin.png`). 다른 OS에서 처음 돌리면 비교가 아니라 "기준 없음"으로 실패한다 — 남의 기준과 비교하다 애매하게 깨지는 것보다 낫다.
+
+**CI에서 도는 것을 막는 장치.** `playwright.config.ts`가 프로젝트를 둘로 가른다. `mobile-chromium`은 `**/visual/**`을 `testIgnore`하고, `visual`은 그것만 `testMatch`한다. CI가 부르는 `npm run e2e`는 `--project=mobile-chromium`이므로 스냅샷이 실릴 경로 자체가 없다. 워크플로를 고칠 필요도 없다.
 
 스크린샷 비교는 폰트 렌더링·GPU 래스터라이즈·타이밍 차이로 쉽게 깨진다. 그래서 **CI에는 올리지 않는다.** 러너의 폰트와 GPU를 고정하기 전까지 CI 스냅샷은 신호가 아니라 소음이다. 개발자가 UI를 만질 때 로컬에서 돌려 눈으로 확인하는 도구로 쓴다.
 
