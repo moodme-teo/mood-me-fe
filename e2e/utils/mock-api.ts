@@ -6,7 +6,12 @@ import {
   JOB_ID,
   MOODBOARD,
   MOODBOARD_ID,
+  MOODBOARD_SUMMARIES,
 } from "../fixtures/data";
+
+// 목록(/api/moodboards)과 단건(/api/moodboards/{id})은 glob 로 구분하기 어려워
+// pathname 을 정확히 비교한다. 쿼리스트링(guestSessionId)은 무시한다.
+const isMoodboardListUrl = (url: URL) => url.pathname === "/api/moodboards";
 
 // lib/api-client.ts 의 응답 규약: 성공은 { data }, 실패는 { error: { code, message } }.
 function ok(route: Route, data: unknown) {
@@ -59,6 +64,19 @@ export async function mockGenerationJobSequence(page: Page, steps: JobStep[]) {
     index += 1;
     return ok(route, generationJob(step.status, step.percent));
   });
+}
+
+// 홈(History)이 부르는 저장 보드 목록.
+export async function mockMoodboards(page: Page) {
+  await page.route(isMoodboardListUrl, (route) =>
+    ok(route, MOODBOARD_SUMMARIES),
+  );
+}
+
+export async function mockMoodboardsFailure(page: Page) {
+  await page.route(isMoodboardListUrl, (route) =>
+    fail(route, 500, "INTERNAL_ERROR", "저장한 무드보드를 불러오지 못했어요."),
+  );
 }
 
 export async function mockMoodboard(page: Page) {

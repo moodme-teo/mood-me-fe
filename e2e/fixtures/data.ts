@@ -1,5 +1,6 @@
 import type { GenerationJob } from "@/lib/api/get-generation-job";
 import type { GetMoodboardResponse } from "@/lib/api/get-moodboard";
+import type { MoodboardSummary } from "@/lib/moodboard/summary";
 
 // 테스트 전반에서 재사용하는 고정 식별자. guestSessionId 는 서버 스키마가 uuid 를 요구한다.
 export const GUEST_SESSION_ID = "11111111-1111-4111-8111-111111111111";
@@ -67,6 +68,19 @@ export const MOODBOARD: GetMoodboardResponse = {
   isGuest: true,
   updatedAt: "2026-07-09T00:00:00.000Z",
 };
+
+// 홈(History)이 GET /api/moodboards 로 받는 목록. 카드의 접근성 이름은
+// title 과 typeName 이 다르면 "{typeName} · {title} 결과 열람하기" 가 된다.
+export const MOODBOARD_SUMMARIES: MoodboardSummary[] = [
+  {
+    id: MOODBOARD_ID,
+    thumbnailUrl: BASE_IMAGE_URL,
+    typeName: "고요한 몽상가",
+    title: "조용한 확신",
+    updatedAt: "2026-07-09T00:00:00.000Z",
+    isGuest: true,
+  },
+];
 
 export function generationJob(
   status: GenerationJob["status"],
