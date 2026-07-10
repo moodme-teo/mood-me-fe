@@ -2,6 +2,16 @@ import type { Locator, Page } from "@playwright/test";
 
 const ERROR_HEADING = "앗, 생성이 잠깐 멈췄어요";
 
+/**
+ * GeneratingPage — 무드보드 생성중 (`/test/[sessionId]/generating`)
+ *
+ * 숨기는 것:
+ * - 진행률이 서버 job 값이 아니라 클라이언트 연출이라는 사실 (readPercent 참조)
+ * - 편집 화면 렌더는 검증할 수 없고 이동까지만 본다는 사실 (waitForEdit 참조)
+ *
+ * 사용 기준:
+ * - readPercent() 는 절대값 단언이 아니라 expect.poll 로 "증가한다" 를 볼 때 쓴다.
+ */
 export class GeneratingPage {
   readonly progressBar: Locator;
   readonly errorHeading: Locator;
