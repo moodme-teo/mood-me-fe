@@ -1,4 +1,5 @@
 const LOCAL_SITE_ORIGIN = "http://localhost:3000";
+const PRODUCTION_SITE_ORIGIN = "https://mood-me.vercel.app";
 
 function normalizeOrigin(value: string | undefined) {
   if (!value) return undefined;
@@ -18,20 +19,22 @@ function isLocalOrigin(origin: string) {
 
 export function getSiteOrigin(currentOrigin?: string) {
   const requestOrigin = normalizeOrigin(currentOrigin);
+  const configuredOrigin = normalizeOrigin(process.env.NEXT_PUBLIC_SITE_URL);
+  const isDevelopment = process.env.NODE_ENV === "development";
 
-  if (
-    process.env.NODE_ENV === "development" &&
-    requestOrigin &&
-    isLocalOrigin(requestOrigin)
-  ) {
+  if (isDevelopment && requestOrigin && isLocalOrigin(requestOrigin)) {
     return requestOrigin;
   }
 
-  return (
-    normalizeOrigin(process.env.NEXT_PUBLIC_SITE_URL) ??
-    requestOrigin ??
-    LOCAL_SITE_ORIGIN
-  );
+  if (configuredOrigin && (isDevelopment || !isLocalOrigin(configuredOrigin))) {
+    return configuredOrigin;
+  }
+
+  if (requestOrigin && (isDevelopment || !isLocalOrigin(requestOrigin))) {
+    return requestOrigin;
+  }
+
+  return isDevelopment ? LOCAL_SITE_ORIGIN : PRODUCTION_SITE_ORIGIN;
 }
 
 export function getSafeReturnPath(value: string | null | undefined) {
