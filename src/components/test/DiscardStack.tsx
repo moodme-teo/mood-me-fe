@@ -12,6 +12,10 @@ import type { Card } from "@/lib/mood-test/seed";
 // 끌어내려 버린다" 인터랙션을 따른다. 최상단 카드만 조작 가능하고, 좌우 스와이프는
 // 로컬 미리보기 순환일 뿐 상태 기계(draft)에는 영향을 주지 않는다 — 폐기만 onToggle을 탄다.
 
+// 스택 높이는 뷰포트에 맞춰 줄어든다. 320px 로 고정하면 아이폰 13 미니(812px)처럼 짧은
+// 화면에서 카드가 안내문구와 고정 푸터를 밀어내 "다음" 이 스크롤해야 보인다.
+const STACK_HEIGHT = "min(320px, 34dvh)";
+
 const STACK_SIZE = 4;
 const DISCARD_THRESHOLD_Y = 120;
 const PEEK_THRESHOLD_X = 80;
@@ -83,7 +87,7 @@ export default function DiscardStack({
     .filter((card): card is Card => Boolean(card));
 
   return (
-    <div className="flex min-h-[560px] flex-col items-center justify-center gap-9">
+    <div className="flex min-h-[26rem] flex-col items-center justify-center gap-6">
       {remaining.length > 0 && (
         <div className="gap- flex w-full items-center justify-between px-5">
           <Button
@@ -118,7 +122,10 @@ export default function DiscardStack({
         </div>
       )}
 
-      <div className="relative mb-8 h-[320px] w-full max-w-[240px]">
+      <div
+        className="relative w-full max-w-[240px]"
+        style={{ height: STACK_HEIGHT }}
+      >
         <AnimatePresence>
           {visible.map((card, position) => {
             const isFront = position === 0;

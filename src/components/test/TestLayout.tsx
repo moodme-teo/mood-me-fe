@@ -202,8 +202,15 @@ export default function TestLayout({ initialStepIndex = 0, sessionId }: Props) {
       {/* min-h-0: flex 자식이 콘텐츠 크기만큼 늘어나지 않고 부모(뷰포트) 높이 안에서
           스스로 줄어들 수 있게 함 — 이게 없으면 아래 overflow-y-auto가 무시되고
           "다음" 버튼이 하단에 붙지 않는다.
+          --test-footer-h: TestFooter 는 fixed 라 흐름에서 빠져 있다. 그 높이를 여기 한 곳에
+          적어 두고 스크롤 영역이 같은 만큼 아래 여백을 잡는다 — 없으면 각 단계의 마지막
+          요소(그림자 칩·안내문구·최종 카드)가 버튼 뒤에 깔려 누를 수도 읽을 수도 없다.
+          값 = icon-lg 버튼 60px + 푸터 pb-14 56px.
           inert: 모달이 떠 있는 동안 뒤 화면은 클릭도 포커스도 받지 않는다. */}
-      <div className="flex min-h-0 flex-1 flex-col" inert={isBlocked}>
+      <div
+        className="flex min-h-0 flex-1 flex-col [--test-footer-h:7.25rem]"
+        inert={isBlocked}
+      >
         <TestHeader
           current={flow.screenIndex + 1}
           total={flow.totalScreens}
@@ -211,7 +218,7 @@ export default function TestLayout({ initialStepIndex = 0, sessionId }: Props) {
           preview={<BuildBoardPreview cardIds={flow.previewCardIds} />}
         />
 
-        <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto">
+        <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pb-[var(--test-footer-h)]">
           <section className="flex flex-col gap-4">
             <div className="sticky top-0 left-0 z-[99] bg-background/90 [mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)] px-4 pt-3 pb-7 backdrop-blur-md [-webkit-mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)]">
               <p className="font-semibold tracking-wide text-muted-foreground text-caption">
