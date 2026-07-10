@@ -14,6 +14,7 @@ import {
   readImagePixels,
   readPreviewAverages,
 } from "./utils/pixels";
+import { seedGuestSession } from "./utils/session";
 
 /**
  * 테스트 대상: 저장된 무드보드 재편집 (`/moodboard/[moodboardId]/edit`)
@@ -58,8 +59,10 @@ import {
  * 전제 조건:
  * - 서버 컴포넌트가 getMoodboardById()로 조회하지만, 그 함수는 Supabase 시크릿이 없는
  *   환경(E2E/CI)에서 mock 무드보드(moodboardId 해시로 고른 base 이미지)로 자동 폴백한다
- *   (get-moodboard.ts의 canUseSupabaseService 가드). 그래서 진입에는 mock 이 필요 없다.
- *   저장(PATCH)만 mock 한다.
+ *   (get-moodboard.ts의 canUseSupabaseService 가드).
+ * - 편집 화면 진입은 서버가 소유자 검증을 한다. E2E 서버는 명시 플래그
+ *   MOOD_ME_E2E_MOCK_OWNER=1 일 때만 고정 fixture 의 게스트 소유자를 인정하므로,
+ *   각 테스트는 seedGuestSession 으로 실제 게스트 쿠키를 심고 들어간다. 저장(PATCH)만 mock 한다.
  * - 추천 팔레트 추출에는 tainted 되지 않은 캔버스가 필요하다. base 이미지가 같은 출처의
  *   `public/test-image/…` 라서 getImageData 가 통과한다.
  * - 픽셀 단언은 utils/pixels.ts 를 쓴다. 미리보기 캔버스와 내보낸 이미지는 해상도가
@@ -95,7 +98,20 @@ const PRESET_BLACK = { r: 23, g: 23, b: 23, a: 255 };
 const JPEG_TOLERANCE = 4;
 /** 미리보기(DPR 배율)와 내보내기(720px)의 리샘플링 차이 허용치. */
 const RESAMPLE_TOLERANCE = 16;
+
+test.describe("무드보드 재편집 진입 검증", () => {
+  test("소유자가 아니면 404로 막는다", async ({ page }) => {
+    const response = await page.goto(`/moodboard/${MOODBOARD_ID}/edit`);
+
+    expect(response?.status()).toBe(404);
+  });
+});
+
 test.describe("무드보드 재편집", () => {
+  test.beforeEach(async ({ page }) => {
+    await seedGuestSession(page);
+  });
+
   test("캔버스와 크롭 도구를 렌더한다", async ({ page }) => {
     const edit = new EditPage(page);
     await edit.gotoSaved(MOODBOARD_ID);
@@ -342,5 +358,25 @@ test.describe("무드보드 재편집", () => {
     await edit.leaveConfirmButton.click();
 
     await page.waitForURL("/");
+  });
+
+  test("브라우저 뒤로가기도 헤더 뒤로 버튼과 같은 확인 다이얼로그를 띄운다", async ({
+    page,
+  }) => {
+    const edit = new EditPage(page);
+    await edit.gotoSaved(MOODBOARD_ID);
+    await expect(edit.canvas).toBeVisible();
+
+    await page.goBack();
+
+    await expect(edit.leaveDialog).toBeVisible();
+
+    await edit.leaveCancelButton.click();
+
+    await expect(edit.leaveDialog).toBeHidden();
+    await expect(edit.canvas).toBeVisible();
+    await expect(page).toHaveURL(
+      new RegExp(`/moodboard/${MOODBOARD_ID}/edit$`),
+    );
   });
 });

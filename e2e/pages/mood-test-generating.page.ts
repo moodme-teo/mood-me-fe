@@ -1,6 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 
-const ERROR_HEADING = "앗, 생성이 잠깐 멈췄어요";
+const ERROR_HEADING = "무드보드를 완성하지 못했어요.";
 
 /**
  * GeneratingPage — 무드보드 생성중 (`/test/[sessionId]/generating`)
@@ -16,11 +16,17 @@ export class GeneratingPage {
   readonly progressBar: Locator;
   readonly errorHeading: Locator;
   readonly retryButton: Locator;
+  readonly homeButton: Locator;
 
   constructor(private readonly page: Page) {
     this.progressBar = page.getByRole("progressbar");
     this.errorHeading = page.getByText(ERROR_HEADING);
-    this.retryButton = page.getByRole("button", { name: "다시 시도" });
+    // 재시도 중에는 라벨이 "다시 만드는 중"으로 바뀐다(disabled) — 두 상태 모두 매칭해야
+    // 잠금 상태에서도 같은 locator로 버튼을 찾을 수 있다.
+    this.retryButton = page.getByRole("button", {
+      name: /다시 만들어보기|다시 만드는 중/,
+    });
+    this.homeButton = page.getByRole("button", { name: "홈으로" });
   }
 
   async goto(sessionId: string) {

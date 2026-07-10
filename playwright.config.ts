@@ -14,6 +14,9 @@ const SERVER_ENV = {
   NEXT_PUBLIC_SUPABASE_ANON_KEY: "",
   SUPABASE_SECRET_KEY: "",
   NEXT_PUBLIC_SITE_URL: BASE_URL,
+  // Supabase 없이 도는 E2E 에서만 고정 fixture 소유자 검증을 허용한다.
+  // 서비스 키 부재만으로 검증을 통과시키지 않도록 명시 플래그를 따로 둔다.
+  MOOD_ME_E2E_MOCK_OWNER: "1",
 };
 
 // dev 서버가 아니라 프로덕션 빌드로 띄운다 — Next 16 은 같은 디렉터리에서 dev 서버를 두 개

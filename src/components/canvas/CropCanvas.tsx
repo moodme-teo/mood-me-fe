@@ -4,6 +4,7 @@ import type Konva from "konva";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Group, Image as KonvaImage, Layer, Rect, Stage } from "react-konva";
 
+import { compositeOnWhite } from "@/components/canvas/composite-on-white";
 import { createBlurredBackground } from "@/components/canvas/crop-background";
 import { getCropFit, getCropShapePath } from "@/components/canvas/crop-shapes";
 import {
@@ -76,26 +77,6 @@ function useCanvasImage(src: string, onError: () => void) {
   }, [src]);
 
   return { image, status };
-}
-
-// JPG는 알파를 지원하지 않으므로 투명 영역을 흰색으로 합성한다 (mood-edit PRD §7 저장).
-async function compositeOnWhite(pngDataUrl: string): Promise<string> {
-  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const el = new window.Image();
-    el.onload = () => resolve(el);
-    el.onerror = reject;
-    el.src = pngDataUrl;
-  });
-
-  const canvas = document.createElement("canvas");
-  canvas.width = img.width;
-  canvas.height = img.height;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return pngDataUrl;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(img, 0, 0);
-  return canvas.toDataURL("image/jpeg", 0.92);
 }
 
 type Gesture =
@@ -380,7 +361,7 @@ export default function CropCanvas({
       {isTransparent ? (
         <div
           aria-hidden
-          className="absolute inset-0 rounded-[22px]"
+          className="0 absolute inset-0"
           style={{
             backgroundImage:
               "linear-gradient(45deg, #d4d4d4 25%, transparent 25%), linear-gradient(-45deg, #d4d4d4 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #d4d4d4 75%), linear-gradient(-45deg, transparent 75%, #d4d4d4 75%)",
@@ -396,7 +377,7 @@ export default function CropCanvas({
         height={stagePixelSize}
         scaleX={displayScale}
         scaleY={displayScale}
-        className="relative rounded-[22px]"
+        className="0 relative"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={endGesture}
@@ -449,7 +430,7 @@ export default function CropCanvas({
         </Layer>
       </Stage>
       {status === "loading" ? (
-        <div className="absolute inset-0 flex items-center justify-center rounded-[22px] text-sm font-bold text-gray-700">
+        <div className="0 absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-700">
           이미지를 불러오는 중
         </div>
       ) : null}

@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { BoardPreview } from "@/components/canvas";
+import { BoardPreview, compositeOnWhite } from "@/components/canvas";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogActions, DialogContent } from "@/components/ui/dialog";
 import type { GetMoodboardResponse } from "@/lib/api/get-moodboard";
 import { getMoodboard } from "@/lib/api/get-moodboard";
 import { ApiClientError } from "@/lib/api-client";
@@ -218,7 +220,7 @@ function GuestBanner() {
     <section className="rounded-2xl bg-[#e8eeff] p-4 text-foreground">
       <p className="text-sm font-bold">로그인하면 언제든 다시 볼 수 있어요.</p>
       <p className="mt-1 text-sm leading-6 text-gray-700">
-        지금은 게스트로도 열람, 공유, 이미지 내보내기를 모두 사용할 수 있습니다.
+        지금은 게스트로도 열람, 공유, 이미지 저장을 모두 사용할 수 있습니다.
       </p>
       <Link
         href="/login"
@@ -230,8 +232,55 @@ function GuestBanner() {
   );
 }
 
+function SaveFormatSheet({
+  isOpen,
+  onClose,
+  onSelect,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelect: (format: "png" | "jpeg") => void;
+}) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/48 p-4">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="image-save-title"
+        className="w-full max-w-sm space-y-3 rounded-2xl bg-card p-5 text-foreground"
+      >
+        <h2 id="image-save-title" className="text-lg font-bold">
+          이미지 저장
+        </h2>
+        <button
+          type="button"
+          onClick={() => onSelect("png")}
+          className="w-full rounded-xl border border-gray-300 bg-card px-4 py-3 text-sm font-bold"
+        >
+          PNG로 저장 (투명 유지)
+        </button>
+        <button
+          type="button"
+          onClick={() => onSelect("jpeg")}
+          className="w-full rounded-xl border border-gray-300 bg-card px-4 py-3 text-sm font-bold"
+        >
+          JPG로 저장 (흰 배경)
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full rounded-xl px-4 py-3 text-sm font-bold text-gray-700"
+        >
+          닫기
+        </button>
+      </section>
+    </div>
+  );
+}
+
 // 브라우저 모달(window.confirm)은 페이지 스크립트를 멈추고 스타일도 제어할 수 없다.
-// MoodboardCropEditor 의 ConfirmLeaveDialog 와 같은 인앱 다이얼로그로 맞춘다.
+// ui/dialog 의 인앱 다이얼로그로 맞춘다.
 function ConfirmRestartDialog({
   isOpen,
   onCancel,
@@ -241,50 +290,37 @@ function ConfirmRestartDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-surface-inverse/48 p-4 sm:items-center sm:justify-center">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="restart-title"
-        className="w-full max-w-sm rounded-2xl bg-card p-5 text-foreground shadow-xl"
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent
+        title="처음부터 다시 만들까요?"
+        description="지금 보고 있는 무드보드는 그대로 남아요. 새 테스트를 시작합니다."
       >
-        <h2 id="restart-title" className="text-lg font-bold">
-          처음부터 다시 만들까요?
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-gray-700">
-          지금 보고 있는 무드보드는 그대로 남아요. 새 테스트를 시작합니다.
-        </p>
-        <div className="mt-5 grid grid-cols-2 gap-2">
-          <button
+        <DialogActions>
+          <Button
             type="button"
+            variant="secondary"
+            size="md"
             onClick={onCancel}
-            className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-bold text-foreground"
           >
             그대로 볼게요
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
-          >
+          </Button>
+          <Button type="button" tone="ink" size="md" onClick={onConfirm}>
             새로 시작할게요
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogActions>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 function ResultActions({
   moodboard,
-  onDownload,
+  onOpenSave,
   onShare,
 }: {
   moodboard: GetMoodboardResponse;
-  onDownload: () => void;
+  onOpenSave: () => void;
   onShare: () => void;
 }) {
   const router = useRouter();
@@ -302,10 +338,10 @@ function ResultActions({
         </button>
         <button
           type="button"
-          onClick={onDownload}
+          onClick={onOpenSave}
           className="rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
         >
-          이미지 내보내기
+          이미지 저장
         </button>
       </div>
       {/* 편집은 소유자에게만 보인다 — 공유 링크로 들어온 사람에게는 감춘다. 실제 방어는
@@ -369,6 +405,7 @@ async function copyText(text: string) {
 export default function MoodboardResult({ moodboardId }: Props) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [toast, setToast] = useState<string | null>(null);
+  const [isSaveOpen, setIsSaveOpen] = useState(false);
   const exportRef = useRef<(() => string | null) | null>(null);
 
   const showToast = useCallback((message: string) => {
@@ -417,24 +454,30 @@ export default function MoodboardResult({ moodboardId }: Props) {
     if (url) exportRef.current = () => url;
   }, [state]);
 
-  const handleDownload = useCallback(() => {
-    try {
-      const dataUrl = exportRef.current?.();
-      if (!dataUrl) {
-        showToast("이미지 준비가 아직 끝나지 않았어요.");
-        return;
-      }
+  const handleDownload = useCallback(
+    async (format: "png" | "jpeg") => {
+      try {
+        const pngDataUrl = exportRef.current?.();
+        if (!pngDataUrl) {
+          showToast("이미지 준비가 아직 끝나지 않았어요.");
+          return;
+        }
 
-      const link = document.createElement("a");
-      link.href = dataUrl;
-      link.download = `mood-me-${moodboardId}.png`;
-      link.click();
-      showToast("PNG 이미지로 저장했어요.");
-    } catch (error) {
-      console.error(error);
-      showToast("이미지 내보내기에 실패했어요.");
-    }
-  }, [moodboardId, showToast]);
+        const dataUrl =
+          format === "jpeg" ? await compositeOnWhite(pngDataUrl) : pngDataUrl;
+        const link = document.createElement("a");
+        link.href = dataUrl;
+        link.download = `mood-me-${moodboardId}.${format === "png" ? "png" : "jpg"}`;
+        link.click();
+        setIsSaveOpen(false);
+        showToast(`${format === "png" ? "PNG" : "JPG"} 이미지로 저장했어요.`);
+      } catch (error) {
+        console.error(error);
+        showToast("이미지를 저장하지 못했어요. 다시 시도해주세요.");
+      }
+    },
+    [moodboardId, showToast],
+  );
 
   const handleShare = useCallback(async () => {
     const url = window.location.href;
@@ -463,6 +506,11 @@ export default function MoodboardResult({ moodboardId }: Props) {
   return (
     <main className="flex flex-1 justify-center overflow-y-auto bg-background text-foreground">
       <Toast message={toast} />
+      <SaveFormatSheet
+        isOpen={isSaveOpen}
+        onClose={() => setIsSaveOpen(false)}
+        onSelect={handleDownload}
+      />
       <div className="w-full max-w-[430px] px-4 py-4">
         <header className="mb-4 flex items-center justify-between">
           <Link
@@ -515,7 +563,7 @@ export default function MoodboardResult({ moodboardId }: Props) {
           <KeywordCloud moodboard={moodboard} />
           <ResultActions
             moodboard={moodboard}
-            onDownload={handleDownload}
+            onOpenSave={() => setIsSaveOpen(true)}
             onShare={handleShare}
           />
           {moodboard.isGuest ? <GuestBanner /> : null}

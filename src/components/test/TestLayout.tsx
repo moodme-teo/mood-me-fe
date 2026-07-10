@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import BuildBoardPreview from "@/components/test/BuildBoardPreview";
+import ConfirmResetDialog from "@/components/test/ConfirmResetDialog";
 import StageBody from "@/components/test/StageBody";
 import TestFooter from "@/components/test/TestFooter";
 import TestHeader from "@/components/test/TestHeader";
@@ -21,6 +22,7 @@ import {
   loadMoodTestDraft,
   saveMoodTestDraft,
 } from "@/lib/mood-test/draft-storage";
+import { clearGenerationJobId } from "@/lib/mood-test/generation-job-storage";
 
 type Props = {
   // 홈 "이어서 만들기" 딥링크(#84/#85)가 넘기는 화면 번호. 복원의 근거는 localStorage 드래프트지
@@ -77,6 +79,8 @@ export default function TestLayout({ initialStepIndex = 0, sessionId }: Props) {
   const [gate, setGate] = useState<DraftGate>("reading");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // 화면을 떠나려는 동작을 붙들어 둔다. 확인을 받으면 그때 실행한다.
+  const [pendingExit, setPendingExit] = useState<"back" | "home" | null>(null);
   const { restore } = flow;
 
   // 마운트 직후 1회. localStorage 는 서버 렌더에 없으므로 effect 에서 읽는다.
@@ -127,23 +131,35 @@ export default function TestLayout({ initialStepIndex = 0, sessionId }: Props) {
     });
   }, [gate, sessionId, flow.screenIndex, flow.committed, flow.draft]);
 
-  const handleHome = () => {
-    router.push("/");
+  const goHome = () => router.push("/");
+
+  // 화면을 떠나면 지금 고른 것이 사라진다 — 이전으로 가든 홈으로 나가든 마찬가지다.
+  // 고른 게 없으면 잃을 것도 없으니 묻지 않는다.
+  const leaveScreen = (exit: "back" | "home") => {
+    if (flow.hasSelection) {
+      setPendingExit(exit);
+      return;
+    }
+    if (exit === "home") goHome();
+    else flow.back();
   };
 
+  // 이어갈 수 없는 드래프트를 버리고 나간다. 화면이 inert 라 고른 것도 없으니 되묻지 않는다.
   const handleLeaveStaleDraft = () => {
     clearMoodTestDraft();
-    router.push("/");
+    goHome();
   };
 
-  const handlePrevStage = () => {
-    flow.back();
-  };
+  const handleHome = () => leaveScreen("home");
+  const handlePrevStage = () => leaveScreen("back");
 
+  // 되돌리기는 화면을 떠나지 않는다. 현재 화면 안에서 draft 를 한 칸 되감을 뿐이라
+  // 확인을 받을 이유가 없다.
   const handleUndoSelection = () => {
     flow.undo();
   };
 
+  // "다음" 은 지금 고른 것을 확정하고 넘어간다 — 잃는 게 없으므로 묻지 않는다.
   const handleNext = async () => {
     if (!flow.canConfirm) return;
 
@@ -162,6 +178,9 @@ export default function TestLayout({ initialStepIndex = 0, sessionId }: Props) {
       await ensureGuestSession();
       await saveMoodTestSession({ sessionId, journey });
       clearMoodTestDraft();
+      // 같은 sessionId로 다시 제출한 것일 수 있다(테스트 다시하기) — 이전에 이 세션으로
+      // 생성 요청을 보낸 적이 있어도, 방금 낸 새 답변에 대해 반드시 새로 생성해야 한다.
+      clearGenerationJobId(sessionId);
       router.push(`/test/${sessionId}/generating`);
     } catch (error) {
       const message =
@@ -253,6 +272,18 @@ export default function TestLayout({ initialStepIndex = 0, sessionId }: Props) {
         />
       </div>
       {isBlocked && <StaleDraftDialog onConfirm={handleLeaveStaleDraft} />}
+
+      {/* blocked 일 때는 뒤 화면이 inert 라 이전·홈을 누를 수 없다 — 두 모달은 겹치지 않는다. */}
+      <ConfirmResetDialog
+        isOpen={pendingExit !== null}
+        onCancel={() => setPendingExit(null)}
+        onConfirm={() => {
+          const exit = pendingExit;
+          setPendingExit(null);
+          if (exit === "home") goHome();
+          else flow.back();
+        }}
+      />
       <style jsx>{`
         .no-scrollbar {
           -ms-overflow-style: none;
