@@ -4,7 +4,6 @@
 // 캔버스 구역은 그 타입을 재수출해 쓰고(외부는 배럴 index.ts 로만 접근),
 // 여기에는 캔버스 편집 UI 고유 타입만 남긴다.
 import type { SvgCropShapeId } from "@/components/canvas/crop-svg-shapes";
-import type { MoodboardElement } from "@/types/moodboard";
 
 export {
   EXPORT_PIXEL_RATIO,
@@ -58,11 +57,4 @@ export type CropState = {
   shape: CropShapeId;
   background: CropBackground;
   transform: CropTransform;
-};
-
-export type MoodboardDraft = {
-  moodboardId: string;
-  baseImageUrl: string;
-  elements: MoodboardElement[];
-  updatedAt: string;
 };
