@@ -72,7 +72,9 @@ export const moodboardElementSchema = z.discriminatedUnion("type", [
 export const updateMoodboardRequestSchema = z.object({
   baseImageUrl: z.string().min(1),
   elements: z.array(moodboardElementSchema),
-  exportedImageDataUrl: z.string().optional(),
+  // Storage에 업로드한 결과 URL — base64 dataURL이 아니다. 방어적으로 길이도 제한한다
+  // (#163, docs/convention/canvas.md — dataURL을 DB에 직접 저장하지 않는다).
+  exportedImageUrl: z.url().max(2048).optional(),
   // 재편집 구도 복원용 (#116) — "완료" 시 현재 도형·배경·확대·위치를 함께 커밋한다.
   editState: editStateSchema.optional(),
   // 리포트(GPT-5)는 이미지 생성과 독립적으로 돈다 — "완성하고 공유하기" 시점에 아직

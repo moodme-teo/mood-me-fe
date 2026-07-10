@@ -12,7 +12,7 @@ type MoodboardListResult =
 type MoodboardRow = {
   id: string;
   base_image_url: string | null;
-  exported_image_data_url: string | null;
+  exported_image_url: string | null;
   guest_session_id: string | null;
   mood_profile: unknown;
   updated_at: string | null;
@@ -60,7 +60,7 @@ export async function getMoodboardSummaries(): Promise<MoodboardListResult> {
   const query = dataClient
     .from("moodboards")
     .select(
-      "id, base_image_url, exported_image_data_url, guest_session_id, mood_profile, updated_at",
+      "id, base_image_url, exported_image_url, guest_session_id, mood_profile, updated_at",
     )
     .order("updated_at", { ascending: false });
 
@@ -85,7 +85,7 @@ export async function getMoodboardSummaries(): Promise<MoodboardListResult> {
         // 크롭 에디터(#99)로 저장한 평면 결과가 있으면 그걸 우선 노출한다 —
         // 없으면(크롭 전) 조립된 원본 base 이미지로 폴백한다.
         thumbnailUrl:
-          row.exported_image_data_url ??
+          row.exported_image_url ??
           row.base_image_url ??
           "/test-image/aesthetic/c18.jpg",
         typeName: typeName ?? title ?? "이름 없는 무드",

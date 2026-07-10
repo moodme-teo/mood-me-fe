@@ -19,7 +19,8 @@ const UNIQUE_VIOLATION = "23505";
 export type SaveMoodboardInput = {
   baseImageUrl: string;
   elements: MoodboardElement[];
-  exportedImageDataUrl?: string;
+  // Storage에 업로드된 export 결과 URL (#163) — dataURL이 아니다.
+  exportedImageUrl?: string;
   // 재편집 구도 복원용 (#116) — "완료" 시 항상 현재 값을 함께 커밋한다.
   editState?: EditState;
   moodProfile?: MoodProfile;
@@ -46,7 +47,7 @@ export async function saveOwnedMoodboard(
   const content = {
     base_image_url: input.baseImageUrl,
     elements: input.elements,
-    exported_image_data_url: input.exportedImageDataUrl ?? null,
+    exported_image_url: input.exportedImageUrl ?? null,
     ...(input.editState ? { edit_state: input.editState } : {}),
     ...(input.moodProfile ? { mood_profile: input.moodProfile } : {}),
     ...(input.analysisStatus ? { analysis_status: input.analysisStatus } : {}),
