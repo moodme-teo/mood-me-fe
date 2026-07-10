@@ -13,6 +13,7 @@ import {
   TOTAL_SCREENS,
   willResetDownstream,
 } from "@/components/test/mood-test-flow";
+import type { FlowProgress } from "@/lib/mood-test/flow-state";
 import { SHADOWS } from "@/lib/mood-test/seed";
 
 export function useMoodTestFlow() {
@@ -54,6 +55,10 @@ export function useMoodTestFlow() {
   const confirm = useCallback(() => dispatch({ type: "CONFIRM" }), []);
   const back = useCallback(() => dispatch({ type: "BACK" }), []);
   const undo = useCallback(() => dispatch({ type: "UNDO" }), []);
+  const restore = useCallback(
+    (progress: FlowProgress) => dispatch({ type: "RESTORE", progress }),
+    [],
+  );
 
   const buildJourneyFromDraft = useCallback(() => {
     const committed = commitScreen(screen, state.draft, state.committed);
@@ -65,6 +70,7 @@ export function useMoodTestFlow() {
     screenIndex: state.screenIndex,
     totalScreens: TOTAL_SCREENS,
     poolIds,
+    committed: state.committed,
     draft: state.draft,
     target,
     canConfirm: state.draft.length === target,
@@ -83,6 +89,7 @@ export function useMoodTestFlow() {
     confirm,
     back,
     undo,
+    restore,
     buildJourneyFromDraft,
   };
 }

@@ -7,6 +7,7 @@ import {
   mockGuestSession,
   mockSaveMoodTestSession,
 } from "./utils/mock-api";
+import { seedMoodTestDraft } from "./utils/session";
 
 /**
  * 테스트 대상: 추구미 테스트 (`/test/[sessionId]` — PRD §5.3)
@@ -76,8 +77,11 @@ import {
  * - 초기화 규칙의 모든 조합 (담기·덜어내기·그림자·전환이 각각 무엇을 지우는지) —
  *   commitScreen 은 순수 함수라 조합 폭발은 unit test 자리다. 여기서는 대표 경로 하나로
  *   "확인을 거친다 · 실제로 비워진다" 만 본다.
- * - 드래프트 버전 불일치·여러 탭 동시 편집·localStorage 접근 불가 — 드래프트에 아직
- *   schemaVersion 이 없다. 버전 필드가 생긴 뒤에 붙인다.
+ * - 여러 탭 동시 편집 — 마지막에 쓴 탭이 이긴다(§10.2). 두 컨텍스트를 띄워야 해 비용 대비
+ *   얻는 게 적다.
+ * - localStorage 접근 불가 — 저장을 건너뛸 뿐이라 화면에 드러나는 변화가 없다.
+ *
+ * 드래프트 버전 불일치는 아래 "드래프트 복원" describe 에서 다룬다 (#121).
  */
 
 // 담기(A) 12장 → 덜어내기 1차(B1) 4장. 화면별 목표치는 targetCountForScreen 이 정한다.
@@ -264,5 +268,66 @@ test.describe("추구미 테스트", () => {
     await expect(moodTest.selectionStatus).toContainText(
       `0 / ${TRIM1_TARGET} 선택됨`,
     );
+  });
+});
+
+/**
+ * 드래프트 복원과 질문 세트 버전 (#121 · PRD §5.7 · §10.2)
+ *
+ * 드래프트는 자기가 어느 질문 세트 위에서 만들어졌는지 기억한다. 세트가 바뀌면 예전에 고른
+ * 카드가 새 세트에 없을 수 있어 이어갈 수 없다 — 조용히 처음으로 돌려보내지 않고 모달로 알린다.
+ */
+test.describe("추구미 테스트 — 드래프트 복원", () => {
+  // c01~c12 를 담고, 그중 4장·3장을 덜어내 C(그림자) 화면까지 온 사람.
+  const AT_SHADOW_SCREEN = {
+    stepIndex: 3,
+    committed: {
+      selected: Array.from(
+        { length: 12 },
+        (_, i) => `c${String(i + 1).padStart(2, "0")}`,
+      ),
+      droppedR1: ["c01", "c02", "c03", "c04"],
+      droppedR2: ["c05", "c06", "c07"],
+    },
+  };
+
+  test("같은 버전이면 마지막 단계부터 이어서 진행한다", async ({ page }) => {
+    await seedMoodTestDraft(page, {
+      sessionId: TEST_SESSION_ID,
+      updatedAt: "2026-07-09T10:00:00.000Z",
+      ...AT_SHADOW_SCREEN,
+    });
+
+    await page.goto(`/test/${TEST_SESSION_ID}?step=3`);
+
+    await expect(page.getByText("C. 그림자")).toBeVisible();
+  });
+
+  test("질문 세트 버전이 다르면 모달로 막고 홈으로 보낸다", async ({
+    page,
+  }) => {
+    await seedMoodTestDraft(page, {
+      sessionId: TEST_SESSION_ID,
+      updatedAt: "2026-07-09T10:00:00.000Z",
+      questionSetVersion: "2000-01-01",
+      ...AT_SHADOW_SCREEN,
+    });
+
+    await page.goto(`/test/${TEST_SESSION_ID}?step=3`);
+
+    const dialog = page.getByRole("dialog", {
+      name: "테스트 내용이 새로 바뀌었어요",
+    });
+    await expect(dialog).toBeVisible();
+
+    // 뒤 화면은 inert 라 클릭도 포커스도 먹지 않는다. 덮개를 뚫고(force) 카드를 눌러도
+    // 선택이 늘지 않아야 한다.
+    const moodTest = new MoodTestPage(page);
+    await expect(page.locator("[inert]")).toBeAttached();
+    await moodTest.unpickedOptions.first().click({ force: true });
+    await expect(moodTest.pickedOptions).toHaveCount(0);
+
+    await dialog.getByRole("button", { name: "확인" }).click();
+    await page.waitForURL("**/");
   });
 });

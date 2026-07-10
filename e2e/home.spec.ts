@@ -5,6 +5,7 @@ import { HomePage } from "./pages/home.page";
 import { MoodTestPage } from "./pages/mood-test.page";
 import { mockMoodboards, mockMoodboardsFailure } from "./utils/mock-api";
 import {
+  seedCorruptedMoodTestDraft,
   seedGuestSession,
   seedMoodTestDraft,
   skipSplash,
@@ -132,6 +133,36 @@ test.describe("홈", () => {
     await home.continueLink.click();
 
     await page.waitForURL(`**/test/${TEST_SESSION_ID}?step=2`);
+  });
+
+  // 질문 세트가 바뀌면 예전 드래프트가 가리키던 카드가 사라져 있을 수 있다 — 이어갈 수 없으므로
+  // 진입점을 내린다. 왜 사라졌는지는 알리지 않는다 (#121).
+  test("질문 세트 버전이 다른 드래프트는 이어서 만들기를 보여주지 않는다", async ({
+    page,
+  }) => {
+    await seedMoodTestDraft(page, {
+      sessionId: TEST_SESSION_ID,
+      stepIndex: 2,
+      updatedAt: "2026-07-09T10:00:00.000Z",
+      questionSetVersion: "2000-01-01",
+    });
+
+    const home = new HomePage(page);
+    await home.goto();
+
+    await expect(home.createButton).toBeVisible();
+    await expect(home.continueLink).toBeHidden();
+  });
+
+  // 손상된 JSON 도 같은 길로 — 던지지 않고 조용히 걸러낸다 (#121).
+  test("손상된 드래프트가 있어도 홈이 정상 렌더된다", async ({ page }) => {
+    await seedCorruptedMoodTestDraft(page);
+
+    const home = new HomePage(page);
+    await home.goto();
+
+    await expect(home.createButton).toBeVisible();
+    await expect(home.continueLink).toBeHidden();
   });
 
   // "편집 중인 보드를 이어서 만들기" 는 #134 가 IndexedDB 초안 저장소(moodboard-draft-storage)를

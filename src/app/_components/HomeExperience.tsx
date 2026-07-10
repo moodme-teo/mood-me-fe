@@ -175,13 +175,15 @@ export default function HomeExperience({
     Promise.resolve().then(() => {
       if (!isActive) return;
 
-      const testDraft = loadMoodTestDraft();
+      // 질문 세트가 바뀌었거나 손상된 드래프트(status: "stale")는 이어갈 수 없다 —
+      // 진입점을 아예 내린다. 사연은 굳이 알리지 않는다 (#121).
+      const stored = loadMoodTestDraft();
       setContinueTarget(
-        testDraft
+        stored.status === "ok"
           ? {
-              href: getDraftStepHref(testDraft),
-              label: `${testDraft.stepIndex + 1}단계`,
-              updatedAt: testDraft.updatedAt,
+              href: getDraftStepHref(stored.draft),
+              label: `${stored.draft.stepIndex + 1}단계`,
+              updatedAt: stored.draft.updatedAt,
             }
           : null,
       );

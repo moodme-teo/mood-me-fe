@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = 3100;
+// reuseExistingServer 는 포트만 보고 붙는다 — 워크트리를 여러 개 띄워 두면 옆 워크트리의
+// 서버(=다른 코드)를 상대로 테스트하게 된다. E2E_PORT 로 갈라서 돌린다.
+const PORT = Number(process.env.E2E_PORT ?? 3100);
 const BASE_URL = `http://localhost:${PORT}`;
 
 // E2E 는 실제 Supabase/Elice 를 호출하지 않는다.
