@@ -89,6 +89,8 @@ export const MOODBOARD: GetMoodboardResponse = {
   // 아니라 <img> 로 렌더한다 — 지금 실사용자가 만드는 모든 보드가 이 경로다.
   exportedImageUrl: EXPORTED_IMAGE_DATA_URL,
   isGuest: true,
+  // 서버가 쿠키의 신원과 보드 소유자를 대조해 내려준다 (#126). 소유자 식별값은 응답에 없다.
+  isOwner: true,
   updatedAt: "2026-07-09T00:00:00.000Z",
 };
 
@@ -97,6 +99,12 @@ export const MOODBOARD: GetMoodboardResponse = {
 export const LEGACY_MOODBOARD: GetMoodboardResponse = {
   ...MOODBOARD,
   exportedImageUrl: null,
+};
+
+// 공유 링크로 남의 보드를 연 제3자 — 열람은 되고 편집 UI 는 보이지 않는다 (#126).
+export const SHARED_MOODBOARD: GetMoodboardResponse = {
+  ...MOODBOARD,
+  isOwner: false,
 };
 
 // 홈(History)이 GET /api/moodboards 로 받는 목록. 카드의 접근성 이름은

@@ -85,14 +85,36 @@ export const moodProfileSchema = z.object({
   sticker_phrases: z.array(z.string()).default([]),
 });
 
+export const backgroundOptionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("transparent") }),
+  z.object({ type: z.literal("solid"), color: z.string().min(1) }),
+  z.object({ type: z.literal("blur") }),
+]);
+
+// 재편집 구도 복원용 (mood-edit PRD §12). shapeId는 캔버스 쪽 CropShapeId를 그대로 담되,
+// 이 레이어는 components/canvas를 import할 수 없어(단방향) 느슨한 문자열로 검증한다.
+export const editStateSchema = z.object({
+  sourceImageUrl: z.string().min(1),
+  shapeId: z.string().min(1),
+  background: backgroundOptionSchema,
+  scale: z.number(),
+  x: z.number(),
+  y: z.number(),
+});
+
 export const moodboardSchema = z.object({
   id: z.string().min(1),
   baseImageUrl: z.string().min(1),
   elements: z.array(moodboardElementSchema),
   // 크롭 에디터(#99)가 저장한 평면 결과 이미지 URL/데이터. 레거시 무드보드에는 없다.
   exportedImageUrl: z.string().nullable().optional(),
+  // 재편집 구도 복원 (#116). 레거시 무드보드에는 없다.
+  editState: editStateSchema.nullable().optional(),
   moodProfile: moodProfileSchema,
   isGuest: z.boolean(),
+  // 서버가 쿠키의 신원과 보드 소유자를 대조한 결과. 소유자 식별값 자체는 담지 않는다 —
+  // 공유 링크는 공개라, 실으면 링크를 연 누구나 소유자로 위장할 수 있다 (#126).
+  isOwner: z.boolean(),
   updatedAt: z.string().min(1),
 });
 

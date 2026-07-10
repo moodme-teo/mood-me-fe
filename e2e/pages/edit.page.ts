@@ -17,9 +17,9 @@ export type CropShapeLabel =
   | "하트"
   | "다이아몬드";
 
-// 저장 후 이동하는 곳. 생성 직후 편집(/test/[sessionId]/edit)에서는 moodboardId 를
-// 서버가 진입할 때마다 randomUUID 로 새로 발급하므로 값을 미리 알 수 없다
-// (PRD §5.7 — 완성 전까지 서버에 쓰지 않는다).
+// 저장 후 이동하는 곳. 생성 직후 편집(/test/[sessionId]/edit)의 moodboardId 는 서버가
+// sessionId 에서 단방향으로 유도하므로(lib/moodboard/moodboard-id.ts) 값을 미리 알 수 없다.
+// (PRD §5.7 — 완성 전까지 서버에 쓰지 않는다.)
 const MOODBOARD_URL = /\/moodboard\/[0-9a-f-]{36}$/;
 
 // ColorPanel 의 추천 배경색 버튼 — aria-label 이 `{hex} 배경` 이다.
@@ -137,7 +137,10 @@ export class EditPage {
     await this.page.goto(`/test/${sessionId}/edit`);
   }
 
-  /** 저장된 무드보드 재편집 — 서버 조회 없이 렌더되므로 E2E 로 검증 가능하다. */
+  /**
+   * 저장된 무드보드 재편집 — 서버 컴포넌트가 getMoodboardById()로 조회하지만, 그 함수는
+   * Supabase 시크릿이 없으면(E2E/CI) mock으로 자동 폴백해 page.route 없이도 렌더된다.
+   */
   async gotoSaved(moodboardId: string) {
     await this.page.goto(`/moodboard/${moodboardId}/edit`);
   }

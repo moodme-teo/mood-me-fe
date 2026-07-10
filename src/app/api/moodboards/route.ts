@@ -1,27 +1,10 @@
-import { z } from "zod";
-
 import { apiError, apiSuccess } from "@/lib/api-response";
 import { getMoodboardSummaries } from "@/lib/moodboard/list";
 
-const moodboardListQuerySchema = z.object({
-  guestSessionId: z.uuid().optional(),
-});
-
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const parsedQuery = moodboardListQuerySchema.safeParse({
-    guestSessionId: searchParams.get("guestSessionId") ?? undefined,
-  });
-
-  if (!parsedQuery.success) {
-    return apiError(
-      "INVALID_INPUT",
-      "게스트 세션 형식이 올바르지 않아요.",
-      400,
-    );
-  }
-
-  const result = await getMoodboardSummaries(parsedQuery.data);
+// 요청자 신원은 쿠키에서만 읽는다 — 예전에는 ?guestSessionId= 로 받아 남의 목록을 그대로
+// 조회할 수 있었고, 게스트 id가 주소창·서버 로그에 노출됐다 (#126).
+export async function GET() {
+  const result = await getMoodboardSummaries();
 
   if (!result.ok) {
     return apiError("INTERNAL_ERROR", result.error, 500);

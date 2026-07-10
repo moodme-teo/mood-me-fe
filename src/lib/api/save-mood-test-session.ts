@@ -7,7 +7,7 @@ import { journeySchema } from "@/lib/mood-test/journey";
 // server-only라 클라이언트에서 import할 수 없다 — 여기서 별도로 선언한다.
 export const saveMoodTestSessionRequestSchema = z.object({
   sessionId: z.uuid(),
-  guestSessionId: z.uuid().optional(),
+  // 소유자(회원·게스트)는 서버가 쿠키로만 확인한다 — 본문으로 받지 않는다 (#126).
   journey: journeySchema,
 });
 

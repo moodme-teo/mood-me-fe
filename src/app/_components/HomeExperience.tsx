@@ -19,7 +19,6 @@ import ProfileMenu from "@/components/auth/ProfileMenu";
 import { Button } from "@/components/ui/button";
 import { getMoodboards } from "@/lib/api/get-moodboards";
 import { ApiClientError } from "@/lib/api-client";
-import { getStoredGuestSessionId } from "@/lib/auth/guest-session";
 import { loadMoodTestDraft } from "@/lib/mood-test/draft-storage";
 import type { MoodTestDraft } from "@/lib/mood-test/draft-storage";
 import type { MoodboardSummary } from "@/lib/moodboard/summary";
@@ -172,7 +171,6 @@ export default function HomeExperience({
 
   useEffect(() => {
     let isActive = true;
-    const guestSessionId = isLoggedIn ? null : getStoredGuestSessionId();
 
     Promise.resolve().then(() => {
       if (!isActive) return;
@@ -189,11 +187,13 @@ export default function HomeExperience({
       );
     });
 
-    if (!isLoggedIn && guestSessionId) {
+    // 게스트 신원은 httpOnly 쿠키에 있어 클라이언트가 존재 여부를 알 수 없다 — 서버가
+    // 판단하고, 신원이 없으면 빈 목록을 돌려준다 (#126). 회원 목록은 서버 렌더에서 이미 왔다.
+    if (!isLoggedIn) {
       Promise.resolve()
         .then(() => {
           if (isActive) setIsLoadingList(true);
-          return getMoodboards({ guestSessionId });
+          return getMoodboards();
         })
         .then((items) => {
           if (!isActive) return;
@@ -219,7 +219,7 @@ export default function HomeExperience({
 
   const handleRetry = useCallback(() => {
     setIsLoadingList(true);
-    getMoodboards({ guestSessionId: getStoredGuestSessionId() })
+    getMoodboards()
       .then((items) => {
         setMoodboards(items);
         setError(null);

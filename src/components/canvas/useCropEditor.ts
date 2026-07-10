@@ -19,13 +19,16 @@ const DEFAULT_STATE: CropState = {
   transform: { zoom: 1, offsetX: 0, offsetY: 0 },
 };
 
-export function useCropEditor() {
-  const [shape, setShape] = useState<CropShapeId>(DEFAULT_STATE.shape);
+// initialState — 재편집 진입 시 복원할 구도(#116). 없으면 DEFAULT_STATE(#117).
+export function useCropEditor(initialState?: CropState) {
+  const [shape, setShape] = useState<CropShapeId>(
+    initialState?.shape ?? DEFAULT_STATE.shape,
+  );
   const [background, setBackground] = useState<CropBackground>(
-    DEFAULT_STATE.background,
+    initialState?.background ?? DEFAULT_STATE.background,
   );
   const [transform, setTransform] = useState<CropTransform>(
-    DEFAULT_STATE.transform,
+    initialState?.transform ?? DEFAULT_STATE.transform,
   );
   // 이미지에서 추출한 추천 팔레트 (mood-edit PRD §3.5).
   const [palette, setPalette] = useState<string[]>([]);
