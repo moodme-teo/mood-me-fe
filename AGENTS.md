@@ -7,7 +7,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # mood-me
 
-테스트 답변을 Elice AX 프록시(GPT-5 텍스트 + Gemini 이미지)로 **나만의 AI 무드보드**로 바꿔 Konva 캔버스에서 꾸미고 SNS에 공유하는 웹 경험. Next.js 16 App Router · React 19 · TS · Tailwind v4 · Supabase. 제품/디자인 배경: `PRODUCT.md` / `DESIGN.md`.
+테스트 답변을 Elice AX 프록시(GPT-5 텍스트 + gpt-image-2 이미지)로 **나만의 AI 무드보드**로 바꿔 Konva 캔버스에서 꾸미고 SNS에 공유하는 웹 경험. Next.js 16 App Router · React 19 · TS · Tailwind v4 · Supabase. 제품/디자인 배경: `PRODUCT.md` / `DESIGN.md`.
 
 # 컨벤션 — 구현 전 반드시 읽기
 
