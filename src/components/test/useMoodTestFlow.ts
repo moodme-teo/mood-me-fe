@@ -73,11 +73,6 @@ export function useMoodTestFlow() {
     draft: state.draft,
     target,
     canConfirm: state.draft.length === target,
-    /**
-     * 지금 화면에서 고른 것이 있는가 — 화면을 떠나면(이전·홈) 이 draft 는 사라진다.
-     * 잃을 것이 있을 때만 확인을 받는다 (PRD §5.3).
-     */
-    hasSelection: state.draft.length > 0,
     isFirstScreen: state.screenIndex === 0,
     isLastScreen: state.screenIndex === TOTAL_SCREENS - 1,
     canUndo: state.draftHistory.length > 0,

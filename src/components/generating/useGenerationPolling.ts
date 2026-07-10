@@ -7,6 +7,7 @@ import {
   loadGenerationJobId,
   saveGenerationJobId,
 } from "@/lib/mood-test/generation-job-storage";
+import { preloadImage } from "@/lib/preload-image";
 
 const POLL_INTERVAL_MS = 2000;
 const FILL_TICK_MS = 200;
@@ -111,6 +112,14 @@ export function useGenerationPolling(sessionId: string) {
         if (job.status === "completed") {
           clearTimers();
           setPercent(100);
+          // 편집 화면(CropCanvas)이 마운트되면 이 URL로 이미지를 처음부터 다시 받는다
+          // (crossOrigin=anonymous, canvas export를 위해 CORS 요청이어야 해서). 화면
+          // 전환·서버 컴포넌트 렌더링이 끝나는 동안 놀리지 않고 여기서 미리 받아두면,
+          // 편집 화면 도착 시점엔 이미 캐시돼 있어 "이미지를 불러오는 중"이 거의 안 보인다.
+          // 같은 crossOrigin 설정으로 받아야 브라우저가 같은 캐시 엔트리로 본다.
+          if (job.baseImageUrl) {
+            preloadImage(job.baseImageUrl, "anonymous");
+          }
           router.push(`/test/${sessionId}/edit`);
           return;
         }
