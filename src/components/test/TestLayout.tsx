@@ -246,7 +246,7 @@ export default function TestLayout({ initialStepIndex = 0, sessionId }: Props) {
                   ? "무드보드 생성하기 ✨"
                   : "다음"
           }
-          tone={isFinalScreen ? "cyan" : "sand"}
+          tone={isFinalScreen ? "ink" : "sand"}
           onNextStage={handleNext}
           nextStageDisabled={!flow.canConfirm || isSubmitting}
           showUndoSelection={flow.canUndo}
