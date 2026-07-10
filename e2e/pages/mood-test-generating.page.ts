@@ -17,10 +17,15 @@ export class GeneratingPage {
   readonly errorHeading: Locator;
   readonly retryButton: Locator;
   readonly homeButton: Locator;
+  /** 재진입(새로고침·뒤로가기)으로 기존 job을 이어 폴링할 때만 뜨는 고정 문구(#115·#122). */
+  readonly reentryMessage: Locator;
 
   constructor(private readonly page: Page) {
     this.progressBar = page.getByRole("progressbar");
     this.errorHeading = page.getByText(ERROR_HEADING);
+    this.reentryMessage = page.getByText(
+      "만들던 무드보드를 다시 불러오고 있어요.",
+    );
     // 재시도 중에는 라벨이 "다시 만드는 중"으로 바뀐다(disabled) — 두 상태 모두 매칭해야
     // 잠금 상태에서도 같은 locator로 버튼을 찾을 수 있다.
     this.retryButton = page.getByRole("button", {
