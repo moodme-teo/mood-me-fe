@@ -28,11 +28,16 @@ const GPT_MAX_COMPLETION_TOKENS = 8192;
 type ServiceClient = ReturnType<typeof createServiceClient>;
 
 export type CreateGenerationJobResult =
-  | { ok: true; value: { jobId: string; journey: Journey } }
+  | { ok: true; value: { jobId: string; journey: Journey; isNew: boolean } }
   | { ok: false; code: "NOT_FOUND" | "GENERATION_FAILED"; error: string };
 
 // 세션 검증 + job row 생성만 하는 빠른 경로 — Route Handler가 응답을 돌려주기 전에 동기로
 // 기다리는 부분은 이만큼만이다. 무거운 분석·조립은 runGenerationPipeline이 after()로 이어받는다.
+//
+// 클라이언트(useGenerationPolling)가 재진입 시 이 호출을 건너뛰는 것과 별개로, 이 함수를
+// 직접 부르는 경로(중복 탭, 재시도 연타, API 직접 호출)가 남아있어 서버에서도 막는다 —
+// 이 세션에 진행 중(queued·processing)인 job이 있으면 새로 만들지 않고 그 job을 돌려준다
+// (#115). 완료·실패한 job은 재사용 대상이 아니다 — 재시도는 새 job이어야 한다.
 export async function createGenerationJob(
   testSessionId: string,
 ): Promise<CreateGenerationJobResult> {
@@ -42,11 +47,72 @@ export async function createGenerationJob(
   }
 
   const service = createServiceClient();
+
+  const { data: activeJob, error: activeJobError } = await service
+    .from("moodboard_generation_jobs")
+    .select("id")
+    .eq("test_session_id", testSessionId)
+    .in("status", ["queued", "processing"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (activeJobError) {
+    return {
+      ok: false,
+      code: "GENERATION_FAILED",
+      error: activeJobError.message,
+    };
+  }
+  if (activeJob) {
+    return {
+      ok: true,
+      value: {
+        jobId: (activeJob as { id: string }).id,
+        journey: sessionResult.value.journey,
+        isNew: false,
+      },
+    };
+  }
+
   const { data: job, error: createError } = await service
     .from("moodboard_generation_jobs")
     .insert({ test_session_id: testSessionId, status: "queued" })
     .select("id")
     .single();
+
+  // 위 SELECT와 이 INSERT 사이에는 완전히 동시에 들어온 두 요청을 막을 수 없는 틈이
+  // 있다(TOCTOU) — 실측(#115 검증)으로 재현됨. 그 틈을 DB의 부분 unique 인덱스
+  // (moodboard_generation_jobs_one_active_per_session, 마이그레이션 20260710120000)가
+  // 최종적으로 막는다. 위반 시 postgres가 23505를 주는데, 그건 "내가 졌다"는 뜻이 아니라
+  // "이미 누가 만들었다"는 뜻이므로 실패로 취급하지 않고 그 job을 다시 조회해 돌려준다.
+  if (createError?.code === "23505") {
+    const { data: winner, error: winnerError } = await service
+      .from("moodboard_generation_jobs")
+      .select("id")
+      .eq("test_session_id", testSessionId)
+      .in("status", ["queued", "processing"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (winnerError || !winner) {
+      return {
+        ok: false,
+        code: "GENERATION_FAILED",
+        error: winnerError?.message ?? "생성 job을 확인하지 못했습니다",
+      };
+    }
+
+    return {
+      ok: true,
+      value: {
+        jobId: (winner as { id: string }).id,
+        journey: sessionResult.value.journey,
+        isNew: false,
+      },
+    };
+  }
 
   if (createError || !job) {
     return {
@@ -61,6 +127,7 @@ export async function createGenerationJob(
     value: {
       jobId: (job as { id: string }).id,
       journey: sessionResult.value.journey,
+      isNew: true,
     },
   };
 }
