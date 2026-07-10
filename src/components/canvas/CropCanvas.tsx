@@ -349,7 +349,7 @@ export default function CropCanvas({
       {isTransparent ? (
         <div
           aria-hidden
-          className="absolute inset-0 rounded-[22px]"
+          className="0 absolute inset-0"
           style={{
             backgroundImage:
               "linear-gradient(45deg, #d4d4d4 25%, transparent 25%), linear-gradient(-45deg, #d4d4d4 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #d4d4d4 75%), linear-gradient(-45deg, transparent 75%, #d4d4d4 75%)",
@@ -365,7 +365,7 @@ export default function CropCanvas({
         height={stagePixelSize}
         scaleX={displayScale}
         scaleY={displayScale}
-        className="relative rounded-[22px]"
+        className="0 relative"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={endGesture}
@@ -418,7 +418,7 @@ export default function CropCanvas({
         </Layer>
       </Stage>
       {status === "loading" ? (
-        <div className="absolute inset-0 flex items-center justify-center rounded-[22px] text-sm font-bold text-gray-700">
+        <div className="0 absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-700">
           이미지를 불러오는 중
         </div>
       ) : null}

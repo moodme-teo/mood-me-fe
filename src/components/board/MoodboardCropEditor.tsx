@@ -2,13 +2,13 @@
 
 import {
   ArrowLeft,
-  Check,
   CloudFog,
   Image as ImageIcon,
   type LucideIcon,
   PaintBucket,
   Palette,
   Pipette,
+  Save,
   Shapes,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -106,7 +106,7 @@ function ConfirmLeaveDialog({
         <h2 id="leave-title" className="text-heading-md">
           편집을 그만두시겠어요?
         </h2>
-        <p className="text-gray-700 text-body-sm">
+        <p className="text-gray-700 text-caption">
           저장하지 않은 크롭 편집 내용은 사라져요.
         </p>
         <div className="grid grid-cols-2 gap-2">
@@ -146,7 +146,7 @@ function ImagePanel({
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-gray-700 text-body-sm">
+      <p className="text-gray-700 text-caption">
         두 손가락으로 확대·축소, 드래그로 이동, 더블탭으로 구도를 초기화할 수
         있어요.
       </p>
@@ -195,8 +195,8 @@ function ShapePanel({
           title={item.label}
           aria-pressed={shape === item.id}
           onClick={() => onSelect(item.id)}
-          variant={shape === item.id ? "secondary" : "ghost"}
-          className={`flex size-16 shrink-0 items-center justify-center rounded-lg border bg-card p-3`}
+          variant={"ghost"}
+          className={`flex size-16 shrink-0 items-center justify-center bg-card p-3 ${shape === item.id ? "border border-gray-300" : ""}`}
         >
           <CropShapeIcon
             shape={item.id}
@@ -283,7 +283,7 @@ function ColorPanel({
 }) {
   if (palette.length === 0) {
     return (
-      <p className="text-gray-700 text-body-sm">
+      <p className="text-gray-700 text-caption">
         이미지에서 추천 색을 추출하지 못했어요. 배경 탭에서 직접 색을 골라
         보세요.
       </p>
@@ -292,9 +292,7 @@ function ColorPanel({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-bold text-gray-700">
-        이미지에서 뽑은 추천 배경색
-      </p>
+      <p className="text-gray-700 text-caption">이미지에서 뽑은 추천 배경색</p>
       <div className="flex flex-wrap gap-3">
         {palette.map((color) => (
           <button
@@ -438,15 +436,15 @@ export default function MoodboardCropEditor({
           disabled={isBaseImageFailed || isSaving}
           onClick={handleComplete}
         >
-          <Check aria-hidden />
+          <Save aria-hidden />
         </Button>
       </header>
 
-      <div className="flex flex-1 items-center justify-center bg-gray-900 px-4 py-5">
+      <div className="flex flex-1 items-center justify-center px-4 py-5">
         {isBaseImageFailed ? (
           <Card className="w-full max-w-sm px-5 text-center">
             <p className="text-heading-md">이미지를 불러오지 못했어요.</p>
-            <p className="text-gray-700 text-body-sm">
+            <p className="text-gray-700 text-caption">
               네트워크를 확인한 뒤 다시 시도해 주세요.
             </p>
             <Button
@@ -479,24 +477,23 @@ export default function MoodboardCropEditor({
       <div className="sticky bottom-0 z-30">
         <nav
           aria-label="크롭 편집 모드"
-          className="grid grid-cols-4 gap-2 border-t border-foreground/5 bg-surface-card px-3 py-3"
+          className="grid grid-cols-4 gap-2 border-t border-foreground/5 bg-surface-card px-3 py-1"
         >
           {TABS.map((item) => (
-            <button
+            <Button
               key={item.id}
               type="button"
               aria-label={item.label}
               title={item.label}
               aria-pressed={tab === item.id}
               onClick={() => setTab(item.id)}
-              className={`flex min-h-11 items-center justify-center border ${
-                tab === item.id
-                  ? "border-foreground bg-surface-inverse text-on-inverse shadow-ink"
-                  : "border-gray-100 bg-card text-gray-700 hover:bg-surface-sunken"
+              variant={"ghost"}
+              className={`flex min-h-11 items-center justify-center ${
+                tab === item.id ? "border border-gray-300" : ""
               }`}
             >
               <item.Icon className="size-5" aria-hidden strokeWidth={2.25} />
-            </button>
+            </Button>
           ))}
         </nav>
         <section className="border-t bg-card px-4 pt-3 pb-[max(env(safe-area-inset-bottom),1.25rem)]">
