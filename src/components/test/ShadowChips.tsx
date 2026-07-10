@@ -22,7 +22,7 @@ export default function ShadowChips({
   onToggle,
 }: Props) {
   return (
-    <div className="flex flex-col items-center gap-3.5 py-2">
+    <div className="flex flex-col items-center gap-3.5 py-4">
       {shadows.map((shadow, index) => {
         const selected = selectedIds.includes(shadow.id);
         const disabled = !selected && atCapacity;

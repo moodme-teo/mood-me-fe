@@ -81,7 +81,7 @@ function RetryPanel({
   return (
     <section
       aria-live="polite"
-      className="flex flex-col gap-2 rounded-lg p-4 text-foreground shadow-[inset_0_1px_4px_rgba(0,0,0,0.3)]"
+      className="flex flex-col gap-1 rounded-lg p-4 text-foreground shadow-[inset_0_1px_4px_rgba(0,0,0,0.3)]"
     >
       <p className="text-md font-bold">저장한 보드를 불러오지 못했어요.</p>
       <p className="text-sm leading-6 text-gray-700">{error}</p>
@@ -105,7 +105,7 @@ function ContinueDraftEntry({ target }: { target: ContinueTarget | null }) {
   return (
     <Link
       href={target.href}
-      className="flex items-center justify-between rounded-lg border border-[#2556d9]/35 bg-[#eef3ff] px-4 py-3 text-sm font-bold text-[#163b98] ring-ring outline-none focus-visible:ring-2"
+      className="text-md flex items-center justify-between rounded-full border px-4 py-3 font-bold text-gray-700 shadow-card ring-ring outline-none focus-visible:ring-2"
     >
       <span>이어서 만들기</span>
       <span className="text-xs font-bold">{target.label}</span>
