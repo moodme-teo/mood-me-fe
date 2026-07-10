@@ -65,8 +65,18 @@ export const MOODBOARD: GetMoodboardResponse = {
     keywords: ["고요", "몽환", "여백"],
     sticker_phrases: ["오늘도 내 속도로"],
   },
+  // 크롭 에디터(#102)가 저장한 평면 결과 이미지. 이게 있으면 결과물 페이지는 Konva 캔버스가
+  // 아니라 <img> 로 렌더한다 — 지금 실사용자가 만드는 모든 보드가 이 경로다.
+  exportedImageUrl: BASE_IMAGE_URL,
   isGuest: true,
   updatedAt: "2026-07-09T00:00:00.000Z",
+};
+
+// #102 이전에 저장된 보드 — exportedImageUrl 이 없어 뷰어(BoardPreview)가 elements 를
+// Konva 로 합성해 그린다. 이 분기가 살아 있는 한 커버리지를 유지한다.
+export const LEGACY_MOODBOARD: GetMoodboardResponse = {
+  ...MOODBOARD,
+  exportedImageUrl: null,
 };
 
 // 홈(History)이 GET /api/moodboards 로 받는 목록. 카드의 접근성 이름은

@@ -4,6 +4,7 @@ import {
   generationJob,
   GUEST_SESSION_ID,
   JOB_ID,
+  LEGACY_MOODBOARD,
   MOODBOARD,
   MOODBOARD_ID,
   MOODBOARD_SUMMARIES,
@@ -79,8 +80,16 @@ export async function mockMoodboardsFailure(page: Page) {
   );
 }
 
+// 크롭 결과 보드 — exportedImageUrl 이 있어 결과물 페이지가 <img> 로 렌더한다.
 export async function mockMoodboard(page: Page) {
   await page.route("**/api/moodboards/*", (route) => ok(route, MOODBOARD));
+}
+
+// #102 이전 보드 — exportedImageUrl 이 없어 뷰어(BoardPreview)가 Konva 로 합성한다.
+export async function mockLegacyMoodboard(page: Page) {
+  await page.route("**/api/moodboards/*", (route) =>
+    ok(route, LEGACY_MOODBOARD),
+  );
 }
 
 export async function mockMoodboardFailure(page: Page) {
