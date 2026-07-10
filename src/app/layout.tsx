@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Instrument_Serif } from "next/font/google";
 import "@/app/globals.css";
 
@@ -29,6 +29,47 @@ const GOOGLE_FONT_ORIGINS = [
 export const metadata: Metadata = {
   title: "mood·me",
   description: "짧은 테스트로 나만의 AI 무드보드를 만들고 공유하는 mood·me",
+  manifest: "/assets/favicons/manifest.json",
+  icons: {
+    icon: [
+      {
+        url: "/assets/favicons/favicon-16x16.png",
+        sizes: "16x16",
+        type: "image/png",
+      },
+      {
+        url: "/assets/favicons/favicon-32x32.png",
+        sizes: "32x32",
+        type: "image/png",
+      },
+      {
+        url: "/assets/favicons/favicon-96x96.png",
+        sizes: "96x96",
+        type: "image/png",
+      },
+    ],
+    apple: [
+      {
+        url: "/assets/favicons/apple-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
+    other: [
+      {
+        rel: "apple-touch-icon-precomposed",
+        url: "/assets/favicons/apple-icon-precomposed.png",
+      },
+    ],
+  },
+  other: {
+    "msapplication-TileColor": "#1b1715",
+    "msapplication-TileImage": "/assets/favicons/ms-icon-144x144.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1b1715",
 };
 
 export default function RootLayout({
