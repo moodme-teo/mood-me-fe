@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -8,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import FirstEntryLanding, {
   type ContinueTarget,
 } from "@/app/_components/FirstEntryLanding";
+import HistoryCarousel from "@/app/_components/HistoryCarousel";
 import ProfileMenu from "@/components/auth/ProfileMenu";
 import { listMoodboardDrafts } from "@/components/board/moodboard-draft-storage";
 import { Button } from "@/components/ui/button";
@@ -34,53 +34,6 @@ function getErrorMessage(error: unknown) {
 
 function getDraftStepHref(draft: MoodTestDraft) {
   return `/test/${draft.sessionId}?step=${draft.stepIndex}`;
-}
-
-function MoodboardCard({ moodboard }: { moodboard: MoodboardSummary }) {
-  const [hasImageFailed, setHasImageFailed] = useState(false);
-  const cardTitle =
-    moodboard.title === moodboard.typeName
-      ? moodboard.typeName
-      : `${moodboard.typeName} · ${moodboard.title}`;
-
-  return (
-    <Link
-      href={`/moodboard/${moodboard.id}`}
-      aria-label={`${cardTitle} 결과 열람하기`}
-      className="group block overflow-hidden rounded-lg bg-card text-foreground ring-ring transition outline-none focus-visible:ring-2"
-    >
-      <div className="relative aspect-[3/4] bg-[#dfe8dd]">
-        {hasImageFailed ? (
-          <div className="flex h-full items-end p-3 text-sm font-bold">
-            {moodboard.typeName}
-          </div>
-        ) : (
-          <Image
-            fill
-            unoptimized
-            src={moodboard.thumbnailUrl}
-            alt={`${moodboard.typeName} 무드보드 썸네일`}
-            sizes="(max-width: 768px) 50vw, 220px"
-            className="object-cover transition duration-300 group-hover:scale-[1.03]"
-            onError={() => setHasImageFailed(true)}
-          />
-        )}
-        {moodboard.isGuest ? (
-          <span className="absolute top-2 left-2 rounded-full bg-surface-inverse/82 px-2 py-1 text-[11px] font-bold text-white">
-            임시
-          </span>
-        ) : null}
-      </div>
-      <div className="min-h-16 p-3">
-        <p className="line-clamp-2 text-sm font-bold">{moodboard.typeName}</p>
-        {moodboard.title !== moodboard.typeName ? (
-          <p className="mt-1 line-clamp-1 text-xs font-bold text-muted-foreground">
-            {moodboard.title}
-          </p>
-        ) : null}
-      </div>
-    </Link>
-  );
 }
 
 function MoodboardSkeletonGrid() {
@@ -163,8 +116,8 @@ function HistoryContent({
   moodboards: MoodboardSummary[];
 }) {
   return (
-    <main className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 pt-2 pb-5">
-      <section className="mx-auto w-full max-w-[680px] space-y-5">
+    <main className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden px-4 pt-2 pb-3">
+      <div className="mx-auto w-full max-w-[680px] space-y-3">
         <div>
           <h1 className="text-4xl leading-tight font-bold text-foreground">
             History
@@ -178,19 +131,14 @@ function HistoryContent({
           </p>
         </div>
         {errorPanel}
-        {isLoading ? (
+      </div>
+      {isLoading ? (
+        <div className="mx-auto w-full max-w-[680px]">
           <MoodboardSkeletonGrid />
-        ) : (
-          <section
-            aria-label="저장한 무드보드"
-            className="grid grid-cols-2 gap-3 sm:grid-cols-3"
-          >
-            {moodboards.map((moodboard) => (
-              <MoodboardCard key={moodboard.id} moodboard={moodboard} />
-            ))}
-          </section>
-        )}
-      </section>
+        </div>
+      ) : moodboards.length > 0 ? (
+        <HistoryCarousel moodboards={moodboards} />
+      ) : null}
     </main>
   );
 }

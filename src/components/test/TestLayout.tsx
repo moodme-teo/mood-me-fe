@@ -29,80 +29,32 @@ type Props = {
   sessionId: string;
 };
 
-// 상위 단계를 바꾸면 하위 단계의 선택지 구성 자체가 달라져 뒤 단계를 비울 수밖에 없다.
-// 조용히 지우면 사용자는 왜 사라졌는지 모른다 — 확정 전에 알리고 되돌릴 기회를 준다.
-function ConfirmResetDialog({
-  isOpen,
-  onCancel,
-  onConfirm,
-}: {
-  isOpen: boolean;
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end bg-surface-inverse/48 p-4 sm:items-center sm:justify-center">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="reset-title"
-        className="w-full max-w-sm rounded-2xl bg-card p-5 text-foreground shadow-xl"
-      >
-        <h2 id="reset-title" className="text-lg font-bold">
-          이전 선택을 바꾸면 이후에 고른 내용이 초기화돼요
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-gray-700">변경할까요?</p>
-        <div className="mt-5 grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-bold text-foreground"
-          >
-            그대로 둘게요
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
-          >
-            변경할게요
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function TestLayout({ sessionId }: Props) {
   const router = useRouter();
   const flow = useMoodTestFlow();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
   useEffect(() => {
     saveMoodTestDraft({ sessionId, stepIndex: flow.screenIndex });
   }, [sessionId, flow.screenIndex]);
 
-  const handleBack = () => {
-    if (flow.isFirstScreen) {
-      router.push("/");
-      return;
-    }
+  const handleHome = () => {
+    router.push("/");
+  };
+
+  const handlePrevStage = () => {
     flow.back();
+  };
+
+  const handleUndoSelection = () => {
+    flow.undo();
   };
 
   const handleNext = async () => {
     if (!flow.canConfirm) return;
 
     if (!flow.isLastScreen) {
-      // 뒤 단계에 고른 내용이 있고 그게 지워질 참이면 먼저 확인을 받는다.
-      if (flow.willResetDownstream) {
-        setIsResetConfirmOpen(true);
-        return;
-      }
       flow.confirm();
       return;
     }
@@ -127,66 +79,91 @@ export default function TestLayout({ sessionId }: Props) {
   };
 
   const { kicker, title, hint } = flow.copy;
+  const isDiscardScreen =
+    flow.screen.kind === "trim1" || flow.screen.kind === "trim2";
+  const isFinalScreen = flow.screen.kind === "final";
+  const counterText = isDiscardScreen
+    ? `${flow.draft.length}/${flow.target} 내려놓음`
+    : isFinalScreen
+      ? `탈락 ${flow.poolIds.length - flow.draft.length} / ${flow.poolIds.length - flow.target}`
+      : `${flow.draft.length} / ${flow.target}`;
 
   return (
-    // min-h-0: flex 자식이 콘텐츠 크기만큼 늘어나지 않고 부모(뷰포트) 높이 안에서
-    // 스스로 줄어들 수 있게 함 — 이게 없으면 아래 overflow-y-auto가 무시되고
-    // "다음" 버튼이 하단에 붙지 않는다.
-    <div className="flex min-h-0 flex-1 flex-col">
-      <TestHeader
-        current={flow.screenIndex + 1}
-        total={flow.totalScreens}
-        onBack={handleBack}
-        preview={<BuildBoardPreview cardIds={flow.previewCardIds} />}
-      />
+    <>
+      {/* min-h-0: flex 자식이 콘텐츠 크기만큼 늘어나지 않고 부모(뷰포트) 높이 안에서
+          스스로 줄어들 수 있게 함 — 이게 없으면 아래 overflow-y-auto가 무시되고
+          "다음" 버튼이 하단에 붙지 않는다. */}
+      <div className="flex min-h-0 flex-1 flex-col">
+        <TestHeader
+          current={flow.screenIndex + 1}
+          total={flow.totalScreens}
+          onHome={handleHome}
+          preview={<BuildBoardPreview cardIds={flow.previewCardIds} />}
+        />
 
-      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 py-6">
-        <section className="flex flex-col gap-4">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground">
-              {kicker}
-            </p>
-            <h2 className="mt-1 text-xl font-semibold text-foreground">
-              {title}
-            </h2>
-            {hint && (
-              <p className="mt-1 text-sm text-muted-foreground">{hint}</p>
-            )}
-          </div>
-          <StageBody
-            screen={flow.screen}
-            poolIds={flow.poolIds}
-            draft={flow.draft}
-            target={flow.target}
-            onToggle={flow.toggle}
-          />
-          <p className="text-xs text-muted-foreground" role="status">
-            {flow.draft.length} / {flow.target} 선택됨
-          </p>
-        </section>
-      </div>
+        <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto">
+          <section className="flex flex-col gap-4">
+            <div className="sticky top-0 left-0 z-[99] bg-background/90 [mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)] px-4 pt-3 pb-7 backdrop-blur-md [-webkit-mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)]">
+              <p className="font-semibold tracking-wide text-muted-foreground text-caption">
+                {kicker}
+              </p>
+              <h2 className="mt-2 font-[family-name:var(--font-display-kr)] text-[24px] leading-[1.32] font-bold text-foreground">
+                {title}
+              </h2>
+              {hint && (
+                <p className="mt-2 text-muted-foreground text-body-sm">
+                  {hint}
+                </p>
+              )}
+              {/* <span
+                className="absolute top-0 right-0 font-medium text-muted-foreground text-caption"
+                role="status"
+              >
+                {counterText}
+              </span> */}
+            </div>
+            <div className="px-3">
+              <StageBody
+                screen={flow.screen}
+                poolIds={flow.poolIds}
+                draft={flow.draft}
+                target={flow.target}
+                onToggle={flow.toggle}
+              />
+            </div>
+          </section>
+        </div>
 
-      <TestFooter
-        label={
-          flow.isLastScreen
-            ? isSubmitting
+        <TestFooter
+          showPrevStage={!flow.isFirstScreen}
+          onPrevStage={handlePrevStage}
+          nextStageLabel={
+            isSubmitting
               ? "생성 준비 중..."
-              : "무드보드 생성하기 ✨"
-            : "다음"
+              : isFinalScreen
+                ? "Create"
+                : flow.isLastScreen
+                  ? "무드보드 생성하기 ✨"
+                  : "다음"
+          }
+          tone={isFinalScreen ? "cyan" : "sand"}
+          onNextStage={handleNext}
+          nextStageDisabled={!flow.canConfirm || isSubmitting}
+          showUndoSelection={flow.canUndo}
+          onUndoSelection={handleUndoSelection}
+          errorMessage={submitError}
+        />
+      </div>
+      <style jsx>{`
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
-        onClick={handleNext}
-        disabled={!flow.canConfirm || isSubmitting}
-        errorMessage={submitError}
-      />
 
-      <ConfirmResetDialog
-        isOpen={isResetConfirmOpen}
-        onCancel={() => setIsResetConfirmOpen(false)}
-        onConfirm={() => {
-          setIsResetConfirmOpen(false);
-          flow.confirm();
-        }}
-      />
-    </div>
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+    </>
   );
 }
