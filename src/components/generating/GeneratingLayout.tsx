@@ -7,9 +7,11 @@ import { useRouter } from "next/navigation";
 
 import GeneratingBoardAnimation from "@/components/generating/GeneratingBoardAnimation";
 import GeneratingError from "@/components/generating/GeneratingError";
+import GeneratingLeaveWarning from "@/components/generating/GeneratingLeaveWarning";
 import GeneratingMessages from "@/components/generating/GeneratingMessages";
 import GenerationProgressBar from "@/components/generating/GenerationProgressBar";
 import { useGenerationPolling } from "@/components/generating/useGenerationPolling";
+import { useConfirmLeave } from "@/hooks/useConfirmLeave";
 
 const TOTAL_CARDS = 5;
 
@@ -23,6 +25,11 @@ export default function GeneratingLayout({ sessionId }: { sessionId: string }) {
     isReentry,
     retry,
   } = useGenerationPolling(sessionId);
+  // 실패 화면은 이미 재시도·홈 버튼으로 통제된 이탈 동선이 있으니, 실제로 생성이
+  // 진행 중일 때만 뒤로가기·새로고침 경고를 띄운다.
+  const { isLeaveOpen, setIsLeaveOpen } = useConfirmLeave(
+    failureReason === null,
+  );
 
   const revealedCount = Math.floor((percent / 100) * TOTAL_CARDS);
 
@@ -42,6 +49,11 @@ export default function GeneratingLayout({ sessionId }: { sessionId: string }) {
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-12">
+      <GeneratingLeaveWarning
+        isOpen={isLeaveOpen}
+        onCancel={() => setIsLeaveOpen(false)}
+        onConfirm={() => router.push("/")}
+      />
       <GeneratingBoardAnimation revealedCount={revealedCount} />
 
       <div className="flex w-full flex-col items-center gap-3">

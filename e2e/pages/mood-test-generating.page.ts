@@ -19,6 +19,10 @@ export class GeneratingPage {
   readonly homeButton: Locator;
   /** 재진입(새로고침·뒤로가기)으로 기존 job을 이어 폴링할 때만 뜨는 고정 문구(#115·#122). */
   readonly reentryMessage: Locator;
+  /** 생성 중 뒤로가기·앞으로가기를 가로챘을 때 뜨는 주의 다이얼로그(useConfirmLeave). */
+  readonly leaveDialog: Locator;
+  readonly leaveConfirmButton: Locator;
+  readonly leaveCancelButton: Locator;
 
   constructor(private readonly page: Page) {
     this.progressBar = page.getByRole("progressbar");
@@ -32,6 +36,13 @@ export class GeneratingPage {
       name: /다시 만들어보기|다시 만드는 중/,
     });
     this.homeButton = page.getByRole("button", { name: "홈으로" });
+    this.leaveDialog = page.getByRole("dialog", {
+      name: "무드보드를 만드는 중이에요",
+    });
+    this.leaveConfirmButton = page.getByRole("button", { name: "나가기" });
+    this.leaveCancelButton = page.getByRole("button", {
+      name: "계속 기다리기",
+    });
   }
 
   async goto(sessionId: string) {
