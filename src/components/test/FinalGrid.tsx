@@ -142,7 +142,7 @@ export default function FinalGrid({
       aria-label="최종 카드 고르기 — 우측 하단으로 끌어 탈락시켜요"
       tabIndex={0}
       onKeyDown={handleKeyDown}
-      className="relative h-[min(540px,56dvh)] overflow-hidden outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="relative isolate h-[min(540px,56dvh)] overflow-hidden outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       <button
         type="button"
