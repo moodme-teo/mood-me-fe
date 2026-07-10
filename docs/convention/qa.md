@@ -29,9 +29,11 @@
 | **Unit test**         | Vitest                | —                      | —                         | 🔜 보류   |
 | **Build**             | `next build`          | `npm run build`        | CI                        | ✅ 적용됨 |
 | **E2E**               | Playwright            | `npm run e2e`          | CI · 필요할 때 로컬       | ✅ 적용됨 |
-| **Visual regression** | Playwright screenshot | `npm run e2e:visual`   | **로컬에서만** (CI 제외)  | 🟡 도입   |
+| **Visual regression** | Playwright screenshot | —                      | —                         | 🔜 계획   |
 
-로컬 저장·커밋 시에는 lint/format만 돈다(lint-staged, 스테이징된 파일만). 전체 검사는 CI가 한다 — **커밋은 빠르게 유지한다.** 단 visual regression은 예외로, CI에 올리지 않는다(아래 §Visual regression).
+**"—"는 아직 없다는 뜻이다.** Unit test와 visual regression은 계획만 있고 코드가 없다 — 명령을 적어 두면 있는 것처럼 읽히므로 적지 않는다. 도입 조건은 아래 각 절에 있다.
+
+로컬 저장·커밋 시에는 lint/format만 돈다(lint-staged, 스테이징된 파일만). 전체 검사는 CI가 한다 — **커밋은 빠르게 유지한다.** 단 visual regression은 도입하더라도 CI에 올리지 않는다(아래 §Visual regression).
 
 ### Unit test를 아직 넣지 않은 이유
 
@@ -43,7 +45,9 @@
 
 경계는 명확하다. `useCropEditor.ts`와 `crop-transform.ts`는 Konva를 import하지 않으므로 jsdom에서 테스트할 수 있고, `CropCanvas.tsx`는 import하므로 못 한다. **Konva를 건드리는 순간 그건 E2E의 몫이다.**
 
-### Visual regression — 도입하되, 로컬에서만 돈다
+### Visual regression — 아직 없다. 도입한다면 로컬에서만 돈다
+
+> **현재 상태: 미구현.** `e2e/`에 `toHaveScreenshot` 단언이 하나도 없고 전용 스크립트도 없다. 아래는 붙일 때의 설계이지 지금 돌아가는 것이 아니다.
 
 스크린샷 비교는 폰트 렌더링·GPU 래스터라이즈·타이밍 차이로 쉽게 깨진다. 그래서 **CI에는 올리지 않는다.** 러너의 폰트와 GPU를 고정하기 전까지 CI 스냅샷은 신호가 아니라 소음이다. 개발자가 UI를 만질 때 로컬에서 돌려 눈으로 확인하는 도구로 쓴다.
 
