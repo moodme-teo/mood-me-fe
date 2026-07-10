@@ -96,7 +96,11 @@ export async function PATCH(
     );
   }
 
-  const result = await saveOwnedMoodboard(moodboardId, requester, parsed.data);
+  const { sessionId, ...saveInput } = parsed.data;
+  const result = await saveOwnedMoodboard(moodboardId, requester, {
+    ...saveInput,
+    testSessionId: sessionId,
+  });
   if (!result.ok) {
     return apiError(result.code, result.error, SAVE_ERROR_STATUS[result.code]);
   }

@@ -36,6 +36,8 @@ export default async function EditPage({
       moodboardId={moodboardId}
       baseImageUrl={jobResult.value.baseImageUrl ?? ""}
       moodProfile={jobResult.value.moodProfile}
+      analysisStatus={jobResult.value.analysisStatus}
+      sessionId={sessionId}
     />
   );
 }

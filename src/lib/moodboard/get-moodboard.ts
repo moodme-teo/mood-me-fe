@@ -3,6 +3,7 @@ import "server-only";
 import { getMockMoodboard } from "@/lib/moodboard/mock";
 import { createServiceClient } from "@/lib/supabase/service";
 import type {
+  AnalysisStatus,
   EditState,
   Moodboard,
   MoodboardElement,
@@ -36,6 +37,7 @@ type MoodboardRow = {
   base_image_url: string | null;
   elements: unknown;
   mood_profile: unknown;
+  analysis_status: AnalysisStatus | null;
   exported_image_data_url: string | null;
   edit_state: unknown;
   guest_session_id: string | null;
@@ -70,7 +72,7 @@ export async function getMoodboardById(
   const { data, error } = await service
     .from("moodboards")
     .select(
-      "id, base_image_url, elements, mood_profile, exported_image_data_url, edit_state, guest_session_id, updated_at",
+      "id, base_image_url, elements, mood_profile, analysis_status, exported_image_data_url, edit_state, guest_session_id, updated_at",
     )
     .eq("id", moodboardId)
     .maybeSingle();
@@ -96,6 +98,7 @@ export async function getMoodboardById(
       elements: (row.elements as MoodboardElement[] | null) ?? [],
       moodProfile:
         (row.mood_profile as MoodProfile | null) ?? PENDING_MOOD_PROFILE,
+      analysisStatus: row.analysis_status,
       // 크롭 에디터(#99)가 저장한 평면 결과 이미지 — 결과 페이지가 이걸 그대로 노출한다.
       exportedImageUrl: row.exported_image_data_url ?? null,
       // 재편집 구도 복원 (#116). 레거시 보드는 null — 편집 화면이 기본값으로 진입한다.

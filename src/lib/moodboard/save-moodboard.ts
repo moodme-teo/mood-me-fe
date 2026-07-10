@@ -7,6 +7,7 @@ import type { Requester } from "@/lib/auth/requester";
 import { ownerColumnsOf } from "@/lib/auth/requester";
 import { createServiceClient } from "@/lib/supabase/service";
 import type {
+  AnalysisStatus,
   EditState,
   MoodboardElement,
   MoodProfile,
@@ -22,6 +23,11 @@ export type SaveMoodboardInput = {
   // 재편집 구도 복원용 (#116) — "완료" 시 항상 현재 값을 함께 커밋한다.
   editState?: EditState;
   moodProfile?: MoodProfile;
+  // 분석 갈래 상태(#122) — moodProfile과 세트로 갱신한다.
+  analysisStatus?: AnalysisStatus;
+  // 최초 저장(insert) 시점에만 심는다 — "분석 다시 시도"가 journey를 다시 찾아갈 연결고리라
+  // 재편집 저장(update)에서는 절대 건드리지 않는다.
+  testSessionId?: string;
 };
 
 export type SaveMoodboardOutcome =
@@ -35,21 +41,28 @@ export async function saveOwnedMoodboard(
 ): Promise<SaveMoodboardOutcome> {
   const service = createServiceClient();
 
-  // moodProfile·editState는 보낸 경우에만 갱신 — 재편집 저장이 기존 값을 지우지 않도록 omit.
+  // moodProfile·editState·analysisStatus는 보낸 경우에만 갱신 — 재편집 저장이 기존 값을
+  // 지우지 않도록 omit.
   const content = {
     base_image_url: input.baseImageUrl,
     elements: input.elements,
     exported_image_data_url: input.exportedImageDataUrl ?? null,
     ...(input.editState ? { edit_state: input.editState } : {}),
     ...(input.moodProfile ? { mood_profile: input.moodProfile } : {}),
+    ...(input.analysisStatus ? { analysis_status: input.analysisStatus } : {}),
     updated_at: new Date().toISOString(),
   };
 
   // 신규 생성을 먼저 시도한다 — 소유자는 이때만 심는다. "조회 후 upsert"는 두 요청이 동시에
   // "row 없음"을 보고 둘 다 쓰는 경합에 뚫리므로 PK 충돌 판정을 DB에 맡긴다.
-  const { error: insertError } = await service
-    .from("moodboards")
-    .insert({ id: moodboardId, ...ownerColumnsOf(requester), ...content });
+  // test_session_id도 이때만 심는다 — "분석 다시 시도"가 journey를 되찾아갈 유일한 연결고리라
+  // 재편집 저장에서는 절대 덮어쓰지 않는다(update의 content에는 없음).
+  const { error: insertError } = await service.from("moodboards").insert({
+    id: moodboardId,
+    ...ownerColumnsOf(requester),
+    ...content,
+    test_session_id: input.testSessionId ?? null,
+  });
 
   if (!insertError) {
     return { ok: true };
