@@ -14,7 +14,7 @@ import type {
 // 여기서는 상태 보관·갱신만 담당한다.
 
 const DEFAULT_STATE: CropState = {
-  shape: "circle",
+  shape: "none",
   background: { type: "transparent" },
   transform: { zoom: 1, offsetX: 0, offsetY: 0 },
 };
