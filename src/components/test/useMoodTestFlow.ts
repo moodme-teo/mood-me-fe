@@ -7,7 +7,6 @@ import {
   createInitialFlowState,
   flowReducer,
   getScreenCopy,
-  hasDownstreamData,
   poolIdsForScreen,
   previewCardIdsForScreen,
   targetCountForScreen,
@@ -69,12 +68,10 @@ export function useMoodTestFlow() {
     target,
     canConfirm: state.draft.length === target,
     /**
-     * 지금 "이전" 을 누르면 뒤 단계에서 고른 내용이 지워질 수 있다 — 확인을 받아야 한다.
-     * 되돌아갈 화면 기준으로 판정한다. 첫 화면에는 "이전" 이 없다.
+     * 지금 화면에서 고른 것이 있는가 — 화면을 떠나면(이전·홈) 이 draft 는 사라진다.
+     * 잃을 것이 있을 때만 확인을 받는다 (PRD §5.3).
      */
-    willResetOnBack:
-      state.screenIndex > 0 &&
-      hasDownstreamData(screens[state.screenIndex - 1], state.committed),
+    hasSelection: state.draft.length > 0,
     isFirstScreen: state.screenIndex === 0,
     isLastScreen: state.screenIndex === TOTAL_SCREENS - 1,
     canUndo: state.draftHistory.length > 0,

@@ -167,10 +167,7 @@ function sameSet(a: string[], b: string[]): boolean {
 }
 
 /**
- * 화면별로 "이 화면을 고치면 무효가 되는 뒤 단계" 목록.
- *
- * commitScreen(지우는 쪽)과 hasDownstreamData(지워질 게 있는지 묻는 쪽)가 이 표 하나를
- * 함께 읽는다. 규칙을 양쪽에 옮겨 적으면 반드시 어긋난다.
+ * 화면별로 "이 화면을 고치면 무효가 되는 뒤 단계" 목록. commitScreen 이 읽는다.
  *
  * 담기(gather)가 shadows를 지우지 않는 이유: 그림자는 고정된 칩 8개에서 고르므로 담은
  * 카드와 무관하다. 반대로 그림자를 바꾸면 전환(transitions)은 그림자별 4지선다라 통째로 무효다.
@@ -195,32 +192,6 @@ function clearedDownstream(screen: ScreenDescriptor): Partial<CommittedState> {
     else cleared[field] = [] as never;
   }
   return cleared;
-}
-
-function isFieldEmpty(
-  committed: CommittedState,
-  field: keyof CommittedState,
-): boolean {
-  if (field === "transitions") {
-    return committed.transitions.every((t) => t === null);
-  }
-  const value = committed[field];
-  return Array.isArray(value) && value.length === 0;
-}
-
-/**
- * 이 화면으로 되돌아가 선택을 바꾸면, 실제로 지워질 뒤 단계 데이터가 있는가?
- *
- * "이전" 을 누르는 시점에는 사용자가 무엇을 바꿀지 아직 모른다. 그래서 변경 여부가 아니라
- * **잃을 것이 있는지** 만 본다 — 뒤 단계를 아직 고르지 않았으면 물을 이유가 없다 (PRD §5.3).
- */
-export function hasDownstreamData(
-  screen: ScreenDescriptor,
-  committed: CommittedState,
-): boolean {
-  return DOWNSTREAM_OF[screen.kind].some(
-    (field) => !isFieldEmpty(committed, field),
-  );
 }
 
 export function commitScreen(
