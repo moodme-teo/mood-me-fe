@@ -83,9 +83,36 @@ export async function createGenerationJob(
     };
   }
 
+  // 직전 job에서 분석이 이미 성공했으면 새 job도 그 결과를 그대로 이어받는다 — 이미지만
+  // 실패해 재시도하는 경우 분석(GPT-5)까지 다시 부르면 그만큼 비용이 또 나간다. "재시도는
+  // 실패한 갈래만 다시 돈다"(#122). runGenerationPipeline이 이 값을 보고 분석 재호출 여부를 정한다.
+  const { data: priorJob } = await service
+    .from("moodboard_generation_jobs")
+    .select("analysis_status, mood_profile")
+    .eq("test_session_id", testSessionId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const priorAnalysis = priorJob as {
+    analysis_status: string;
+    mood_profile: unknown;
+  } | null;
+  const carryOverAnalysis =
+    priorAnalysis?.analysis_status === "completed"
+      ? {
+          analysis_status: "completed" as const,
+          mood_profile: priorAnalysis.mood_profile,
+        }
+      : {};
+
   const { data: job, error: createError } = await service
     .from("moodboard_generation_jobs")
-    .insert({ test_session_id: testSessionId, status: "queued" })
+    .insert({
+      test_session_id: testSessionId,
+      status: "queued",
+      ...carryOverAnalysis,
+    })
     .select("id")
     .single();
 
@@ -206,27 +233,32 @@ async function markJobFailed(
     .eq("id", jobId);
 }
 
-// 여정을 GPT-5로 해석해 리포트 재료(mood_profile)를 만든다. 보드 이미지 생성과
-// 완전히 독립적으로 돈다 — runGenerationPipeline이 await하지 않고 fire-and-forget으로
-// 띄우며, 실패(타임아웃 포함)해도 여기서 조용히 포기한다. job의 status·progress_percent는
-// 이미지 파이프라인만 소유하므로 리포트 실패가 캔버스 진입을 막지 않는다. 지금 mood_profile을
-// 읽는 화면이 없어 실패해도 사용자에게 노출되는 영향은 없다.
-async function runReportAnalysis(
-  service: ServiceClient,
-  jobId: string,
+// analysis_status는 job.status와 별개다 — 이미지 갈래가 실패해도 분석 갈래는 성공할 수 있고
+// 그 반대도 같다. 이걸 구별해야 결과 페이지가 "아직 안 끝남"과 "실패"를 오검출하지 않는다(#122).
+async function markAnalysisFailed(service: ServiceClient, jobId: string) {
+  await service
+    .from("moodboard_generation_jobs")
+    .update({
+      analysis_status: "failed",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", jobId);
+}
+
+// GPT-5 호출 + 파싱(+1회 재시도)만 하는 순수 로직 — 어디에 결과를 쓸지는 모른다. job(생성중
+// 화면의 최초 분석)과 저장된 moodboard(결과 페이지의 "분석 다시 시도") 둘 다 이걸 재사용하고,
+// 각자 자기 테이블에 analysis_status·mood_profile을 기록한다(#122).
+async function analyzeJourney(
   journey: Journey,
-): Promise<void> {
+): Promise<{ ok: true; moodProfile: MoodProfile } | { ok: false }> {
   const payload = buildMoodAnalysisPayload(journey);
 
   let text: string;
   try {
     text = await callGpt(buildMoodAnalysisUserMessage(payload));
   } catch (error) {
-    console.warn(
-      "[runReportAnalysis] GPT-5 호출 실패 — mood_profile 없이 진행:",
-      error,
-    );
-    return;
+    console.warn("[analyzeJourney] GPT-5 호출 실패:", error);
+    return { ok: false };
   }
 
   let parsed = parseMoodAnalysis(text);
@@ -237,37 +269,89 @@ async function runReportAnalysis(
         buildMoodAnalysisRetryMessage(payload, parsed.error),
       );
     } catch (error) {
-      console.warn(
-        "[runReportAnalysis] GPT-5 재시도 실패 — mood_profile 없이 진행:",
-        error,
-      );
-      return;
+      console.warn("[analyzeJourney] GPT-5 재시도 실패:", error);
+      return { ok: false };
     }
     parsed = parseMoodAnalysis(text);
   }
   if (!parsed.ok) {
-    console.warn(
-      "[runReportAnalysis] 응답 파싱 실패 — mood_profile 없이 진행:",
-      parsed.error,
-    );
-    return;
+    console.warn("[analyzeJourney] 응답 파싱 실패:", parsed.error);
+    return { ok: false };
   }
 
   // type_name은 GPT-5가 아니라 computePersonaResult가 이미 확정한 값
   // (payload.persona.type_name) — 여기서 합쳐 MoodProfile 완전한 형태로 저장한다
   // (ADR 004 §개정).
-  const moodProfile: MoodProfile = {
-    ...parsed.value,
-    type_name: payload.persona.type_name,
+  return {
+    ok: true,
+    moodProfile: { ...parsed.value, type_name: payload.persona.type_name },
   };
+}
+
+// 여정을 GPT-5로 해석해 리포트 재료(mood_profile)를 만든다. 보드 이미지 생성과 완전히
+// 독립적으로 돈다 — runGenerationPipeline이 await하지 않고 fire-and-forget으로 띄운다.
+// job의 status·progress_percent(이미지 갈래)는 건드리지 않고, analysis_status(분석 갈래)만
+// 시작·성공·실패를 기록한다. 실패해도 캔버스 진입은 막지 않는다 — 결과 페이지에서만 드러나고
+// 그 자리에서 재시도한다(§5.6·§10.3).
+async function runReportAnalysis(
+  service: ServiceClient,
+  jobId: string,
+  journey: Journey,
+): Promise<void> {
+  await service
+    .from("moodboard_generation_jobs")
+    .update({
+      analysis_status: "processing",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", jobId);
+
+  const result = await analyzeJourney(journey);
+  if (!result.ok) {
+    await markAnalysisFailed(service, jobId);
+    return;
+  }
 
   await service
     .from("moodboard_generation_jobs")
     .update({
-      mood_profile: moodProfile,
+      mood_profile: result.moodProfile,
+      analysis_status: "completed",
       updated_at: new Date().toISOString(),
     })
     .eq("id", jobId);
+}
+
+// 결과 페이지의 "분석 다시 시도"(§5.6·§10.3) — 이미 저장된 moodboard row에 직접 쓴다.
+// job을 거치지 않는다: elements·base_image_url·exported_image_data_url이 저장 후엔
+// moodboard 자신이 원본이 되는 기존 패턴과 같다. 호출부(POST /api/moodboards/[id]/analysis)가
+// analysis_status를 "processing"으로 먼저 써 두므로, 여기서는 최종 결과(성공/실패)만 쓴다.
+export async function runMoodboardAnalysisRetry(
+  moodboardId: string,
+  journey: Journey,
+): Promise<void> {
+  const service = createServiceClient();
+  const result = await analyzeJourney(journey);
+
+  if (!result.ok) {
+    await service
+      .from("moodboards")
+      .update({
+        analysis_status: "failed",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", moodboardId);
+    return;
+  }
+
+  await service
+    .from("moodboards")
+    .update({
+      mood_profile: result.moodProfile,
+      analysis_status: "completed",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", moodboardId);
 }
 
 // 여정 로그를 규칙 기반으로 보드까지 조립해 job을 completed로 채운다. 리포트(GPT-5)는
@@ -282,6 +366,18 @@ export async function runGenerationPipeline(
 ): Promise<void> {
   const service = createServiceClient();
 
+  // createGenerationJob이 직전 job에서 완료된 분석을 이 job에 이미 이어받았을 수 있다
+  // (이미지만 재시도하는 경우) — 그러면 분석은 다시 부르지 않는다. 재호출하면 이미 성공한
+  // 분석에 GPT-5 비용을 한 번 더 태우게 된다(#122).
+  const { data: currentJob } = await service
+    .from("moodboard_generation_jobs")
+    .select("analysis_status")
+    .eq("id", jobId)
+    .maybeSingle();
+  const analysisAlreadyDone =
+    (currentJob as { analysis_status: string } | null)?.analysis_status ===
+    "completed";
+
   await service
     .from("moodboard_generation_jobs")
     .update({
@@ -291,12 +387,15 @@ export async function runGenerationPipeline(
     })
     .eq("id", jobId);
 
-  void runReportAnalysis(service, jobId, journey).catch((error) => {
-    console.error(
-      "[runReportAnalysis] 예기치 못한 실패 — mood_profile 없이 진행:",
-      error,
-    );
-  });
+  if (!analysisAlreadyDone) {
+    void runReportAnalysis(service, jobId, journey).catch((error) => {
+      console.error(
+        "[runReportAnalysis] 예기치 못한 실패 — mood_profile 없이 진행:",
+        error,
+      );
+      void markAnalysisFailed(service, jobId);
+    });
+  }
 
   let assembled: Awaited<ReturnType<typeof assembleBoard>>;
   try {

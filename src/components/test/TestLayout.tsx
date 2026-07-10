@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import BuildBoardPreview from "@/components/test/BuildBoardPreview";
+import ConfirmResetDialog from "@/components/test/ConfirmResetDialog";
 import StageBody from "@/components/test/StageBody";
 import TestFooter from "@/components/test/TestFooter";
 import TestHeader from "@/components/test/TestHeader";
@@ -35,23 +36,36 @@ export default function TestLayout({ sessionId }: Props) {
   const flow = useMoodTestFlow();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // 화면을 떠나려는 동작을 붙들어 둔다. 확인을 받으면 그때 실행한다.
+  const [pendingExit, setPendingExit] = useState<"back" | "home" | null>(null);
 
   useEffect(() => {
     saveMoodTestDraft({ sessionId, stepIndex: flow.screenIndex });
   }, [sessionId, flow.screenIndex]);
 
-  const handleHome = () => {
-    router.push("/");
+  const goHome = () => router.push("/");
+
+  // 화면을 떠나면 지금 고른 것이 사라진다 — 이전으로 가든 홈으로 나가든 마찬가지다.
+  // 고른 게 없으면 잃을 것도 없으니 묻지 않는다.
+  const leaveScreen = (exit: "back" | "home") => {
+    if (flow.hasSelection) {
+      setPendingExit(exit);
+      return;
+    }
+    if (exit === "home") goHome();
+    else flow.back();
   };
 
-  const handlePrevStage = () => {
-    flow.back();
-  };
+  const handleHome = () => leaveScreen("home");
+  const handlePrevStage = () => leaveScreen("back");
 
+  // 되돌리기는 화면을 떠나지 않는다. 현재 화면 안에서 draft 를 한 칸 되감을 뿐이라
+  // 확인을 받을 이유가 없다.
   const handleUndoSelection = () => {
     flow.undo();
   };
 
+  // "다음" 은 지금 고른 것을 확정하고 넘어간다 — 잃는 게 없으므로 묻지 않는다.
   const handleNext = async () => {
     if (!flow.canConfirm) return;
 
@@ -160,6 +174,17 @@ export default function TestLayout({ sessionId }: Props) {
           errorMessage={submitError}
         />
       </div>
+
+      <ConfirmResetDialog
+        isOpen={pendingExit !== null}
+        onCancel={() => setPendingExit(null)}
+        onConfirm={() => {
+          const exit = pendingExit;
+          setPendingExit(null);
+          if (exit === "home") goHome();
+          else flow.back();
+        }}
+      />
       <style jsx>{`
         .no-scrollbar {
           -ms-overflow-style: none;

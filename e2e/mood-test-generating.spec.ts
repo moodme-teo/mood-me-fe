@@ -7,6 +7,7 @@ import {
   mockCreateGenerationJobCounting,
   mockCreateGenerationJobFailure,
   mockCreateGenerationJobPending,
+  mockGenerationJobFlaky,
   mockGenerationJobSequence,
 } from "./utils/mock-api";
 
@@ -185,12 +186,16 @@ test.describe("생성중 화면", () => {
     await generating.goto(TEST_SESSION_ID);
     await expect(generating.progressBar).toBeVisible();
     await expect.poll(() => generateCalls.count).toBe(1);
+    // 최초 진입은 재진입이 아니다 — 로테이션 문구가 뜨고 고정 재진입 문구는 없어야 한다.
+    await expect(generating.reentryMessage).toBeHidden();
 
     // 새로고침 = 재진입. 로컬에 보존된 jobId가 있으니 생성 요청이 다시 나가면 안 된다.
     await page.reload();
 
     await expect(generating.progressBar).toBeVisible();
     await expect.poll(() => generateCalls.count).toBe(1);
+    // 재진입 시에는 "새로 만드는 중"이 아니라 "다시 불러오는 중"이라고 말해야 한다(#115 문구).
+    await expect(generating.reentryMessage).toBeVisible();
   });
 
   test("이미 완료된 세션으로 재진입하면 새 job 없이 곧장 편집 화면으로 이동한다", async ({
@@ -211,5 +216,35 @@ test.describe("생성중 화면", () => {
     await generating.waitForEdit(TEST_SESSION_ID);
 
     await expect.poll(() => generateCalls.count).toBe(1);
+  });
+
+  test("폴링이 연속 실패 2회는 견디고 화면이 죽지 않는다", async ({ page }) => {
+    await mockCreateGenerationJob(page);
+    await mockGenerationJobFlaky(page, 2, [
+      { status: "processing", percent: 40 },
+    ]);
+
+    const generating = new GeneratingPage(page);
+    await generating.goto(TEST_SESSION_ID);
+
+    // 실패 2회를 지나 성공 폴링에 닿을 때까지 진행률 화면이 그대로 떠 있어야 한다 —
+    // 서버 500 한두 번으로 죽으면 안 된다(#122).
+    await expect(generating.progressBar).toBeVisible();
+    await expect(generating.errorHeading).toBeHidden();
+  });
+
+  test("폴링이 연속 실패 3회를 넘기면 에러 화면을 보여준다", async ({
+    page,
+  }) => {
+    await mockCreateGenerationJob(page);
+    // 3회를 초과해도 계속 실패 — 연속 실패 허용치를 넘겼을 때만 에러로 넘어가는지 본다.
+    await mockGenerationJobFlaky(page, 10, [
+      { status: "processing", percent: 40 },
+    ]);
+
+    const generating = new GeneratingPage(page);
+    await generating.goto(TEST_SESSION_ID);
+
+    await expect(generating.errorHeading).toBeVisible({ timeout: 15_000 });
   });
 });

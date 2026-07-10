@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-import { editStateSchema, moodProfileSchema } from "@/lib/api/get-moodboard";
+import {
+  analysisStatusSchema,
+  editStateSchema,
+  moodProfileSchema,
+} from "@/lib/api/get-moodboard";
 import { apiClient } from "@/lib/api-client";
 
 const baseElementSchema = z.object({
@@ -74,6 +78,12 @@ export const updateMoodboardRequestSchema = z.object({
   // 리포트(GPT-5)는 이미지 생성과 독립적으로 돈다 — "완성하고 공유하기" 시점에 아직
   // 안 끝났으면 없을 수 있다(generate-mood-analysis.ts의 runReportAnalysis 참고).
   moodProfile: moodProfileSchema.optional(),
+  // 분석 갈래 상태(#122) — moodProfile과 함께 보낸다. "분석 다시 시도"가 필요한지
+  // 판단하는 데 쓴다.
+  analysisStatus: analysisStatusSchema.optional(),
+  // 최초 저장 시점에만 의미가 있다 — 원본 테스트 세션 id. "분석 다시 시도"가 journey를
+  // 다시 찾아갈 유일한 연결고리라 최초 저장 이후로는 절대 덮어쓰지 않는다(#122).
+  sessionId: z.uuid().optional(),
   // 소유자(회원·게스트)는 서버가 쿠키로만 확인한다 — 본문으로 받지 않는다 (#126).
 });
 

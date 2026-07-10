@@ -109,15 +109,16 @@ function ContinueDraftEntry({ target }: { target: ContinueTarget | null }) {
   );
 }
 
+// 목록은 서버 렌더에서 이미 왔다 — 스켈레톤이 뜨는 건 재시도 중일 때뿐이다 (#132).
 function HistoryContent({
   errorPanel,
   hasError,
-  isLoading,
+  isRetrying,
   moodboards,
 }: {
   errorPanel: React.ReactNode;
   hasError: boolean;
-  isLoading: boolean;
+  isRetrying: boolean;
   moodboards: MoodboardSummary[];
 }) {
   return (
@@ -136,7 +137,7 @@ function HistoryContent({
             </span>
           </h1>
           <p className="mt-2 font-semibold text-gray-500 text-label">
-            {isLoading
+            {isRetrying
               ? "저장한 무드보드를 불러오고 있어요"
               : hasError
                 ? "저장한 무드보드를 확인하지 못했어요"
@@ -145,7 +146,7 @@ function HistoryContent({
         </div>
         {errorPanel}
       </div>
-      {isLoading ? (
+      {isRetrying ? (
         <div className="mx-auto w-full max-w-[680px]">
           <MoodboardSkeletonGrid />
         </div>
@@ -164,7 +165,7 @@ export default function HomeExperience({
   const router = useRouter();
   const [moodboards, setMoodboards] = useState(initialMoodboards);
   const [error, setError] = useState(initialError);
-  const [isLoadingList, setIsLoadingList] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
   const [continueTarget, setContinueTarget] = useState<ContinueTarget | null>(
     null,
   );
@@ -187,38 +188,17 @@ export default function HomeExperience({
       );
     });
 
-    // 게스트 신원은 httpOnly 쿠키에 있어 클라이언트가 존재 여부를 알 수 없다 — 서버가
-    // 판단하고, 신원이 없으면 빈 목록을 돌려준다 (#126). 회원 목록은 서버 렌더에서 이미 왔다.
-    if (!isLoggedIn) {
-      Promise.resolve()
-        .then(() => {
-          if (isActive) setIsLoadingList(true);
-          return getMoodboards();
-        })
-        .then((items) => {
-          if (!isActive) return;
-          setMoodboards(items);
-          setError(null);
-        })
-        .catch((listError: unknown) => {
-          if (isActive) setError(getErrorMessage(listError));
-        })
-        .finally(() => {
-          if (isActive) setIsLoadingList(false);
-        });
-    }
-
     return () => {
       isActive = false;
     };
-  }, [isLoggedIn]);
+  }, []);
 
   const handleCreateMoodboard = useCallback(() => {
     router.push(`/test/${crypto.randomUUID()}`);
   }, [router]);
 
   const handleRetry = useCallback(() => {
-    setIsLoadingList(true);
+    setIsRetrying(true);
     getMoodboards()
       .then((items) => {
         setMoodboards(items);
@@ -227,22 +207,23 @@ export default function HomeExperience({
       .catch((retryError: unknown) => {
         setError(getErrorMessage(retryError));
       })
-      .finally(() => setIsLoadingList(false));
+      .finally(() => setIsRetrying(false));
   }, []);
 
   const errorPanel = useMemo(
     () => (
-      <RetryPanel
-        error={error}
-        isRetrying={isLoadingList}
-        onRetry={handleRetry}
-      />
+      <RetryPanel error={error} isRetrying={isRetrying} onRetry={handleRetry} />
     ),
-    [error, handleRetry, isLoadingList],
+    [error, handleRetry, isRetrying],
   );
   const hasMoodboards = moodboards.length > 0;
   const hasError = error !== null;
-  const shouldShowHistory = hasMoodboards || isLoadingList || hasError;
+
+  // 보드 유무는 서버가 이미 판정했다 — 회원은 인증 쿠키로, 게스트는 게스트 쿠키로
+  // 조회한 결과가 initialMoodboards 로 온다 (#126 이후). 마운트 뒤 목록을 다시 부르면
+  // 그 로딩 상태가 "보드 있음" 으로 새어 들어가 0개인 사용자에게도 History 셸이
+  // 한 번 번쩍인다 (#132). 조회는 서버 렌더 한 번뿐이고, 재시도만 클라이언트가 맡는다.
+  const shouldShowHistory = hasMoodboards || hasError;
 
   // 저장 보드 0개 → 메인(첫진입): 스플래시 → 첫진입 애니메이션 화면. 자체 크롬(아바타·CTA)을
   // 가지므로 공용 헤더/푸터로 감싸지 않는다. History 상태만 공용 셸을 쓴다.
@@ -268,7 +249,7 @@ export default function HomeExperience({
       <HistoryContent
         errorPanel={errorPanel}
         hasError={hasError}
-        isLoading={isLoadingList}
+        isRetrying={isRetrying}
         moodboards={moodboards}
       />
 

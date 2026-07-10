@@ -27,6 +27,11 @@ export class MoodboardResultPage {
   readonly editLink: Locator;
   readonly errorMessage: Locator;
 
+  /** 분석(GPT-5) 실패 시 그래프 자리에 뜨는 재시도 UI (#122). */
+  readonly analysisFailedHeading: Locator;
+  readonly retryAnalysisButton: Locator;
+  readonly moodSpectrumHeading: Locator;
+
   /** "다시 만들기" → 확인 다이얼로그. window.confirm 이 아니라 인앱 dialog 다. */
   readonly restartButton: Locator;
   readonly restartDialog: Locator;
@@ -43,6 +48,13 @@ export class MoodboardResultPage {
     this.copiedToast = page.getByText("공유 링크를 복사했어요.");
     this.editLink = page.getByRole("link", { name: "편집" });
     this.errorMessage = page.getByText("결과를 불러오지 못했어요.");
+
+    this.analysisFailedHeading =
+      page.getByText("무드 성향을 읽어내지 못했어요.");
+    this.retryAnalysisButton = page.getByRole("button", {
+      name: /분석 다시 시도/,
+    });
+    this.moodSpectrumHeading = page.getByText("무드 성향 5축");
 
     this.restartButton = page.getByRole("button", { name: "다시 만들기" });
     this.restartDialog = page.getByRole("dialog", {

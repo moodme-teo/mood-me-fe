@@ -11,7 +11,6 @@ import {
   previewCardIdsForScreen,
   targetCountForScreen,
   TOTAL_SCREENS,
-  willResetDownstream,
 } from "@/components/test/mood-test-flow";
 import { SHADOWS } from "@/lib/mood-test/seed";
 
@@ -68,12 +67,11 @@ export function useMoodTestFlow() {
     draft: state.draft,
     target,
     canConfirm: state.draft.length === target,
-    /** 지금 확정하면 뒤 단계 선택이 지워진다 — 확인을 받아야 한다. */
-    willResetDownstream: willResetDownstream(
-      screen,
-      state.draft,
-      state.committed,
-    ),
+    /**
+     * 지금 화면에서 고른 것이 있는가 — 화면을 떠나면(이전·홈) 이 draft 는 사라진다.
+     * 잃을 것이 있을 때만 확인을 받는다 (PRD §5.3).
+     */
+    hasSelection: state.draft.length > 0,
     isFirstScreen: state.screenIndex === 0,
     isLastScreen: state.screenIndex === TOTAL_SCREENS - 1,
     canUndo: state.draftHistory.length > 0,

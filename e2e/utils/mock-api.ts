@@ -1,11 +1,14 @@
 import type { Page, Route } from "@playwright/test";
 
+import type { GetMoodboardResponse } from "@/lib/api/get-moodboard";
+
 import {
   generationJob,
   GUEST_SESSION_ID,
   JOB_ID,
   LEGACY_MOODBOARD,
   MOODBOARD,
+  MOODBOARD_ANALYSIS_FAILED,
   MOODBOARD_ID,
   MOODBOARD_SUMMARIES,
 } from "../fixtures/data";
@@ -92,6 +95,25 @@ export async function mockGenerationJobSequence(page: Page, steps: JobStep[]) {
   });
 }
 
+// 폴링 내구성(#122) 검증용 — 처음 failCount번은 500으로 실패하다가 그 이후는 steps를 따른다.
+export async function mockGenerationJobFlaky(
+  page: Page,
+  failCount: number,
+  steps: JobStep[],
+) {
+  let call = 0;
+  let index = 0;
+  await page.route("**/api/mood-test-sessions/*/generation-job", (route) => {
+    call += 1;
+    if (call <= failCount) {
+      return fail(route, 500, "INTERNAL_ERROR", "일시적 오류");
+    }
+    const step = steps[Math.min(index, steps.length - 1)];
+    index += 1;
+    return ok(route, generationJob(step.status, step.percent));
+  });
+}
+
 // 홈(History)이 부르는 저장 보드 목록.
 export async function mockMoodboards(page: Page) {
   await page.route(isMoodboardListUrl, (route) =>
@@ -120,6 +142,36 @@ export async function mockLegacyMoodboard(page: Page) {
 export async function mockMoodboardFailure(page: Page) {
   await page.route("**/api/moodboards/*", (route) =>
     fail(route, 500, "INTERNAL_ERROR", "불러오지 못했어요."),
+  );
+}
+
+// 분석(GPT-5) 실패 상태 — 그래프 자리에 재시도 버튼이 뜬다(#122).
+export async function mockMoodboardAnalysisFailed(page: Page) {
+  await page.route("**/api/moodboards/*", (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    return ok(route, MOODBOARD_ANALYSIS_FAILED);
+  });
+}
+
+// GET 호출마다 다음 보드를 돌려준다 — "분석 다시 시도" 폴링(processing → completed/failed)을
+// 흉내낸다. mockGenerationJobSequence와 같은 패턴.
+export async function mockMoodboardSequence(
+  page: Page,
+  boards: GetMoodboardResponse[],
+) {
+  let index = 0;
+  await page.route("**/api/moodboards/*", (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    const board = boards[Math.min(index, boards.length - 1)];
+    index += 1;
+    return ok(route, board);
+  });
+}
+
+// 결과 페이지 "분석 다시 시도" 버튼이 부르는 POST /api/moodboards/{id}/analysis.
+export async function mockRetryAnalysis(page: Page) {
+  await page.route("**/api/moodboards/*/analysis", (route) =>
+    ok(route, { analysisStatus: "processing" }),
   );
 }
 
