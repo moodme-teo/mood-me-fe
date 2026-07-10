@@ -31,6 +31,13 @@ type Props = {
 function useCanvasImage(src: string | undefined, onError?: () => void) {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
 
+  // onError가 인라인 콜백이면 매 렌더 새 참조라 effect가 반복 실행되어 이미지가 계속
+  // 재로드된다(Maximum update depth). ref로 미러링해 src에만 반응하도록 한다.
+  const onErrorRef = useRef(onError);
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+
   useEffect(() => {
     if (!src) return;
 
@@ -43,14 +50,14 @@ function useCanvasImage(src: string | undefined, onError?: () => void) {
     img.onerror = () => {
       if (cancelled) return;
       setImage(null);
-      onError?.();
+      onErrorRef.current?.();
     };
     img.src = src;
 
     return () => {
       cancelled = true;
     };
-  }, [onError, src]);
+  }, [src]);
 
   return image;
 }

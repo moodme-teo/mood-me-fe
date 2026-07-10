@@ -35,6 +35,7 @@ type MoodboardRow = {
   base_image_url: string | null;
   elements: unknown;
   mood_profile: unknown;
+  exported_image_data_url: string | null;
   guest_session_id: string | null;
   updated_at: string | null;
 };
@@ -67,7 +68,7 @@ export async function getMoodboardById(
   const { data, error } = await service
     .from("moodboards")
     .select(
-      "id, base_image_url, elements, mood_profile, guest_session_id, updated_at",
+      "id, base_image_url, elements, mood_profile, exported_image_data_url, guest_session_id, updated_at",
     )
     .eq("id", moodboardId)
     .maybeSingle();
@@ -93,6 +94,8 @@ export async function getMoodboardById(
       elements: (row.elements as MoodboardElement[] | null) ?? [],
       moodProfile:
         (row.mood_profile as MoodProfile | null) ?? PENDING_MOOD_PROFILE,
+      // 크롭 에디터(#99)가 저장한 평면 결과 이미지 — 결과 페이지가 이걸 그대로 노출한다.
+      exportedImageUrl: row.exported_image_data_url ?? null,
       isGuest: row.guest_session_id !== null,
       updatedAt: row.updated_at ?? new Date().toISOString(),
     },

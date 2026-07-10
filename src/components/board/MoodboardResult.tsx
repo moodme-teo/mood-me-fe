@@ -312,6 +312,13 @@ export default function MoodboardResult({ moodboardId }: Props) {
     };
   }, [handleLoadError, moodboardId]);
 
+  // 크롭 결과 이미지가 있으면 내보내기는 캔버스 렌더 대신 저장된 이미지를 그대로 쓴다.
+  useEffect(() => {
+    if (state.status !== "ready") return;
+    const url = state.moodboard.exportedImageUrl;
+    if (url) exportRef.current = () => url;
+  }, [state]);
+
   const handleDownload = useCallback(() => {
     try {
       const dataUrl = exportRef.current?.();
@@ -349,6 +356,7 @@ export default function MoodboardResult({ moodboardId }: Props) {
   }
 
   const { moodboard } = state;
+  const exportedImageUrl = moodboard.exportedImageUrl ?? null;
 
   return (
     <main className="flex flex-1 justify-center overflow-y-auto bg-background text-foreground">
@@ -364,18 +372,40 @@ export default function MoodboardResult({ moodboardId }: Props) {
           <p className="text-sm font-bold">mood·me</p>
         </header>
 
-        <section className="mx-auto w-[360px] max-w-full overflow-hidden rounded-2xl bg-surface-inverse">
-          <BoardPreview
-            width={MOODBOARD_WIDTH}
-            height={MOODBOARD_HEIGHT}
-            baseImageUrl={moodboard.baseImageUrl}
-            elements={moodboard.elements}
-            onExportReady={(exportImage) => {
-              exportRef.current = exportImage;
+        {exportedImageUrl ? (
+          // 크롭 에디터(#99) 결과 — 평면 이미지를 그대로 보여준다. 투명 영역은 체크보드로 표시.
+          <section
+            className="mx-auto flex aspect-square w-[360px] max-w-full items-center justify-center overflow-hidden rounded-2xl"
+            style={{
+              backgroundImage:
+                "linear-gradient(45deg, #e5e5e5 25%, transparent 25%), linear-gradient(-45deg, #e5e5e5 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e5e5e5 75%), linear-gradient(-45deg, transparent 75%, #e5e5e5 75%)",
+              backgroundSize: "18px 18px",
+              backgroundPosition: "0 0, 0 9px, 9px -9px, -9px 0",
+              backgroundColor: "#ffffff",
             }}
-            onImageError={() => showToast("이미지를 불러오지 못했어요.")}
-          />
-        </section>
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- 크롭 결과는 원격/데이터 URL이라 next/image 최적화 대상이 아니다. */}
+            <img
+              src={exportedImageUrl}
+              alt="크롭한 무드 이미지"
+              className="h-full w-full object-contain"
+              onError={() => showToast("이미지를 불러오지 못했어요.")}
+            />
+          </section>
+        ) : (
+          <section className="mx-auto w-[360px] max-w-full overflow-hidden rounded-2xl bg-surface-inverse">
+            <BoardPreview
+              width={MOODBOARD_WIDTH}
+              height={MOODBOARD_HEIGHT}
+              baseImageUrl={moodboard.baseImageUrl}
+              elements={moodboard.elements}
+              onExportReady={(exportImage) => {
+                exportRef.current = exportImage;
+              }}
+              onImageError={() => showToast("이미지를 불러오지 못했어요.")}
+            />
+          </section>
+        )}
 
         <div className="mt-6 space-y-6 pb-8">
           <ReadingBlock moodboard={moodboard} />
