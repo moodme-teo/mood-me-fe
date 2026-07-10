@@ -29,6 +29,7 @@ import {
   zoomAtPoint,
 } from "@/components/canvas";
 import { updateMoodboard } from "@/lib/api/update-moodboard";
+import { ensureGuestSessionId } from "@/lib/auth/guest-session";
 import type { MoodProfile } from "@/types/moodboard";
 
 type Props = {
@@ -459,12 +460,14 @@ export default function MoodboardCropEditor({
     try {
       const exportedImageDataUrl =
         (await exporterRef.current?.("png")) ?? undefined;
+      const guestSessionId = await ensureGuestSessionId();
       // 크롭 결과는 한 장의 평면 이미지 — elements는 비우고 export 이미지를 저장한다.
       // moodProfile은 있을 때만 함께 저장(없으면 서버가 기존 값 유지 / PENDING 폴백).
       await updateMoodboard(moodboardId, {
         baseImageUrl,
         elements: [],
         exportedImageDataUrl,
+        guestSessionId,
         ...(moodProfile ? { moodProfile } : {}),
       });
       router.push(`/moodboard/${moodboardId}`);

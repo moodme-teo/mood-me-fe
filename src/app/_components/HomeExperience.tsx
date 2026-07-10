@@ -8,8 +8,14 @@ import FirstEntryLanding, {
   type ContinueTarget,
 } from "@/app/_components/FirstEntryLanding";
 import HistoryCarousel from "@/app/_components/HistoryCarousel";
+import {
+  BoardMark,
+  ChugumiMark,
+  ModeMark,
+  VibeMark,
+  VisionMark,
+} from "@/app/_components/HistoryWordmark";
 import ProfileMenu from "@/components/auth/ProfileMenu";
-import { listMoodboardDrafts } from "@/components/board/moodboard-draft-storage";
 import { Button } from "@/components/ui/button";
 import { getMoodboards } from "@/lib/api/get-moodboards";
 import { ApiClientError } from "@/lib/api-client";
@@ -116,13 +122,21 @@ function HistoryContent({
   moodboards: MoodboardSummary[];
 }) {
   return (
-    <main className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden px-4 pt-2 pb-3">
-      <div className="mx-auto w-full max-w-[680px] space-y-3">
+    <main className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden pt-2 pb-3">
+      <div className="mx-auto w-full max-w-[680px] space-y-3 px-4">
         <div>
-          <h1 className="text-4xl leading-tight font-bold text-foreground">
-            History
+          {/* docs/design/history-page.png 워드마크 — public/assets 벡터를 그대로 인라인 SVG로 */}
+          <h1 lang="en" className="flex flex-col items-start text-foreground">
+            <span className="sr-only">Vision Mode Vibe Chugumi Board</span>
+            <VisionMark className="mb-3 h-[26px] w-auto" />
+            <ModeMark className="mb-3 h-[27px] w-auto" />
+            <VibeMark className="mb-3 h-[27px] w-auto" />
+            <span className="flex items-center gap-2">
+              <ChugumiMark className="h-[34px] w-auto" />
+              <BoardMark className="-mt-3 h-[27px] w-auto" />
+            </span>
           </h1>
-          <p className="mt-2 text-base font-bold text-gray-700">
+          <p className="mt-2 font-semibold text-gray-500 text-label">
             {isLoading
               ? "저장한 무드보드를 불러오고 있어요"
               : hasError
@@ -159,44 +173,21 @@ export default function HomeExperience({
   useEffect(() => {
     let isActive = true;
     const guestSessionId = isLoggedIn ? null : getStoredGuestSessionId();
-    const testDraft = loadMoodTestDraft();
-    const testTarget = testDraft
-      ? {
-          href: getDraftStepHref(testDraft),
-          label: `${testDraft.stepIndex + 1}단계`,
-          updatedAt: testDraft.updatedAt,
-        }
-      : null;
 
-    listMoodboardDrafts()
-      .then((drafts) => {
-        if (!isActive) return;
+    Promise.resolve().then(() => {
+      if (!isActive) return;
 
-        const editTarget = [...drafts].sort(
-          (a, b) =>
-            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-        )[0];
-        const candidates = [
-          testTarget,
-          editTarget
-            ? {
-                href: `/moodboard/${editTarget.moodboardId}/edit`,
-                label: "편집 중",
-                updatedAt: editTarget.updatedAt,
-              }
-            : null,
-        ].filter((target): target is ContinueTarget => target !== null);
-
-        setContinueTarget(
-          [...candidates].sort(
-            (a, b) =>
-              new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-          )[0] ?? null,
-        );
-      })
-      .catch(() => {
-        if (isActive) setContinueTarget(testTarget);
-      });
+      const testDraft = loadMoodTestDraft();
+      setContinueTarget(
+        testDraft
+          ? {
+              href: getDraftStepHref(testDraft),
+              label: `${testDraft.stepIndex + 1}단계`,
+              updatedAt: testDraft.updatedAt,
+            }
+          : null,
+      );
+    });
 
     if (!isLoggedIn && guestSessionId) {
       Promise.resolve()

@@ -2,6 +2,7 @@ import { moodboardSchema } from "@/lib/api/get-moodboard";
 import { updateMoodboardRequestSchema } from "@/lib/api/update-moodboard";
 import { apiError, apiSuccess } from "@/lib/api-response";
 import { getMoodboardById } from "@/lib/moodboard/get-moodboard";
+import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 
 function canUseSupabaseService() {
@@ -73,10 +74,19 @@ export async function PATCH(
     });
   }
 
+  // 로그인 여부는 서버가 인증 세션(쿠키)으로 직접 확인한다 — user_id를 클라이언트가
+  // 요청 본문에 자칭하도록 두지 않는다(save-session.ts와 동일한 패턴).
+  const authClient = await createClient();
+  const {
+    data: { user },
+  } = await authClient.auth.getUser();
+
   const service = createServiceClient();
   const { error } = await service.from("moodboards").upsert(
     {
       id: moodboardId,
+      user_id: user?.id ?? null,
+      guest_session_id: user ? null : (parsed.data.guestSessionId ?? null),
       base_image_url: parsed.data.baseImageUrl,
       elements: parsed.data.elements,
       exported_image_data_url: parsed.data.exportedImageDataUrl ?? null,

@@ -7,7 +7,6 @@ export type {
   CropShapeId,
   CropState,
   CropTransform,
-  MoodboardDraft,
   MoodboardElement,
   StickerAssetId,
 } from "@/components/canvas/types";
