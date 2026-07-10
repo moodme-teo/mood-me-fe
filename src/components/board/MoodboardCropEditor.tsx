@@ -572,6 +572,7 @@ export default function MoodboardCropEditor({
           variant="ghost"
           size="icon-md"
           aria-label="뒤로"
+          disabled={isSaving}
           onClick={() => setIsLeaveOpen(true)}
         >
           <ArrowLeft aria-hidden />
