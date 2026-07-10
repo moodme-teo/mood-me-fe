@@ -11,6 +11,26 @@ export const JOB_ID = "44444444-4444-4444-8444-444444444444";
 // public/ 에 실제로 존재하는 이미지 — AI 생성 이미지는 매번 달라지므로 고정 mock 을 쓴다.
 export const BASE_IMAGE_URL = "/test-image/aesthetic/c18.jpg";
 
+/**
+ * 크롭 에디터가 저장하는 결과물은 DB 컬럼 이름(`exported_image_data_url`) 그대로 data URL 이다.
+ * 픽셀을 단언할 수 있도록 사분면 색이 확실한 4x4 PNG 를 쓴다.
+ *
+ *   ■ 빨강(255,0,0)  ■ 초록(0,255,0)
+ *   ■ 파랑(0,0,255)  □ 투명(alpha 0)
+ *
+ * 투명 사분면이 핵심이다 — 내보내기가 중간에 JPEG 로 재인코딩되면 alpha 가 죽어 곧바로 잡힌다.
+ */
+export const EXPORTED_IMAGE_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAGUlEQVR42mP4z8DwH4SRIJoAlA9iwACqAADIpRfpEbgpjQAAAABJRU5ErkJggg==";
+
+/** EXPORTED_IMAGE_DATA_URL 의 사분면 — 비율 좌표와 기대 색. */
+export const EXPORTED_IMAGE_QUADRANTS = [
+  { point: { x: 0.15, y: 0.15 }, color: { r: 255, g: 0, b: 0, a: 255 } },
+  { point: { x: 0.85, y: 0.15 }, color: { r: 0, g: 255, b: 0, a: 255 } },
+  { point: { x: 0.15, y: 0.85 }, color: { r: 0, g: 0, b: 255, a: 255 } },
+  { point: { x: 0.85, y: 0.85 }, color: { r: 0, g: 0, b: 0, a: 0 } },
+] as const;
+
 export const ELEMENTS: GetMoodboardResponse["elements"] = [
   {
     id: "sticker-1",
@@ -67,7 +87,7 @@ export const MOODBOARD: GetMoodboardResponse = {
   },
   // 크롭 에디터(#102)가 저장한 평면 결과 이미지. 이게 있으면 결과물 페이지는 Konva 캔버스가
   // 아니라 <img> 로 렌더한다 — 지금 실사용자가 만드는 모든 보드가 이 경로다.
-  exportedImageUrl: BASE_IMAGE_URL,
+  exportedImageUrl: EXPORTED_IMAGE_DATA_URL,
   isGuest: true,
   updatedAt: "2026-07-09T00:00:00.000Z",
 };

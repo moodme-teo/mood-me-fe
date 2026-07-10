@@ -1,12 +1,17 @@
 import { expect, test } from "@playwright/test";
 
-import { MOODBOARD, MOODBOARD_ID } from "./fixtures/data";
+import {
+  EXPORTED_IMAGE_QUADRANTS,
+  MOODBOARD,
+  MOODBOARD_ID,
+} from "./fixtures/data";
 import { MoodboardResultPage } from "./pages/moodboard-result.page";
 import {
   mockLegacyMoodboard,
   mockMoodboard,
   mockMoodboardFailure,
 } from "./utils/mock-api";
+import { downloadToDataUrl, readImagePixels } from "./utils/pixels";
 
 /**
  * 테스트 대상: 최종 결과물 페이지 (`/moodboard/[moodboardId]` — PRD §5.6)
@@ -34,9 +39,11 @@ import {
  *
  * 시나리오:
  * - 편집을 마친 사용자가 크롭 결과와 무드 성향 이름을 확인한다.
- * - "이미지 내보내기" 를 누르면 PNG 다운로드가 일어난다.
+ * - "이미지 내보내기" 를 누르면 PNG 다운로드가 일어나고, 내려받은 파일의 픽셀이
+ *   저장된 크롭 결과와 같다 (투명값 포함).
  * - "SNS 공유" 를 누르면 링크를 클립보드에 복사하고 토스트를 띄운다.
  * - "편집" 을 누르면 재편집 화면으로 왕복한다.
+ * - "다시 만들기" 는 확인 다이얼로그를 거쳐야 새 테스트로 간다.
  * - 레거시 보드는 캔버스로 합성해 보여준다.
  * - 무드보드를 불러오지 못하면 에러 화면을 보여준다.
  *
@@ -45,6 +52,8 @@ import {
  * 전제 조건:
  * - GET /api/moodboards/{id} 를 mockMoodboard(크롭 결과) 또는
  *   mockLegacyMoodboard(elements 합성) 로 가로챈다.
+ * - exportedImageUrl 은 DB 컬럼(`exported_image_data_url`) 그대로 data URL 이다. 그래서
+ *   내보내기가 저장값을 다시 인코딩하지 않고 그대로 내려받는지 픽셀로 확인할 수 있다.
  * - "SNS 공유" 는 공유 시트가 아니라 클립보드 복사다 — clipboard-write 권한을 준다.
  *   (권한이 없어도 execCommand 폴백으로 토스트는 뜨지만 실제 경로를 타게 한다)
  * - "편집" 은 버튼이 아니라 링크(`a`)다 — 동작이 아니라 이동이라서다 (PRODUCT.md 접근성).
@@ -55,9 +64,7 @@ import {
  * - 유형명 폴백 규칙 (§9) — 서버의 AI 분석 소관
  * - 카카오톡 공유·공유용 썸네일/OG 이미지 생성 — 지원 채널이 §13 Open Questions 로 미확정.
  *   OG 메타데이터는 generateMetadata(서버)라 page.route 로 검증할 수 없다.
- * - "처음부터 다시 만들기" — window.confirm 을 띄운다. 브라우저 모달은 자동화를 멈춘다.
  * - 로그인 유도 배너 (§5.5 엔딩 마찰 제거)
- * - 내보낸 PNG 의 픽셀 내용 (visual regression 미도입 — qa.md)
  */
 test.describe("결과물 페이지", () => {
   test("크롭 결과와 액션 버튼을 렌더한다", async ({ page }) => {
@@ -99,6 +106,30 @@ test.describe("결과물 페이지", () => {
     await expect(result.savedToast).toBeVisible();
   });
 
+  // 내보내기는 저장된 크롭 결과를 **그대로** 내려줘야 한다 (exportRef 가 exportedImageUrl 을
+  // 그대로 돌려준다). 중간에 캔버스를 거쳐 재인코딩되면 투명 사분면이 검게 죽으므로,
+  // alpha 까지 포함해 사분면 색을 단언하면 그 회귀가 곧바로 잡힌다.
+  test("내려받은 PNG 는 저장된 크롭 결과와 픽셀이 같다", async ({ page }) => {
+    await mockMoodboard(page);
+
+    const result = new MoodboardResultPage(page);
+    await result.goto(MOODBOARD_ID);
+    await expect(result.exportedImage).toBeVisible();
+
+    const download = await result.exportPng();
+    const dataUrl = await downloadToDataUrl(download);
+
+    const pixels = await readImagePixels(
+      page,
+      dataUrl,
+      EXPORTED_IMAGE_QUADRANTS.map((quadrant) => quadrant.point),
+    );
+
+    expect(pixels).toEqual(
+      EXPORTED_IMAGE_QUADRANTS.map((quadrant) => quadrant.color),
+    );
+  });
+
   test("SNS 공유를 누르면 링크를 복사한다", async ({ page, context }) => {
     // 복사 실패 시 execCommand 폴백이 있어 권한 없이도 토스트는 뜨지만,
     // 실제 경로(navigator.clipboard)를 타도록 권한을 준다.
@@ -122,6 +153,37 @@ test.describe("결과물 페이지", () => {
     await result.editLink.click();
 
     await page.waitForURL(`**/moodboard/${MOODBOARD_ID}/edit`);
+  });
+
+  // 되돌릴 수 없는 행동이라 확인을 한 번 받는다. window.confirm 이 아니라 인앱
+  // 다이얼로그다 — 브라우저 모달은 스크립트를 멈추고 스타일도 제어할 수 없다.
+  test("다시 만들기는 확인을 받고 새 테스트로 간다", async ({ page }) => {
+    await mockMoodboard(page);
+
+    const result = new MoodboardResultPage(page);
+    await result.goto(MOODBOARD_ID);
+
+    await result.restartButton.click();
+    await expect(result.restartDialog).toBeVisible();
+
+    await result.restartConfirmButton.click();
+
+    // sessionId 는 클라이언트가 randomUUID 로 새로 만든다 — 값을 미리 알 수 없다.
+    await page.waitForURL(/\/test\/[0-9a-f-]{36}$/);
+  });
+
+  test("다시 만들기를 취소하면 결과물에 머문다", async ({ page }) => {
+    await mockMoodboard(page);
+
+    const result = new MoodboardResultPage(page);
+    await result.goto(MOODBOARD_ID);
+
+    await result.restartButton.click();
+    await result.restartCancelButton.click();
+
+    await expect(result.restartDialog).toBeHidden();
+    await expect(result.exportedImage).toBeVisible();
+    expect(new URL(page.url()).pathname).toBe(`/moodboard/${MOODBOARD_ID}`);
   });
 
   test("무드보드를 불러오지 못하면 에러 화면을 보여준다", async ({ page }) => {

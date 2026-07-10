@@ -63,9 +63,25 @@
 - **`reducedMotion: "reduce"`.** 이미 `playwright.config.ts`에 켜져 있다.
 - **시간 의존 화면 제외.** 생성 진행률은 `useGenerationPolling`이 시간 기준으로 채우므로 스냅샷을 찍을 수 없다.
 
-**보류 — 미리보기와 저장 결과물의 일치 검증.**
+### 픽셀 단언 — 스냅샷 대신 좌표 몇 개
 
-`mood-edit.md` §11은 _"미리보기에서 보이는 것과 저장 결과물이 달라지면 신뢰가 깨진다"_ 고 못박는다. 이 제품의 핵심 계약이고 픽셀 비교 없이는 검증할 수 없다. 그러나 **지금은 실제로 둘이 다른 상태다.** 결과물 페이지는 미리보기(Konva 캔버스)가 아니라 저장된 평면 이미지를 `<img>`로 렌더한다. 계약을 테스트로 고정하기 전에 제품 쪽 결론이 먼저 나야 한다. 결론이 날 때까지 이 항목은 쓰지 않는다.
+`mood-edit.md` §11은 _"미리보기에서 보이는 것과 저장 결과물이 달라지면 신뢰가 깨진다"_ 고 못박는다. 이 제품의 핵심 계약인데 DOM 단언으로는 닿지 않는다. 그렇다고 스냅샷 전체를 CI에 걸 수는 없다(위 §Visual regression). 그래서 **전체 이미지 비교 대신 의미 있는 좌표 몇 개의 색만 읽는다.** `e2e/utils/pixels.ts`가 그 도구다.
+
+- 좌표는 **0~1 비율**. 미리보기 캔버스(디스플레이 크기 × DPR)와 내보낸 이미지(720px)는 해상도가 다르다.
+- 색은 **좌표 주변 상자의 평균**. 리샘플링 노이즈는 지워지고 "배경이 빠졌다 · 도형이 안 먹었다 · 이미지가 밀렸다" 는 남는다.
+- 디코딩은 **브라우저에서**. 사용자가 보는 것과 같은 디코더를 쓰고, Node 쪽 이미지 의존성을 늘리지 않는다.
+
+이 도구로 지금 지키는 계약 셋:
+
+| 계약                                | 어디서                     |
+| ----------------------------------- | -------------------------- |
+| 저장 결과물 = 미리보기 (§11)        | `moodboard-edit.spec.ts`   |
+| PNG는 투명 유지 · JPG는 흰 배경(§7) | `moodboard-edit.spec.ts`   |
+| 내려받은 PNG = 저장된 크롭 결과     | `moodboard-result.spec.ts` |
+
+**미리보기↔결과물 비교는 단색 배경에서만 한다.** 투명 배경의 체크보드는 Konva Stage가 아니라 뒤에 깔린 DOM `div`라 export에 들어가지 않는다. 투명 배경으로 비교하면 "배경이 사라졌다"는 거짓 실패가 난다.
+
+**Konva는 다음 프레임에 그린다.** `aria-pressed`가 바뀌었다고 픽셀이 바뀐 게 아니다. 픽셀을 읽기 전에는 `EditPage.waitForPreviewPaint()`로 rAF를 두 번 기다린다.
 
 **추구미 테스트의 프리뷰 보드도 대상이 아니다.** 어떤 카드를 어떻게 채울지가 아직 논의 중이다(§5.3 프리뷰 연출). 확정 전까지 스냅샷을 찍으면 결정을 코드로 굳혀버린다.
 
@@ -297,11 +313,14 @@ format:check → lint → typecheck → build → e2e
 | 생성중          | 완료 → 편집 이동                                | `mood-test-generating.spec.ts` | ✅             |
 | 생성중          | job 실패 · 생성요청 실패 · 재시도               | `mood-test-generating.spec.ts` | ✅             |
 | 결과물          | 캔버스·타입명·액션 버튼 렌더                    | `moodboard-result.spec.ts`     | ✅             |
-| 결과물          | PNG 내보내기 (다운로드 이벤트 + 파일명)         | `moodboard-result.spec.ts`     | ✅             |
+| 결과물          | PNG 내보내기 (다운로드 이벤트 + 파일명 + 픽셀)  | `moodboard-result.spec.ts`     | ✅             |
 | 결과물          | 공유 — 링크 복사                                | `moodboard-result.spec.ts`     | ✅             |
+| 결과물          | "다시 만들기" 확인 다이얼로그 (확인·취소)       | `moodboard-result.spec.ts`     | ✅             |
 | 결과물          | 로드 실패 화면                                  | `moodboard-result.spec.ts`     | ✅             |
 | 재편집          | 도형·배경·확대 전환, 탭 전환                    | `moodboard-edit.spec.ts`       | ✅             |
 | 재편집          | 저장 시트 — PNG 다운로드 · 완성 후 결과물 이동  | `moodboard-edit.spec.ts`       | ✅             |
+| 재편집          | 저장 결과물 = 미리보기 (픽셀)                   | `moodboard-edit.spec.ts`       | ✅             |
+| 재편집          | PNG 투명 유지 · JPG 흰 배경 (픽셀)              | `moodboard-edit.spec.ts`       | ✅             |
 | 재편집          | 저장 실패 토스트 · 나가기 확인 다이얼로그       | `moodboard-edit.spec.ts`       | ✅             |
 | 편집(생성 직후) | 위와 동일 (같은 `MoodboardCropEditor` 를 렌더)  | `edit.spec.ts`                 | ⏸ `test.fixme` |
 
@@ -309,7 +328,6 @@ format:check → lint → typecheck → build → e2e
 
 - `/login` — OAuth 리디렉션. 게스트 우선 정책이라 핵심 여정 밖이다.
 - `/ui-test` — 컴포넌트 쇼케이스.
-- "다시 만들기" — `window.confirm`을 띄운다. 브라우저 모달은 자동화를 멈춘다.
 - 데스크톱 뷰포트 — 모바일 우선(PRD §11). 프로젝트는 `mobile-chromium`(Pixel 5) 하나다.
 
 **`edit.spec.ts`가 멈춰 있는 이유**: `/test/[sessionId]/edit`의 서버 컴포넌트가 `getLatestGenerationJob()` → `createServiceClient()`로 Supabase를 직접 호출한다. 클라이언트 fetch가 아니라 `page.route`로 못 막고, 시크릿 없이 도는 전제라 진입이 500이다.

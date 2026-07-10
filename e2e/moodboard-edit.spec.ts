@@ -7,6 +7,13 @@ import {
   mockSaveMoodboard,
   mockSaveMoodboardFailure,
 } from "./utils/mock-api";
+import {
+  downloadToDataUrl,
+  expectColorNear,
+  readImageAverages,
+  readImagePixels,
+  readPreviewAverages,
+} from "./utils/pixels";
 
 /**
  * 테스트 대상: 저장된 무드보드 재편집 (`/moodboard/[moodboardId]/edit`)
@@ -41,6 +48,8 @@ import {
  * - 확대한 뒤 "구도 초기화" 로 되돌린다 (§7 — 더블탭 초기화와 같은 동작).
  * - 색상 탭이 이미지에서 뽑은 추천 배경색을 노출하고, 고르면 배경에 반영된다.
  * - 저장 시트에서 PNG 를 내려받거나, 완성해 결과물 페이지로 넘어간다.
+ * - PNG 는 투명을 유지하고 JPG 는 그 자리를 흰색으로 채운다 (§7 배경).
+ * - 저장 결과물이 미리보기와 같다 (§11 — 이 제품의 핵심 계약).
  * - 저장에 실패하면 토스트를 띄우고 편집 화면에 머문다.
  * - 뒤로 누르면 나가기 확인 다이얼로그를 띄운다 (미저장 크롭은 폐기).
  *
@@ -51,17 +60,38 @@ import {
  *   그래서 진입에는 mock 이 필요 없다. 저장(PATCH)만 mock 한다.
  * - 추천 팔레트 추출에는 tainted 되지 않은 캔버스가 필요하다. base 이미지가 같은 출처의
  *   `public/test-image/…` 라서 getImageData 가 통과한다.
+ * - 픽셀 단언은 utils/pixels.ts 를 쓴다. 미리보기 캔버스와 내보낸 이미지는 해상도가
+ *   다르므로(디스플레이 크기 × DPR vs 720px) 좌표는 비율로, 색은 주변 평균으로 읽는다.
+ *
+ * 미리보기↔결과물 비교는 반드시 **단색 배경**에서 해야 한다. 투명 배경의 체크보드는 Konva
+ * Stage 가 아니라 그 뒤에 깔린 DOM div 라서 내보내기에 들어가지 않는다 — 투명 배경으로
+ * 비교하면 "배경이 사라졌다" 는 거짓 실패가 난다.
  *
  * 테스트하지 않는 것:
- * - **저장 결과물이 미리보기와 같은지** — mood-edit.md §11 이 "미리보기와 저장 결과물이
- *   달라지면 신뢰가 깨진다" 고 못박은 이 제품의 핵심 계약이지만, Konva 렌더 픽셀 비교라
- *   visual regression 없이는 검증할 수 없다. 지금은 다운로드가 일어나는 것까지만 본다.
  * - 핀치 줌·드래그 이동·더블탭 초기화 (§7) — 터치 제스처. 슬라이더·버튼 경로로 대체한다.
- * - JPG 저장 시 투명 → 흰색 변환 (§7 배경) — 위와 같은 픽셀 검증 문제
  * - 그라데이션·최근 사용 색상 (§3.4) — 아직 미구현
  * - 위젯용 이미지 제작 (§3.6) — MVP 제외, P2
  * - 생성 직후 편집(`/test/[sessionId]/edit`) — Supabase 직접 호출로 보류, edit.spec.ts
  */
+
+/**
+ * 원형 크롭 바깥의 모서리 — 배경만 보이는 지점.
+ *
+ * 표본 상자(캔버스 한 변의 10%)까지 통째로 원 바깥에 있어야 한다. 상자가 원에 걸치면
+ * 사진 픽셀이 섞여 "배경이 검정" 이라는 단언이 흔들린다.
+ */
+const OUTSIDE_CROP = { x: 0.06, y: 0.06 };
+/** 원형 크롭 한가운데 — 사진이 보이는 지점. */
+const INSIDE_CROP = { x: 0.5, y: 0.5 };
+
+const OPAQUE_WHITE = { r: 255, g: 255, b: 255, a: 255 };
+/** 배경 프리셋 "검정" 은 순수 검정이 아니라 #171717 이다 (BACKGROUND_PRESETS). */
+const PRESET_BLACK = { r: 23, g: 23, b: 23, a: 255 };
+
+/** JPEG(quality 0.92) 손실 허용치. 단색 영역이라 실제 오차는 이보다 훨씬 작다. */
+const JPEG_TOLERANCE = 4;
+/** 미리보기(DPR 배율)와 내보내기(720px)의 리샘플링 차이 허용치. */
+const RESAMPLE_TOLERANCE = 16;
 test.describe("무드보드 재편집", () => {
   test("캔버스와 크롭 도구를 렌더한다", async ({ page }) => {
     const edit = new EditPage(page);
@@ -185,6 +215,65 @@ test.describe("무드보드 재편집", () => {
     expect(download.suggestedFilename()).toBe(`mood-me-${MOODBOARD_ID}.png`);
     await expect(edit.toast).toContainText("PNG 이미지를 저장했어요.");
     await expect(edit.saveSheet).toBeHidden();
+  });
+
+  // 시트가 "PNG로 저장 (투명 유지)" / "JPG로 저장 (흰 배경)" 이라고 약속한 그대로인지 본다.
+  // 기본 상태(원형 크롭 + 투명 배경)라 원 바깥 모서리가 곧 투명 영역이다.
+  test("PNG 는 투명을 유지하고 JPG 는 흰 배경으로 바꾼다", async ({ page }) => {
+    const edit = new EditPage(page);
+    await edit.gotoSaved(MOODBOARD_ID);
+    await expect(edit.canvas).toBeVisible();
+
+    await edit.openSaveSheet();
+    const png = await downloadToDataUrl(await edit.downloadPng());
+    const [pngCorner] = await readImagePixels(page, png, [OUTSIDE_CROP]);
+    expect(pngCorner.a).toBe(0);
+
+    // 다운로드하면 시트가 닫힌다 — JPG 를 받으려면 다시 연다.
+    await edit.openSaveSheet();
+    const jpg = await downloadToDataUrl(await edit.downloadJpg());
+    const [jpgCorner] = await readImagePixels(page, jpg, [OUTSIDE_CROP]);
+
+    // compositeOnWhite 가 투명을 흰색으로 덮는다. JPEG 에는 alpha 채널이 없다.
+    expectColorNear(jpgCorner, OPAQUE_WHITE, JPEG_TOLERANCE);
+  });
+
+  // mood-edit.md §11 — "미리보기와 저장 결과물이 달라지면 신뢰가 깨진다".
+  // 배경(레이어 1)과 크롭된 사진(레이어 2)을 각각 짚어, 두 레이어 모두 결과물에
+  // 같은 자리·같은 색으로 실린다는 것을 확인한다.
+  test("저장 결과물이 미리보기와 같다", async ({ page }) => {
+    const edit = new EditPage(page);
+    await edit.gotoSaved(MOODBOARD_ID);
+    await expect(edit.canvas).toBeVisible();
+
+    // 이미지가 로드돼야 사진이 그려진다 — 빈 캔버스끼리 비교하면 무의미하다.
+    await edit.openImageTabWhenReady();
+    await expect(edit.resetButton).toBeEnabled();
+
+    // 체크보드는 DOM 이라 내보내기에 없다. 단색 배경이라야 배경까지 비교할 수 있다.
+    await edit.openTab("배경");
+    await edit.blackBackgroundButton.click();
+    // aria-pressed 는 React 상태를, 캔버스는 Konva 의 다음 프레임을 따라간다.
+    // 상태만 보고 픽셀을 읽으면 아직 투명한 이전 프레임을 읽는다.
+    await expect(edit.blackBackgroundButton).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await edit.waitForPreviewPaint();
+
+    const points = [OUTSIDE_CROP, INSIDE_CROP];
+    const preview = await readPreviewAverages(page, points);
+
+    // 배경이 실제로 그려졌는지 먼저 못박는다. 그래야 아래 비교가 "둘 다 비었다" 로
+    // 통과하는 일이 없다.
+    expectColorNear(preview[0], PRESET_BLACK, RESAMPLE_TOLERANCE);
+
+    await edit.openSaveSheet();
+    const png = await downloadToDataUrl(await edit.downloadPng());
+    const exported = await readImageAverages(page, png, points);
+
+    expectColorNear(exported[0], preview[0], RESAMPLE_TOLERANCE);
+    expectColorNear(exported[1], preview[1], RESAMPLE_TOLERANCE);
   });
 
   test("완성하고 공유하기를 누르면 저장 후 결과물 페이지로 간다", async ({

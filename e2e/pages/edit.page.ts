@@ -176,6 +176,21 @@ export class EditPage {
     await this.saveButton.click();
   }
 
+  /**
+   * Konva 가 다음 프레임을 그릴 때까지 기다린다.
+   *
+   * aria-pressed 는 React 상태가 바뀌는 즉시 반영되지만 캔버스 픽셀은 rAF 뒤에 바뀐다.
+   * 상태만 보고 픽셀을 읽으면 직전 프레임을 읽게 된다 — 픽셀 단언 전에만 쓴다.
+   */
+  async waitForPreviewPaint() {
+    await this.page.evaluate(
+      () =>
+        new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        ),
+    );
+  }
+
   /** 저장 시트가 열려 있어야 한다. PATCH /api/moodboards/{id} 로 저장 후 결과물로 이동한다. */
   async complete() {
     await this.completeButton.click();
@@ -185,6 +200,13 @@ export class EditPage {
   async downloadPng(): Promise<Download> {
     const download = this.page.waitForEvent("download");
     await this.downloadPngButton.click();
+    return download;
+  }
+
+  /** JPG 는 투명 배경을 흰색으로 합성한 뒤 내려받는다 (mood-edit.md §7). */
+  async downloadJpg(): Promise<Download> {
+    const download = this.page.waitForEvent("download");
+    await this.downloadJpgButton.click();
     return download;
   }
 

@@ -9,6 +9,7 @@ import type { Download, Locator, Page } from "@playwright/test";
  *   elements 를 Konva <canvas> 로 합성한다(=#102 이전 보드).
  * - "SNS 공유" 가 공유 시트가 아니라 링크 클립보드 복사라는 사실
  * - "편집" 은 버튼이 아니라 링크(`a`)라는 사실 — 이동이므로 role 이 다르다
+ * - "다시 만들기" 가 곧바로 이동하지 않고 확인 다이얼로그를 먼저 연다는 흐름
  *
  * 사용 기준:
  * - 기본은 exportedImage 를 본다. canvas 는 레거시 보드를 검증할 때만 쓴다.
@@ -26,6 +27,12 @@ export class MoodboardResultPage {
   readonly editLink: Locator;
   readonly errorMessage: Locator;
 
+  /** "다시 만들기" → 확인 다이얼로그. window.confirm 이 아니라 인앱 dialog 다. */
+  readonly restartButton: Locator;
+  readonly restartDialog: Locator;
+  readonly restartConfirmButton: Locator;
+  readonly restartCancelButton: Locator;
+
   constructor(private readonly page: Page) {
     this.exportedImage = page.getByRole("img", { name: "크롭한 무드 이미지" });
     this.canvas = page.locator("canvas").first();
@@ -36,6 +43,17 @@ export class MoodboardResultPage {
     this.copiedToast = page.getByText("링크를 복사했어요.");
     this.editLink = page.getByRole("link", { name: "편집" });
     this.errorMessage = page.getByText("결과를 불러오지 못했어요.");
+
+    this.restartButton = page.getByRole("button", { name: "다시 만들기" });
+    this.restartDialog = page.getByRole("dialog", {
+      name: "처음부터 다시 만들까요?",
+    });
+    this.restartConfirmButton = page.getByRole("button", {
+      name: "새로 시작할게요",
+    });
+    this.restartCancelButton = page.getByRole("button", {
+      name: "그대로 볼게요",
+    });
   }
 
   async goto(moodboardId: string) {
