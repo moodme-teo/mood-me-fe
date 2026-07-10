@@ -8,6 +8,7 @@ import type { MoodboardElement, MoodProfile } from "@/types/moodboard";
 type GenerationJobRow = {
   id: string;
   status: "queued" | "processing" | "completed" | "failed";
+  analysis_status: "queued" | "processing" | "completed" | "failed";
   progress_percent: number;
   status_message: string | null;
   elements: unknown;
@@ -18,6 +19,9 @@ type GenerationJobRow = {
 export type LatestGenerationJob = {
   id: string;
   status: "queued" | "processing" | "completed" | "failed";
+  // 이미지 갈래(status)와 독립된 분석 갈래 진행 상태 — 결과 페이지가 "아직 안 끝남"과
+  // "실패"를 구별하는 데 쓴다(#122).
+  analysisStatus: "queued" | "processing" | "completed" | "failed";
   progressPercent: number;
   statusMessage: string | null;
   elements: MoodboardElement[];
@@ -39,7 +43,7 @@ export async function getLatestGenerationJob(
   const { data, error } = await service
     .from("moodboard_generation_jobs")
     .select(
-      "id, status, progress_percent, status_message, elements, base_image_url, mood_profile",
+      "id, status, analysis_status, progress_percent, status_message, elements, base_image_url, mood_profile",
     )
     .eq("test_session_id", testSessionId)
     .order("created_at", { ascending: false })
@@ -60,6 +64,7 @@ export async function getLatestGenerationJob(
     value: {
       id: row.id,
       status: row.status,
+      analysisStatus: row.analysis_status,
       progressPercent: row.progress_percent,
       statusMessage: row.status_message,
       elements: (row.elements as MoodboardElement[] | null) ?? [],

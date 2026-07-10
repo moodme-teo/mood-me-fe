@@ -79,6 +79,10 @@ export type MoodProfile = {
   sticker_phrases: string[];
 };
 
+// 분석 갈래(GPT-5 리포트) 진행 상태 — 이미지 갈래(job.status)와 독립적이다. moodProfile이
+// null인 것만으로는 "아직 안 끝남"과 "실패"를 구별할 수 없어 따로 둔다 (#122).
+export type AnalysisStatus = "queued" | "processing" | "completed" | "failed";
+
 // 크롭 에디터 배경 옵션 (mood-edit PRD §3.3/§3.4). components/canvas/types.ts의
 // CropBackground와 같은 모양이지만, lib/types는 components를 import할 수 없어(단방향)
 // 여기 별도로 둔다.
@@ -106,6 +110,8 @@ export type Moodboard = {
   // 재편집 시 구도 복원용 (#116). 레거시 보드는 null — 기본값으로 진입한다.
   editState?: EditState | null;
   moodProfile: MoodProfile;
+  // 분석 갈래 상태(#122). 이 컬럼이 생기기 전에 저장된 레거시 보드는 null.
+  analysisStatus: AnalysisStatus | null;
   isGuest: boolean;
   updatedAt: string;
 };
