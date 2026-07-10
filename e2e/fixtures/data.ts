@@ -139,13 +139,14 @@ export function generationJob(
   status: GenerationJob["status"],
   progressPercent: number,
   analysisStatus: GenerationJob["analysisStatus"] = "completed",
+  statusMessage: string | null = null,
 ): GenerationJob {
   return {
     id: JOB_ID,
     status,
     analysisStatus,
     progressPercent,
-    statusMessage: null,
+    statusMessage,
     elements: status === "completed" ? ELEMENTS : [],
     baseImageUrl: status === "completed" ? BASE_IMAGE_URL : null,
     // 저장 직전 재조회(#125)가 쓰는 값 — 분석이 completed일 때만 채운다.

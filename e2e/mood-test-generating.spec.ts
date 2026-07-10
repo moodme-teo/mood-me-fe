@@ -106,6 +106,27 @@ test.describe("생성중 화면", () => {
     await expect(generating.retryButton).toBeVisible();
   });
 
+  test("job이 실패 사유를 남기면 그 문구를 그대로 보여준다", async ({
+    page,
+  }) => {
+    await mockCreateGenerationJob(page);
+    await mockGenerationJobSequence(page, [
+      {
+        status: "failed",
+        percent: 0,
+        statusMessage: "보드 이미지 업로드에 실패했습니다",
+      },
+    ]);
+
+    const generating = new GeneratingPage(page);
+    await generating.goto(TEST_SESSION_ID);
+
+    await expect(generating.errorHeading).toBeVisible();
+    await expect(
+      page.getByText("보드 이미지 업로드에 실패했습니다"),
+    ).toBeVisible();
+  });
+
   test("생성 요청 자체가 실패해도 에러 화면을 보여준다", async ({ page }) => {
     await mockCreateGenerationJobFailure(page);
 

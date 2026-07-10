@@ -15,8 +15,14 @@ const TOTAL_CARDS = 5;
 
 export default function GeneratingLayout({ sessionId }: { sessionId: string }) {
   const router = useRouter();
-  const { percent, failureReason, isRetrying, isReentry, retry } =
-    useGenerationPolling(sessionId);
+  const {
+    percent,
+    failureReason,
+    statusMessage,
+    isRetrying,
+    isReentry,
+    retry,
+  } = useGenerationPolling(sessionId);
 
   const revealedCount = Math.floor((percent / 100) * TOTAL_CARDS);
 
@@ -25,6 +31,7 @@ export default function GeneratingLayout({ sessionId }: { sessionId: string }) {
       <div className="flex flex-1 items-center justify-center px-6">
         <GeneratingError
           reason={failureReason}
+          statusMessage={statusMessage}
           isRetrying={isRetrying}
           onRetry={retry}
           onHome={() => router.push("/")}
