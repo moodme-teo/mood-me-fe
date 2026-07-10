@@ -137,7 +137,10 @@ export class EditPage {
     await this.page.goto(`/test/${sessionId}/edit`);
   }
 
-  /** 저장된 무드보드 재편집 — 서버 조회 없이 렌더되므로 E2E 로 검증 가능하다. */
+  /**
+   * 저장된 무드보드 재편집 — 서버 컴포넌트가 getMoodboardById()로 조회하지만, 그 함수는
+   * Supabase 시크릿이 없으면(E2E/CI) mock으로 자동 폴백해 page.route 없이도 렌더된다.
+   */
   async gotoSaved(moodboardId: string) {
     await this.page.goto(`/moodboard/${moodboardId}/edit`);
   }

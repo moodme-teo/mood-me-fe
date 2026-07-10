@@ -90,6 +90,8 @@ export async function PATCH(
       base_image_url: parsed.data.baseImageUrl,
       elements: parsed.data.elements,
       exported_image_data_url: parsed.data.exportedImageDataUrl ?? null,
+      // editState는 보낸 경우에만 갱신 — moodProfile과 같은 omit 패턴(#116).
+      ...(parsed.data.editState ? { edit_state: parsed.data.editState } : {}),
       // moodProfile은 보낸 경우에만 갱신 — 재편집 저장이 기존 리포트를 지우지 않도록 omit.
       ...(parsed.data.moodProfile
         ? { mood_profile: parsed.data.moodProfile }

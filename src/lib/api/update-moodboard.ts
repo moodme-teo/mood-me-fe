@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { moodProfileSchema } from "@/lib/api/get-moodboard";
+import { editStateSchema, moodProfileSchema } from "@/lib/api/get-moodboard";
 import { apiClient } from "@/lib/api-client";
 
 const baseElementSchema = z.object({
@@ -69,6 +69,8 @@ export const updateMoodboardRequestSchema = z.object({
   baseImageUrl: z.string().min(1),
   elements: z.array(moodboardElementSchema),
   exportedImageDataUrl: z.string().optional(),
+  // 재편집 구도 복원용 (#116) — "완료" 시 현재 도형·배경·확대·위치를 함께 커밋한다.
+  editState: editStateSchema.optional(),
   // 리포트(GPT-5)는 이미지 생성과 독립적으로 돈다 — "완성하고 공유하기" 시점에 아직
   // 안 끝났으면 없을 수 있다(generate-mood-analysis.ts의 runReportAnalysis 참고).
   moodProfile: moodProfileSchema.optional(),
