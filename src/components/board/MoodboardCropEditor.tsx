@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   CloudFog,
   Image as ImageIcon,
+  Loader2,
   type LucideIcon,
   PaintBucket,
   Palette,
@@ -585,7 +586,16 @@ export default function MoodboardCropEditor({
           disabled={isBaseImageFailed || isSaving}
           onClick={handleComplete}
         >
-          <Save aria-hidden />
+          {/* 아이콘만 있는 버튼이라 disabled의 옅어짐(40%)만으로는 "눌렸다"가 잘 안
+              보인다 — 저장 중엔 아이콘 자체를 스피너로 바꿔 확실한 진행 신호를 준다. */}
+          {isSaving ? (
+            <Loader2
+              aria-hidden
+              className="animate-spin motion-reduce:animate-none"
+            />
+          ) : (
+            <Save aria-hidden />
+          )}
         </Button>
       </header>
 
