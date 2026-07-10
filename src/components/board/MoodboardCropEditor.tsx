@@ -41,6 +41,7 @@ import {
   uploadBaseImage,
   uploadExportedImage,
 } from "@/lib/moodboard/upload-exported-image";
+import { preloadImage } from "@/lib/preload-image";
 import type { AnalysisStatus, EditState, MoodProfile } from "@/types/moodboard";
 
 type Props = {
@@ -431,8 +432,15 @@ export default function MoodboardCropEditor({
 
       // 업로드 2건과 최신 job 재조회는 서로 독립적이다 — 순차로 기다리면 저장 버튼을
       // 누른 뒤 그만큼 그대로 화면이 멈춰 있는 것처럼 보인다. 동시에 진행한다.
-      const [exportedImageUrl, persistedBaseImageUrl, jobFetch] =
-        await Promise.all([
+      //
+      // Promise.all이 아니라 allSettled를 쓴다 — all은 하나가 실패하면 즉시 reject하고
+      // 나머지는 백그라운드에서 계속 돈다. 그 상태로 사용자가 바로 다시 "완성하고
+      // 공유하기"를 누르면, 이번 시도의 새 업로드와 아까 실패로 처리했던 시도의 남은
+      // 업로드가 같은 Storage 경로(upsert)를 두고 경합해 새 저장이 오래된 내용으로
+      // 덮어써질 수 있다. allSettled로 셋 다 완전히 끝난 뒤에야 실패 여부를 판단하면,
+      // 다음 시도가 시작될 때(=isSaving이 풀릴 때) 이전 시도의 요청은 전부 끝나 있다.
+      const [exportedUpload, baseUpload, jobFetchResult] =
+        await Promise.allSettled([
           // base64 dataURL을 그대로 저장 요청에 실으면 Vercel 요청 바디 제한(413)에
           // 걸린다(#163) — Supabase Storage에 먼저 올리고 결과 URL만 보낸다.
           exportedImageDataUrl
@@ -465,6 +473,19 @@ export default function MoodboardCropEditor({
             : Promise.resolve({ ok: false as const }),
         ]);
 
+      // 업로드 2건은 실패하면 저장 자체를 막아야 한다(기존 동작) — allSettled로 모아뒀으니
+      // 여기서 직접 던져 아래 catch로 보낸다. job 재조회는 이미 내부에서 실패를 삼켜
+      // 항상 fulfilled다.
+      if (exportedUpload.status === "rejected") throw exportedUpload.reason;
+      if (baseUpload.status === "rejected") throw baseUpload.reason;
+
+      const exportedImageUrl = exportedUpload.value;
+      const persistedBaseImageUrl = baseUpload.value;
+      const jobFetch =
+        jobFetchResult.status === "fulfilled"
+          ? jobFetchResult.value
+          : ({ ok: false } as const);
+
       const latestMoodProfile = jobFetch.ok
         ? jobFetch.job.moodProfile
         : moodProfile;
@@ -477,7 +498,7 @@ export default function MoodboardCropEditor({
       // 도착 시점엔 캐시에 있어 이미지가 뒤늦게 뜨는 게 덜 보인다(useGenerationPolling의
       // 프리로드와 같은 이유 — 여긴 <img>로 그대로 보여주기만 하니 crossOrigin은 불필요).
       if (exportedImageUrl) {
-        new window.Image().src = exportedImageUrl;
+        preloadImage(exportedImageUrl);
       }
 
       // 크롭 결과는 한 장의 평면 이미지 — elements는 비우고 export 이미지를 저장한다.
