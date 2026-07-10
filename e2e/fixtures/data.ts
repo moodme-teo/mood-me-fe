@@ -148,5 +148,7 @@ export function generationJob(
     statusMessage: null,
     elements: status === "completed" ? ELEMENTS : [],
     baseImageUrl: status === "completed" ? BASE_IMAGE_URL : null,
+    // 저장 직전 재조회(#125)가 쓰는 값 — 분석이 completed일 때만 채운다.
+    moodProfile: analysisStatus === "completed" ? MOODBOARD.moodProfile : null,
   };
 }

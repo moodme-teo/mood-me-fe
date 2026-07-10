@@ -35,6 +35,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogActions, DialogContent } from "@/components/ui/dialog";
+import { getGenerationJob } from "@/lib/api/get-generation-job";
 import { updateMoodboard } from "@/lib/api/update-moodboard";
 import type { AnalysisStatus, EditState, MoodProfile } from "@/types/moodboard";
 
@@ -423,6 +424,25 @@ export default function MoodboardCropEditor({
     try {
       const exportedImageDataUrl =
         (await exporterRef.current?.("png")) ?? undefined;
+
+      // 이 화면은 서버 컴포넌트가 렌더 시점에 job을 1회만 읽어 moodProfile을 prop으로
+      // 내려받는다 — 그 이후 리포트(GPT-5)가 끝나도 이 prop은 갱신되지 않는다. 저장
+      // 직전에 최신 job을 한 번 더 조회해 그 스냅샷 대신 쓴다 — 그래야 편집 화면에
+      // 머무는 동안 리포트가 끝난 경우에도 결과가 유실되지 않는다(#125). sessionId가
+      // 없으면(재편집) 애초에 다시 조회할 job이 없으므로 기존 prop 값을 그대로 쓴다.
+      let latestMoodProfile = moodProfile;
+      let latestAnalysisStatus = analysisStatus;
+      if (sessionId) {
+        try {
+          const latestJob = await getGenerationJob(sessionId);
+          latestMoodProfile = latestJob.moodProfile;
+          latestAnalysisStatus = latestJob.analysisStatus;
+        } catch (error) {
+          // 재조회 실패해도 저장 자체를 막지 않는다 — 가진 스냅샷으로 진행한다.
+          console.error(error);
+        }
+      }
+
       // 크롭 결과는 한 장의 평면 이미지 — elements는 비우고 export 이미지를 저장한다.
       // moodProfile·analysisStatus는 있을 때만 함께 저장(없으면 서버가 기존 값 유지 / PENDING
       // 폴백). editState는 재편집 구도 복원용으로 항상 현재 값을 함께 커밋한다 (#116).
@@ -441,8 +461,10 @@ export default function MoodboardCropEditor({
           x: crop.transform.offsetX,
           y: crop.transform.offsetY,
         },
-        ...(moodProfile ? { moodProfile } : {}),
-        ...(analysisStatus ? { analysisStatus } : {}),
+        ...(latestMoodProfile ? { moodProfile: latestMoodProfile } : {}),
+        ...(latestAnalysisStatus
+          ? { analysisStatus: latestAnalysisStatus }
+          : {}),
         ...(sessionId ? { sessionId } : {}),
       });
       router.push(`/moodboard/${moodboardId}`);
