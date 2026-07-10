@@ -88,7 +88,7 @@ npm run e2e:visual:update   # UI를 의도적으로 바꿨을 때 기준 갱신
 | 홈 — History            | `mockMoodboards` 고정 목록                           |
 | 생성중 — 에러           | job `failed` 고정. 진행률 화면은 **제외**(시간 의존) |
 | 결과물                  | `mockMoodboard` 고정 응답                            |
-| 크롭 에디터 — 기본 상태 | 도형 탭 · 원형 · 투명 배경 (DEFAULT_STATE)           |
+| 크롭 에디터 — 기본 상태 | 도형 탭 · 크롭 안 함 · 투명 배경 (DEFAULT_STATE)     |
 
 **전제 셋.** 지키지 않으면 곧바로 flaky가 된다.
 

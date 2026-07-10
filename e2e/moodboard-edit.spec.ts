@@ -34,7 +34,7 @@ import {
  *   중앙 — 현재 도형으로 크롭된 미리보기 (배경색 또는 투명 체크보드)
  *   하단 — 모드 탭 4개: 이미지 · 도형 · 배경 · 색상
  *
- * 기본 상태는 **도형 탭 + 원형 크롭 + 투명 배경** 이다 (useCropEditor 의 DEFAULT_STATE).
+ * 기본 상태는 **도형 탭 + 크롭 안 함 + 투명 배경** 이다 (useCropEditor 의 DEFAULT_STATE).
  * 도형은 가로 스크롤 리스트로 제공되고 선택 즉시 미리보기에 반영된다 (§3.2).
  * 배경은 투명 / 이미지 블러 / 흰색 / 검정 / 직접 선택, 그리고 색상 탭의 **추천 팔레트**다.
  * 추천 팔레트는 이미지를 canvas pixel sampling 해 dominant color 5~8개를 뽑는다 (§3.5).
@@ -75,13 +75,14 @@ import {
  */
 
 /**
- * 원형 크롭 바깥의 모서리 — 배경만 보이는 지점.
+ * 기본 도형(크롭 안 함 = contain) 좌우 레터박스 안 — 배경만 보이는 지점.
  *
- * 표본 상자(캔버스 한 변의 10%)까지 통째로 원 바깥에 있어야 한다. 상자가 원에 걸치면
- * 사진 픽셀이 섞여 "배경이 검정" 이라는 단언이 흔들린다.
+ * 표본 상자(캔버스 한 변의 10%)까지 통째로 이미지 바깥(레터박스)에 있어야 한다. 상자가
+ * 사진에 걸치면 픽셀이 섞여 "배경이 검정" 이라는 단언이 흔들린다. 테스트 이미지(1200×1600)는
+ * contain 시 좌우로 약 12.5% 레터박스가 남으므로 6% 지점은 항상 그 안에 든다.
  */
 const OUTSIDE_CROP = { x: 0.06, y: 0.06 };
-/** 원형 크롭 한가운데 — 사진이 보이는 지점. */
+/** 프레임 한가운데 — 사진이 보이는 지점. */
 const INSIDE_CROP = { x: 0.5, y: 0.5 };
 
 const OPAQUE_WHITE = { r: 255, g: 255, b: 255, a: 255 };
@@ -98,9 +99,12 @@ test.describe("무드보드 재편집", () => {
     await edit.gotoSaved(MOODBOARD_ID);
 
     await expect(edit.canvas).toBeVisible();
-    // 진입 기본값은 도형 탭 + 원형 크롭 (useCropEditor 의 DEFAULT_STATE).
+    // 진입 기본값은 도형 탭 + 크롭 안 함 (useCropEditor 의 DEFAULT_STATE).
     await expect(edit.tab("도형")).toHaveAttribute("aria-pressed", "true");
-    await expect(edit.shape("원")).toHaveAttribute("aria-pressed", "true");
+    await expect(edit.shape("크롭 안 함")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     await expect(edit.saveButton).toBeEnabled();
   });
 
@@ -111,7 +115,10 @@ test.describe("무드보드 재편집", () => {
     await edit.selectShape("하트");
 
     await expect(edit.shape("하트")).toHaveAttribute("aria-pressed", "true");
-    await expect(edit.shape("원")).toHaveAttribute("aria-pressed", "false");
+    await expect(edit.shape("크롭 안 함")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
   });
 
   test("탭을 바꾸면 해당 패널이 열린다", async ({ page }) => {
@@ -123,7 +130,7 @@ test.describe("무드보드 재편집", () => {
     await expect(edit.tab("배경")).toHaveAttribute("aria-pressed", "true");
     await expect(edit.transparentBackgroundButton).toBeVisible();
     // 패널은 한 번에 하나만 — 도형 목록은 사라진다.
-    await expect(edit.shape("원")).toBeHidden();
+    await expect(edit.shape("크롭 안 함")).toBeHidden();
   });
 
   test("배경을 흰색으로 바꾸면 투명이 해제된다", async ({ page }) => {
@@ -218,7 +225,7 @@ test.describe("무드보드 재편집", () => {
   });
 
   // 시트가 "PNG로 저장 (투명 유지)" / "JPG로 저장 (흰 배경)" 이라고 약속한 그대로인지 본다.
-  // 기본 상태(원형 크롭 + 투명 배경)라 원 바깥 모서리가 곧 투명 영역이다.
+  // 기본 상태(크롭 안 함 + 투명 배경)라 레터박스 영역이 곧 투명 영역이다.
   test("PNG 는 투명을 유지하고 JPG 는 흰 배경으로 바꾼다", async ({ page }) => {
     const edit = new EditPage(page);
     await edit.gotoSaved(MOODBOARD_ID);

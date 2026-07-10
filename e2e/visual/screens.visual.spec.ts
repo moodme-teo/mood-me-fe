@@ -33,7 +33,7 @@ import { seedGuestSession, skipSplash } from "../utils/session";
  * - 홈(History): mockMoodboards 고정 목록.
  * - 생성중 에러: job `failed` 고정.
  * - 결과물: mockMoodboard 고정 응답.
- * - 크롭 에디터: useCropEditor 의 DEFAULT_STATE (도형 탭 · 원형 · 투명 배경).
+ * - 크롭 에디터: useCropEditor 의 DEFAULT_STATE (도형 탭 · 크롭 안 함 · 투명 배경).
  *
  * 찍지 않는 것:
  * - **생성중 진행률 화면** — useGenerationPolling 이 시간 기준으로 막대를 채운다.
@@ -94,7 +94,10 @@ test.describe("시각 회귀", () => {
     await edit.gotoSaved(MOODBOARD_ID);
 
     await expect(edit.canvas).toBeVisible();
-    await expect(edit.shape("원")).toHaveAttribute("aria-pressed", "true");
+    await expect(edit.shape("크롭 안 함")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     // Konva 는 다음 프레임에 그린다. aria-pressed 가 켜진 순간엔 캔버스가 아직 비어 있다.
     await edit.waitForPreviewPaint();
 
