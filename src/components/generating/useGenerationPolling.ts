@@ -3,6 +3,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { createGenerationJob } from "@/lib/api/create-generation-job";
 import { getGenerationJob } from "@/lib/api/get-generation-job";
+import {
+  loadGenerationJobId,
+  saveGenerationJobId,
+} from "@/lib/mood-test/generation-job-storage";
 
 const POLL_INTERVAL_MS = 2000;
 const FILL_TICK_MS = 200;
@@ -21,13 +25,16 @@ export function useGenerationPolling(sessionId: string) {
   const router = useRouter();
   const [percent, setPercent] = useState(0);
   const [hasError, setHasError] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const timerRef = useRef<number | null>(null);
   const fillTimerRef = useRef<number | null>(null);
 
+  // 에러 화면은 그대로 둔 채 버튼만 잠근다 — 요청이 끝나야(성공→진행 화면 전환,
+  // 실패→잠금 해제) 화면이 바뀐다. 연타해도 attempt만 계속 올라갈 뿐 진행 중인
+  // 요청과 별개로 새 생성 요청이 나가지는 않는다(§11 변경 요청 버튼 잠금 규칙).
   const retry = useCallback(() => {
-    setHasError(false);
-    setPercent(0);
+    setIsRetrying(true);
     setAttempt((n) => n + 1);
   }, []);
 
@@ -82,13 +89,29 @@ export function useGenerationPolling(sessionId: string) {
     }
 
     async function start() {
-      try {
-        await createGenerationJob(sessionId);
-      } catch {
-        if (!cancelled) setHasError(true);
-        return;
+      // 재진입(attempt === 0)이면 이 세션에 이미 보낸 생성 요청이 있는지 먼저 본다 —
+      // 있으면 새로고침·뒤로가기·재진입 어떤 경로로 와도 새 job을 만들지 않고 그대로
+      // 폴링을 이어간다. 재시도(attempt > 0)는 사용자가 명시적으로 새 생성을 원한
+      // 것이므로 로컬 보존 값을 보지 않고 항상 새 job을 만든다(#115).
+      const storedJobId = attempt === 0 ? loadGenerationJobId(sessionId) : null;
+
+      if (!storedJobId) {
+        try {
+          const { jobId } = await createGenerationJob(sessionId);
+          saveGenerationJobId(sessionId, jobId);
+        } catch {
+          if (!cancelled) {
+            setHasError(true);
+            setIsRetrying(false);
+          }
+          return;
+        }
       }
+
       if (cancelled) return;
+      setHasError(false);
+      setPercent(0);
+      setIsRetrying(false);
       startFillAnimation();
       poll();
     }
@@ -101,5 +124,5 @@ export function useGenerationPolling(sessionId: string) {
     };
   }, [attempt, router, sessionId]);
 
-  return { percent, hasError, retry };
+  return { percent, hasError, isRetrying, retry };
 }

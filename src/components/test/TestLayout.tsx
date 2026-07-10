@@ -20,6 +20,7 @@ import {
   clearMoodTestDraft,
   saveMoodTestDraft,
 } from "@/lib/mood-test/draft-storage";
+import { clearGenerationJobId } from "@/lib/mood-test/generation-job-storage";
 
 type Props = {
   // 홈 화면의 "이어하기" 딥링크(#84/#85)가 여전히 이 값을 넘긴다. 실제 선택 상태(카드 등)까지
@@ -67,6 +68,9 @@ export default function TestLayout({ sessionId }: Props) {
       const guestSessionId = await ensureGuestSessionId();
       await saveMoodTestSession({ sessionId, guestSessionId, journey });
       clearMoodTestDraft();
+      // 같은 sessionId로 다시 제출한 것일 수 있다(테스트 다시하기) — 이전에 이 세션으로
+      // 생성 요청을 보낸 적이 있어도, 방금 낸 새 답변에 대해 반드시 새로 생성해야 한다.
+      clearGenerationJobId(sessionId);
       router.push(`/test/${sessionId}/generating`);
     } catch (error) {
       const message =
