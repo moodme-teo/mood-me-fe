@@ -76,8 +76,27 @@ const CARD_LEFT = "14%";
 const CARD_WIDTH = "42%";
 const ARC_SPAN = 0.34;
 const ARC_CATCH_POINTS = [-ARC_SPAN, -0.1, -0.03, 0, 0.04, 0.12, ARC_SPAN];
-const ARC_X = ["-14vw", "-3vw", "6vw", "4vw", "8vw", "4.5vw", "-14vw"];
-const ARC_X_REDUCED = ["-6vw", "-2vw", "2.5vw", "1.5vw", "3vw", "2vw", "-6vw"];
+// 원호의 가로 이동폭. translateX 의 % 는 카드 자기 너비 기준이다 — 뷰포트(vw)를 쓰면
+// 앱 셸이 max-w-[430px] 로 고정돼 있는 넓은 화면에서 카드가 컬럼 밖으로 밀려 잘린다.
+// 카드 너비 = 컨테이너의 42% 이므로, 컨테이너 폭 기준 14% 는 카드 너비의 33.33% 다.
+const ARC_X = [
+  "-33.33%",
+  "-7.14%",
+  "14.29%",
+  "9.52%",
+  "19.05%",
+  "10.71%",
+  "-33.33%",
+];
+const ARC_X_REDUCED = [
+  "-14.29%",
+  "-4.76%",
+  "5.95%",
+  "3.57%",
+  "7.14%",
+  "4.76%",
+  "-14.29%",
+];
 
 type Card = (typeof CARDS)[number];
 type BoardArcCardProps = {
