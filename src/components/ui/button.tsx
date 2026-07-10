@@ -32,7 +32,7 @@ const buttonVariants = cva(
         lg: "px-[38px] py-[14px] text-body-md font-bold [&_svg]:size-[22px]",
         md: "px-[28px] py-[10px] text-caption font-semibold [&_svg]:size-[19px]",
         sm: "px-[20px] py-[7px] text-caption font-medium [&_svg]:size-4",
-        "icon-lg": "size-[60px] p-0 [&_svg]:size-[22px]",
+        "icon-lg": "size-[54px] p-0 [&_svg]:size-[22px]",
         "icon-md": "size-12 p-0 [&_svg]:size-[19px]",
         "icon-sm": "size-[38px] p-0 [&_svg]:size-4",
       },

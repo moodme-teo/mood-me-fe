@@ -13,7 +13,7 @@ export default function ProgressBar({
     <div className="relative flex flex-1 flex-col items-center gap-1">
       <Progress
         value={(current / total) * 100}
-        tone="cyan"
+        tone="green"
         className="h-[4px] max-w-[120px]"
         aria-label="테스트 진행률"
       />

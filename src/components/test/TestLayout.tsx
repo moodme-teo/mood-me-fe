@@ -207,17 +207,17 @@ export default function TestLayout({ initialStepIndex = 0, sessionId }: Props) {
           preview={<BuildBoardPreview cardIds={flow.previewCardIds} />}
         />
 
-        <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pb-[var(--test-footer-h)]">
-          <section className="flex flex-col gap-4">
-            <div className="sticky top-0 left-0 z-[99] bg-background/90 [mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)] px-4 pt-3 pb-7 backdrop-blur-md [-webkit-mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)]">
+        <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto">
+          <section className="flex flex-col gap-0.5">
+            <div className="sticky top-0 left-0 z-[99] bg-background/90 [mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)] px-4 pt-1 pb-7 backdrop-blur-md [-webkit-mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)]">
               <p className="font-semibold tracking-wide text-muted-foreground text-caption">
                 {kicker}
               </p>
-              <h2 className="mt-2 font-[family-name:var(--font-display-kr)] text-[24px] leading-[1.32] font-bold text-foreground">
+              <h2 className="mt-1 font-[family-name:var(--font-display-kr)] text-[24px] leading-[1.32] font-bold text-foreground">
                 {title}
               </h2>
               {hint && (
-                <p className="mt-2 text-muted-foreground text-body-sm">
+                <p className="mt-1 text-muted-foreground text-body-sm">
                   {hint}
                 </p>
               )}

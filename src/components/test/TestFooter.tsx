@@ -31,19 +31,19 @@ export default function TestFooter({
     // 창이 넓을 때 푸터만 창 전체를 덮어 프레임 바깥까지 배경이 번진다.
     // pointer-events: 버튼 사이 빈 띠가 뒤 화면의 탭을 먹지 않도록 푸터는 투과시키고
     // 버튼만 되살린다.
-    <footer className="pointer-events-none fixed bottom-0 left-1/2 z-40 flex w-full max-w-[430px] -translate-x-1/2 flex-col items-center px-4 pb-14">
+    <footer className="pointer-events-none mx-auto w-full max-w-[720px] space-y-2 border-t border-gray-100 bg-background px-4 py-3">
       {/* 카드 이미지 위에서도 버튼 글자가 읽히도록 아래에서 배경색이 차오른다.
           버튼이 놓인 높이까지는 불투명하게 덮고 그 위만 페이드로 흘린다 — 반투명하게 두면
           뒤 카드나 칩이 버튼 글자와 겹쳐 읽힌다. 푸터 박스보다 위로 올라오는 레이어라
           별도로 떼어 둔다(--test-footer-h 계산에 끼지 않게). */}
-      <span
+      {/* <span
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[calc(var(--test-footer-h)+2.5rem)]"
         style={{
           background:
             "linear-gradient(to top, var(--surface-page) 75%, transparent)",
         }}
-      />
+      /> */}
       {errorMessage && (
         <p
           role="alert"
@@ -52,7 +52,7 @@ export default function TestFooter({
           {errorMessage}
         </p>
       )}
-      <div className="pointer-events-auto flex">
+      <div className="pointer-events-auto flex w-full items-center justify-center">
         <Button
           type="button"
           variant={"secondary"}
