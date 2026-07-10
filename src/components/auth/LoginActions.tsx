@@ -7,9 +7,14 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { ensureGuestSession } from "@/lib/auth/guest-session";
+import { getAuthCallbackUrl } from "@/lib/auth/redirect-url";
 import { createClient } from "@/lib/supabase/client";
 
-export default function LoginActions() {
+type Props = {
+  returnTo?: string;
+};
+
+export default function LoginActions({ returnTo }: Props) {
   const router = useRouter();
   const [isGuestLoading, setIsGuestLoading] = useState(false);
 
@@ -17,7 +22,9 @@ export default function LoginActions() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: getAuthCallbackUrl(window.location.origin, returnTo),
+      },
     });
   };
 

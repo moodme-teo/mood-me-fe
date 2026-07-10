@@ -5,6 +5,7 @@ import {
   clearGuestSessionCookie,
   readGuestSessionId,
 } from "@/lib/auth/guest-cookie";
+import { getSafeReturnPath, getSiteOrigin } from "@/lib/auth/redirect-url";
 import { createClient } from "@/lib/supabase/server";
 
 // 카카오/구글 OAuth 콜백. PRD 5.1 — 성공 시 직전 화면(메인/홈)으로 복귀, 실패/취소 시
@@ -29,14 +30,31 @@ async function claimGuestSessionFor(userId: string | undefined) {
   await clearGuestSessionCookie();
 }
 
+function getLoginErrorUrl(
+  siteOrigin: string,
+  message: string,
+  returnTo: string,
+) {
+  const loginUrl = new URL("/login", siteOrigin);
+  loginUrl.searchParams.set("error", message);
+
+  if (returnTo !== "/") {
+    loginUrl.searchParams.set("next", returnTo);
+  }
+
+  return loginUrl;
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
+  const siteOrigin = getSiteOrigin(origin);
+  const returnTo = getSafeReturnPath(searchParams.get("next"));
 
   const providerError =
     searchParams.get("error_description") ?? searchParams.get("error");
   if (providerError) {
     return NextResponse.redirect(
-      `${origin}/login?error=${encodeURIComponent(providerError)}`,
+      getLoginErrorUrl(siteOrigin, providerError, returnTo),
     );
   }
 
@@ -46,14 +64,14 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       await claimGuestSessionFor(data.user?.id);
-      return NextResponse.redirect(origin);
+      return NextResponse.redirect(new URL(returnTo, siteOrigin));
     }
     return NextResponse.redirect(
-      `${origin}/login?error=${encodeURIComponent(error.message)}`,
+      getLoginErrorUrl(siteOrigin, error.message, returnTo),
     );
   }
 
   return NextResponse.redirect(
-    `${origin}/login?error=${encodeURIComponent("로그인에 실패했어요")}`,
+    getLoginErrorUrl(siteOrigin, "로그인에 실패했어요", returnTo),
   );
 }
