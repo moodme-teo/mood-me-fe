@@ -11,6 +11,7 @@ import type { GetMoodboardResponse } from "@/lib/api/get-moodboard";
 import { getMoodboard } from "@/lib/api/get-moodboard";
 import { retryMoodboardAnalysis } from "@/lib/api/retry-moodboard-analysis";
 import { ApiClientError } from "@/lib/api-client";
+import { getLoginPath } from "@/lib/auth/redirect-url";
 import type { MoodVector } from "@/types/moodboard";
 import { MOODBOARD_HEIGHT, MOODBOARD_WIDTH } from "@/types/moodboard";
 
@@ -253,7 +254,9 @@ function KeywordCloud({ moodboard }: { moodboard: GetMoodboardResponse }) {
   );
 }
 
-function GuestBanner() {
+function GuestBanner({ moodboardId }: { moodboardId: string }) {
+  const loginPath = getLoginPath(`/moodboard/${moodboardId}`);
+
   return (
     <section className="rounded-2xl bg-[#e8eeff] p-4 text-foreground">
       <p className="text-sm font-bold">로그인하면 언제든 다시 볼 수 있어요.</p>
@@ -261,7 +264,7 @@ function GuestBanner() {
         지금은 게스트로도 열람, 공유, 이미지 저장을 모두 사용할 수 있습니다.
       </p>
       <Link
-        href="/login"
+        href={loginPath}
         className="mt-3 inline-flex rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
       >
         로그인하고 보관하기
@@ -675,7 +678,7 @@ export default function MoodboardResult({ moodboardId }: Props) {
             onOpenSave={() => setIsSaveOpen(true)}
             onShare={handleShare}
           />
-          {moodboard.isGuest ? <GuestBanner /> : null}
+          {moodboard.isGuest ? <GuestBanner moodboardId={moodboardId} /> : null}
         </div>
       </div>
     </main>
