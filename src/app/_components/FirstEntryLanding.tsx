@@ -9,10 +9,11 @@ import BoardCardStack from "@/app/_components/first-entry/BoardCardStack";
 import SplashScene from "@/app/_components/first-entry/SplashScene";
 import ProfileMenu from "@/components/auth/ProfileMenu";
 
-// 첫진입(메인) 화면 — 저장 보드가 0개일 때의 얼굴. 스플래시(≈2.6초)가 화면 이동 없이
-// 애니메이션으로 첫진입 화면으로 이어지고(디자인 시안), 상단에서 이미지 카드가 떨어져
-// 흩뿌려진 배치로 자리잡는다. 카드 무리는 세로 스와이프/스크롤 가능.
+// 첫진입(메인) 화면 — 저장 보드가 0개일 때의 얼굴. 스플래시가 화면 이동 없이 애니메이션으로
+// 첫진입 화면으로 이어지고(디자인 시안), 상단에서 이미지 카드가 떨어져 흩뿌려진 배치로
+// 자리잡는다. 카드 무리는 세로 스와이프/스크롤 가능.
 // 스플래시는 세션당 1회만 재생(sessionStorage) — 반복 진입 마찰 제거.
+// 종료 조건은 아래 SPLASH_MIN_MS / SPLASH_MAX_MS 주석 참고.
 
 export type ContinueTarget = {
   href: string;
@@ -29,7 +30,26 @@ type Props = {
 type Phase = "splash" | "entry";
 
 const SPLASH_SEEN_KEY = "moodme:first-entry-splash-seen";
-const SPLASH_DURATION_MS = 2600;
+
+// 스플래시는 "최소 시간" 과 "카드 이미지 준비" 를 모두 만족해야 끝난다.
+// - 최소 2.6초: 서브카피(가치 제안)를 읽을 시간. 캐시된 재방문자가 순식간에 지나치지 않게 한다.
+// - 이미지 준비: 빈 회색 카드가 떨어지고 나서 사진이 뒤늦게 채워지는 걸 막는다.
+// - 상한 5초: 네트워크가 느리거나 죽어도 첫진입 화면까지는 반드시 간다.
+//
+// 두 시간 모두 "스플래시가 화면에 뜬 순간" 부터 잰다. 이펙트가 도는 하이드레이션 시점부터 재면
+// 느린 기기에서 스플래시가 (하이드레이션 + 2.6초) 만큼 길어진다 — 사용자는 이미 보고 있는데.
+const SPLASH_MIN_MS = 2600;
+const SPLASH_MAX_MS = 5000;
+
+// 스플래시는 서버가 그린 첫 화면이라 first-contentful-paint 가 곧 스플래시가 뜬 시각이다.
+// 페인트 타이밍이 없거나(구형 브라우저) 클라이언트 라우팅으로 들어온 경우엔 지금을 기준으로 삼는다.
+function elapsedSinceSplashShown() {
+  const paints = performance.getEntriesByType("paint");
+  const firstPaint = paints.find(
+    (entry) => entry.name === "first-contentful-paint",
+  );
+  return firstPaint ? performance.now() - firstPaint.startTime : 0;
+}
 
 export default function FirstEntryLanding({
   isLoggedIn,
@@ -38,16 +58,17 @@ export default function FirstEntryLanding({
 }: Props) {
   const prefersReduced = useReducedMotion();
   const reduced = prefersReduced ?? false;
-  const [phase, setPhase] = useState<Phase>("splash");
+  const [minElapsed, setMinElapsed] = useState(false);
+  const [imagesReady, setImagesReady] = useState(false);
+  // 화면 탭 또는 상한 타이머로 두 조건을 건너뛴 경우.
+  const [forcedEntry, setForcedEntry] = useState(false);
 
-  const skipToEntry = useCallback(() => {
-    setPhase("entry");
-    try {
-      sessionStorage.setItem(SPLASH_SEEN_KEY, "1");
-    } catch {
-      // sessionStorage 접근 불가(프라이빗 모드 등) — 스플래시만 매번 재생될 뿐 기능엔 영향 없음
-    }
-  }, []);
+  // 페이즈는 저장하지 않고 조건에서 파생시킨다 — 이펙트 안에서 setState 하지 않아도 된다.
+  const isEntry = forcedEntry || (minElapsed && imagesReady);
+  const phase: Phase = isEntry ? "entry" : "splash";
+
+  const skipToEntry = useCallback(() => setForcedEntry(true), []);
+  const handleImagesReady = useCallback(() => setImagesReady(true), []);
 
   useEffect(() => {
     let alreadySeen = false;
@@ -57,16 +78,32 @@ export default function FirstEntryLanding({
       alreadySeen = false;
     }
 
-    // 이미 본 세션이면 스플래시를 건너뛴다(delay 0). 모션 최소화 선호 시에도
-    // 스플래시 자체는 그대로 노출하고(2.6초), 등장·전환 애니메이션만 끈다
-    // (DESIGN.md: reduced-motion 대안은 "제거"가 아니라 "즉시 전환"). 전환은 항상
-    // 타이머 콜백에서 일어나 이펙트 본문의 동기 setState 를 피한다.
-    const delay = alreadySeen ? 0 : SPLASH_DURATION_MS;
-    const timer = window.setTimeout(skipToEntry, delay);
-    return () => window.clearTimeout(timer);
+    // 이미 본 세션이면 최소 시간을 두지 않는다 — 이미지가 캐시에서 바로 올라오므로 곧장 넘어간다.
+    // 모션 최소화 선호 시에도 스플래시 자체는 그대로 노출하고 등장·전환 애니메이션만 끈다
+    // (DESIGN.md: reduced-motion 대안은 "제거"가 아니라 "즉시 전환").
+    const shown = elapsedSinceSplashShown();
+    const remaining = (budget: number) => Math.max(0, budget - shown);
+
+    const minTimer = window.setTimeout(
+      () => setMinElapsed(true),
+      alreadySeen ? 0 : remaining(SPLASH_MIN_MS),
+    );
+    const maxTimer = window.setTimeout(skipToEntry, remaining(SPLASH_MAX_MS));
+
+    return () => {
+      window.clearTimeout(minTimer);
+      window.clearTimeout(maxTimer);
+    };
   }, [skipToEntry]);
 
-  const isEntry = phase === "entry";
+  useEffect(() => {
+    if (!isEntry) return;
+    try {
+      sessionStorage.setItem(SPLASH_SEEN_KEY, "1");
+    } catch {
+      // sessionStorage 접근 불가(프라이빗 모드 등) — 스플래시만 매번 재생될 뿐 기능엔 영향 없음
+    }
+  }, [isEntry]);
 
   return (
     <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-surface-page">
@@ -81,7 +118,11 @@ export default function FirstEntryLanding({
         />
       )}
 
-      <BoardCardStack active={isEntry} reduced={reduced} />
+      <BoardCardStack
+        active={isEntry}
+        onAboveFoldReady={handleImagesReady}
+        reduced={reduced}
+      />
       <SplashScene phase={phase} reduced={reduced} />
 
       {/* 상단 프로필(아바타) — 두 페이즈 상시 노출 (PRD §6) */}

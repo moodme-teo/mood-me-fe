@@ -8,7 +8,7 @@ import {
   useTransform,
 } from "framer-motion";
 import Image from "next/image";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 // 첫진입 화면의 이미지 카드 무리. 한 줄(단일 세로 컬럼)로 쌓여 위→아래로 스와이프/스크롤한다.
 // 각 카드는 화면 밖 왼쪽에 중심을 둔 큰 원의 오른쪽 곡면을 따라 움직이는 듯
@@ -24,6 +24,8 @@ import { useRef } from "react";
 type Props = {
   active: boolean;
   reduced: boolean;
+  /** 첫 화면에 걸리는 카드 이미지가 모두 준비되면 한 번 호출된다 — 스플래시 종료 조건. */
+  onAboveFoldReady?: () => void;
 };
 
 // 한 줄 세로 배치 — left/width 는 동일(살짝 겹치며 아래로), top 은 스크롤 캔버스 기준 vh.
@@ -98,17 +100,63 @@ const ARC_X_REDUCED = [
   "-14.29%",
 ];
 
+// 낙하가 시작되기 전 카드가 대기하는 위치(화면 위 바깥).
+const DROP_FROM_Y = "-72vh";
+
+// 첫 화면에 걸리는 카드 수. 이 세 장은 스플래시 동안 미리 받아둔다 — 나머지는 스크롤해야 나온다.
+const ABOVE_FOLD_CARDS = 3;
+
 type Card = (typeof CARDS)[number];
 type BoardArcCardProps = {
+  active: boolean;
   card: Card;
   index: number;
   reduced: boolean;
   scrollYProgress: MotionValue<number>;
 };
 
-export default function BoardCardStack({ active, reduced }: Props) {
+// 첫 화면 카드 이미지가 화면에 그릴 준비까지 끝났는지 본다. next/image 의 onLoad 는 쓰지 않는다 —
+// onError 를 함께 넘기면 하이드레이션 때 img.src 를 자기 자신으로 재대입해 이미지를 두 번 받고,
+// 하이드레이션 전에 이미 로드가 끝난 이미지는 콜백이 유실된다.
+function whenPainted(img: HTMLImageElement): Promise<void> {
+  const loaded = img.complete
+    ? Promise.resolve()
+    : new Promise<void>((resolve) => {
+        img.addEventListener("load", () => resolve(), { once: true });
+        img.addEventListener("error", () => resolve(), { once: true });
+      });
+
+  // decode() 까지 기다려야 낙하 첫 프레임에서 디코딩이 메인 스레드를 물지 않는다.
+  // 실패해도 준비된 것으로 친다 — 한 장이 못 오더라도 스플래시가 붙잡혀선 안 된다.
+  return loaded.then(() => img.decode().catch(() => {}));
+}
+
+export default function BoardCardStack({
+  active,
+  reduced,
+  onAboveFoldReady,
+}: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ container: scrollRef });
+
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root) return;
+
+    let isActive = true;
+    const images = Array.from(root.querySelectorAll("img")).slice(
+      0,
+      ABOVE_FOLD_CARDS,
+    );
+
+    void Promise.all(images.map(whenPainted)).then(() => {
+      if (isActive) onAboveFoldReady?.();
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [onAboveFoldReady]);
 
   return (
     <div
@@ -121,22 +169,25 @@ export default function BoardCardStack({ active, reduced }: Props) {
         className="relative h-[168vh] w-full"
         style={{ perspective: "1500px", perspectiveOrigin: "left center" }}
       >
-        {active &&
-          CARDS.map((card, index) => (
-            <BoardArcCard
-              key={index}
-              card={card}
-              index={index}
-              reduced={reduced}
-              scrollYProgress={scrollYProgress}
-            />
-          ))}
+        {/* 스플래시 동안에도 마운트해 둔다 — 카드가 낙하하는 순간에 처음 마운트되면 그때부터
+            이미지를 받고 디코딩하느라 스프링 첫 프레임이 굶어 뚝 끊긴 뒤 떨어진다. */}
+        {CARDS.map((card, index) => (
+          <BoardArcCard
+            key={index}
+            active={active}
+            card={card}
+            index={index}
+            reduced={reduced}
+            scrollYProgress={scrollYProgress}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
 function BoardArcCard({
+  active,
   card,
   index,
   reduced,
@@ -182,8 +233,15 @@ function BoardArcCard({
     mass: reduced ? 0.2 : 0.32,
   });
 
+  // 대기 상태 = initial 과 같은 값이라, 스플래시 동안 마운트돼도 아무 동작이 일어나지 않는다.
+  const waiting = reduced
+    ? { opacity: 0, rotate: card.rotate }
+    : { opacity: 0, y: DROP_FROM_Y, rotate: 0 };
+
   return (
     <motion.div
+      // 스플래시 동안에는 화면 밖에서 이미지만 받아둔다 — 보조기술에는 노출하지 않는다.
+      aria-hidden={!active}
       className="absolute overflow-hidden rounded-sm bg-gray-100 shadow-card"
       style={{
         x,
@@ -194,16 +252,8 @@ function BoardArcCard({
         aspectRatio: "1024 / 1536", // 보드 출력 고정 비율(2:3) — 잘림 없이 한 장이 다 보인다
         transformOrigin: "left center",
       }}
-      initial={
-        reduced
-          ? { opacity: 0, rotate: card.rotate }
-          : { opacity: 0, y: "-72vh", rotate: 0 }
-      }
-      animate={{
-        opacity: 1,
-        y: 0,
-        rotate: card.rotate,
-      }}
+      initial={waiting}
+      animate={active ? { opacity: 1, y: 0, rotate: card.rotate } : waiting}
       transition={
         reduced
           ? { duration: 0.3, delay: index * 0.04 }
@@ -222,7 +272,9 @@ function BoardArcCard({
         fill
         sizes="(max-width: 430px) 64vw, 275px"
         className="object-cover"
-        priority={index < 2}
+        // 낙하 전에는 세 장 모두 뷰포트 밖이라 lazy 면 로딩이 시작조차 안 된다 —
+        // 첫 화면에 걸리는 카드는 eager 로 받아 스플래시가 끝나기 전에 디코딩까지 끝낸다.
+        priority={index < ABOVE_FOLD_CARDS}
       />
       {/* 오른쪽으로 물러난 면에 옅은 음영 — 3D 입체감 강조 */}
       <span
