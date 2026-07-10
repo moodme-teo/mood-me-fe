@@ -195,6 +195,54 @@ function GuestBanner() {
   );
 }
 
+// 브라우저 모달(window.confirm)은 페이지 스크립트를 멈추고 스타일도 제어할 수 없다.
+// MoodboardCropEditor 의 ConfirmLeaveDialog 와 같은 인앱 다이얼로그로 맞춘다.
+function ConfirmRestartDialog({
+  isOpen,
+  onCancel,
+  onConfirm,
+}: {
+  isOpen: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-surface-inverse/48 p-4 sm:items-center sm:justify-center">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="restart-title"
+        className="w-full max-w-sm rounded-2xl bg-card p-5 text-foreground shadow-xl"
+      >
+        <h2 id="restart-title" className="text-lg font-bold">
+          처음부터 다시 만들까요?
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-gray-700">
+          지금 보고 있는 무드보드는 그대로 남아요. 새 테스트를 시작합니다.
+        </p>
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-bold text-foreground"
+          >
+            그대로 볼게요
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
+          >
+            새로 시작할게요
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ResultActions({
   moodboard,
   onDownload,
@@ -205,6 +253,7 @@ function ResultActions({
   onShare: () => void;
 }) {
   const router = useRouter();
+  const [isRestartOpen, setIsRestartOpen] = useState(false);
 
   return (
     <section className="space-y-3">
@@ -233,11 +282,7 @@ function ResultActions({
         </Link>
         <button
           type="button"
-          onClick={() => {
-            if (window.confirm("처음부터 다시 만들까요?")) {
-              router.push(`/test/${crypto.randomUUID()}`);
-            }
-          }}
+          onClick={() => setIsRestartOpen(true)}
           className="rounded-xl border border-gray-300 bg-card px-3 py-3 text-xs font-bold text-foreground"
         >
           다시 만들기
@@ -249,6 +294,11 @@ function ResultActions({
           홈
         </Link>
       </div>
+      <ConfirmRestartDialog
+        isOpen={isRestartOpen}
+        onCancel={() => setIsRestartOpen(false)}
+        onConfirm={() => router.push(`/test/${crypto.randomUUID()}`)}
+      />
     </section>
   );
 }
@@ -331,7 +381,7 @@ export default function MoodboardResult({ moodboardId }: Props) {
       link.href = dataUrl;
       link.download = `mood-me-${moodboardId}.png`;
       link.click();
-      showToast("PNG 이미지를 저장했어요.");
+      showToast("PNG 이미지로 저장했어요.");
     } catch (error) {
       console.error(error);
       showToast("이미지 내보내기에 실패했어요.");
@@ -343,7 +393,7 @@ export default function MoodboardResult({ moodboardId }: Props) {
 
     try {
       await copyText(url);
-      showToast("링크를 복사했어요.");
+      showToast("공유 링크를 복사했어요.");
     } catch (error) {
       console.error(error);
       showToast("링크 복사에 실패했어요.");

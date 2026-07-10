@@ -232,6 +232,34 @@ export function commitScreen(
   }
 }
 
+/**
+ * 지금 이 화면을 확정하면 뒤 단계에서 고른 내용이 지워지는가?
+ *
+ * commitScreen 은 상위 단계의 선택이 바뀌면 하위 단계를 조용히 비운다 — 선택지 구성 자체가
+ * 달라지므로 남겨 둘 수가 없다. 문제는 사용자가 뒤로 돌아가 카드 한 장 바꿨을 뿐인데
+ * 그림자·전환·최종 대결이 통째로 사라진다는 것이다. 그래서 확정 전에 물어본다.
+ *
+ * 판정은 commitScreen 의 결과로 한다. 초기화 규칙을 여기 다시 옮겨 적으면 둘이 어긋난다.
+ * 아직 아무것도 고르지 않은 뒤 단계는 잃을 것이 없으므로 묻지 않는다.
+ */
+export function willResetDownstream(
+  screen: ScreenDescriptor,
+  draft: string[],
+  committed: CommittedState,
+): boolean {
+  const next = commitScreen(screen, draft, committed);
+  const cleared = (before: string[], after: string[]) =>
+    before.length > 0 && after.length === 0;
+
+  return (
+    cleared(committed.droppedR1, next.droppedR1) ||
+    cleared(committed.droppedR2, next.droppedR2) ||
+    cleared(committed.final, next.final) ||
+    (committed.transitions.some((t) => t !== null) &&
+      next.transitions.every((t) => t === null))
+  );
+}
+
 export function toggleDraftId(
   draft: string[],
   id: string,
