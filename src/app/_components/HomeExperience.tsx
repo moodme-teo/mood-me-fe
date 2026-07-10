@@ -81,18 +81,20 @@ function RetryPanel({
   return (
     <section
       aria-live="polite"
-      className="rounded-lg border border-[#f1b2a7] bg-[#fff0ed] p-4 text-foreground"
+      className="flex flex-col gap-2 rounded-lg p-4 text-foreground shadow-[inset_0_1px_4px_rgba(0,0,0,0.3)]"
     >
-      <p className="text-sm font-bold">저장한 보드를 불러오지 못했어요.</p>
-      <p className="mt-1 text-sm leading-6 text-gray-700">{error}</p>
-      <button
+      <p className="text-md font-bold">저장한 보드를 불러오지 못했어요.</p>
+      <p className="text-sm leading-6 text-gray-700">{error}</p>
+      <Button
+        tone="sand"
+        size="md"
         type="button"
         onClick={onRetry}
         disabled={isRetrying}
-        className="mt-3 min-h-11 rounded-full bg-surface-inverse px-4 py-2 text-sm font-bold text-white disabled:opacity-55"
+        className="mt-3 ml-auto"
       >
         {isRetrying ? "다시 불러오는 중" : "다시 시도"}
-      </button>
+      </Button>
     </section>
   );
 }
