@@ -9,6 +9,8 @@
 
 이 하네스는 커버리지를 올리는 장치가 아니라 **최소 안전장치**다. PRODUCT.md의 성공 지표는 "결과물을 실제로 공유하는 것"이고, 그 경로 위의 화면만 지킨다. 그 밖의 화면은 깨져도 테스트가 잡지 못하며, 그래도 된다.
 
+테스트가 돌아가는 것만으로는 부족하다. 다른 팀원이 읽었을 때 **"무엇을 검증하는 테스트인지"**, **"어떤 화면 동작을 추상화한 것인지"** 가 바로 보여야 한다. 그래서 아래 [`*.spec.ts` vs `*.page.ts`](#spects-vs-pagets)의 역할 분리를 강하게 지킨다.
+
 세 가지를 지킨다.
 
 1. **테스트를 위해 UI/UX를 바꾸지 않는다.** 제품이 테스트에 맞추는 게 아니라 테스트가 제품에 맞춘다.
@@ -27,23 +29,45 @@
 | **Unit test**         | Vitest                | —                      | —                         | 🔜 보류   |
 | **Build**             | `next build`          | `npm run build`        | CI                        | ✅ 적용됨 |
 | **E2E**               | Playwright            | `npm run e2e`          | CI · 필요할 때 로컬       | ✅ 적용됨 |
-| **Visual regression** | Playwright screenshot | —                      | —                         | 🔜 보류   |
+| **Visual regression** | Playwright screenshot | `npm run e2e:visual`   | **로컬에서만** (CI 제외)  | 🟡 도입   |
 
-로컬 저장·커밋 시에는 lint/format만 돈다(lint-staged, 스테이징된 파일만). 전체 검사는 CI가 한다 — **커밋은 빠르게 유지한다.**
+로컬 저장·커밋 시에는 lint/format만 돈다(lint-staged, 스테이징된 파일만). 전체 검사는 CI가 한다 — **커밋은 빠르게 유지한다.** 단 visual regression은 예외로, CI에 올리지 않는다(아래 §Visual regression).
 
 ### Unit test를 아직 넣지 않은 이유
 
 지금 순수 로직이 얇다. 규칙 대신 **도입 조건**을 적어 둔다. 아래 중 하나라도 해당하면 Vitest를 붙인다.
 
-- `useMoodboard`의 undo 스택처럼 **분기가 많고 UI 없이 검증 가능한 로직**이 생겼을 때
-- `mood-test-flow`의 화면 전이 규칙이 E2E로 확인하기엔 조합이 너무 많아졌을 때
+- `crop-transform.ts`의 클램프·줌 계산처럼 **분기가 많고 UI 없이 검증 가능한 순수 로직**이 늘어났을 때
+- `components/test/mood-test-flow.ts`의 화면 전이 규칙이 E2E로 확인하기엔 조합이 너무 많아졌을 때
 - Zod 스키마와 서버 응답이 어긋나 같은 버그가 두 번 났을 때
 
-경계는 명확하다. `useMoodboard.ts`는 Konva를 import하지 않으므로 jsdom에서 테스트할 수 있고, `BoardCanvas.tsx`는 import하므로 못 한다. **Konva를 건드리는 순간 그건 E2E의 몫이다.**
+경계는 명확하다. `useCropEditor.ts`와 `crop-transform.ts`는 Konva를 import하지 않으므로 jsdom에서 테스트할 수 있고, `CropCanvas.tsx`는 import하므로 못 한다. **Konva를 건드리는 순간 그건 E2E의 몫이다.**
 
-### Visual regression을 아직 넣지 않은 이유
+### Visual regression — 도입하되, 로컬에서만 돈다
 
-무드보드는 AI 생성 이미지 위에 Konva가 그린 캔버스다. 스크린샷 비교는 폰트 렌더링·GPU·타이밍 차이로 쉽게 깨진다. 도입한다면 **고정 mock 이미지 + `reducedMotion` + 마스킹**을 전제로, 결과물 페이지 한 장부터 시작한다. 전면 도입은 하지 않는다.
+스크린샷 비교는 폰트 렌더링·GPU 래스터라이즈·타이밍 차이로 쉽게 깨진다. 그래서 **CI에는 올리지 않는다.** 러너의 폰트와 GPU를 고정하기 전까지 CI 스냅샷은 신호가 아니라 소음이다. 개발자가 UI를 만질 때 로컬에서 돌려 눈으로 확인하는 도구로 쓴다.
+
+**대상 — 결정론적인 화면만.** 아래는 고정 mock + `reducedMotion` + `mobile-chromium`(Pixel 5) 단일 프로젝트라 스냅샷이 안정적이다.
+
+| 화면                    | 결정론적인 이유                                      |
+| ----------------------- | ---------------------------------------------------- |
+| 홈 — 메인(첫진입)       | 저장 보드 0개 · 스플래시 skip                        |
+| 홈 — History            | `mockMoodboards` 고정 목록                           |
+| 생성중 — 에러           | job `failed` 고정. 진행률 화면은 **제외**(시간 의존) |
+| 결과물                  | `mockMoodboard` 고정 응답                            |
+| 크롭 에디터 — 기본 상태 | 도형 탭 · 원형 · 투명 배경 (DEFAULT_STATE)           |
+
+**전제 셋.** 지키지 않으면 곧바로 flaky가 된다.
+
+- **고정 mock 이미지.** AI 생성 이미지는 매번 다르다. `fixtures/data.ts`의 `BASE_IMAGE_URL`만 쓴다.
+- **`reducedMotion: "reduce"`.** 이미 `playwright.config.ts`에 켜져 있다.
+- **시간 의존 화면 제외.** 생성 진행률은 `useGenerationPolling`이 시간 기준으로 채우므로 스냅샷을 찍을 수 없다.
+
+**보류 — 미리보기와 저장 결과물의 일치 검증.**
+
+`mood-edit.md` §11은 _"미리보기에서 보이는 것과 저장 결과물이 달라지면 신뢰가 깨진다"_ 고 못박는다. 이 제품의 핵심 계약이고 픽셀 비교 없이는 검증할 수 없다. 그러나 **지금은 실제로 둘이 다른 상태다.** 결과물 페이지는 미리보기(Konva 캔버스)가 아니라 저장된 평면 이미지를 `<img>`로 렌더한다. 계약을 테스트로 고정하기 전에 제품 쪽 결론이 먼저 나야 한다. 결론이 날 때까지 이 항목은 쓰지 않는다.
+
+**추구미 테스트의 프리뷰 보드도 대상이 아니다.** 어떤 카드를 어떻게 채울지가 아직 논의 중이다(§5.3 프리뷰 연출). 확정 전까지 스냅샷을 찍으면 결정을 코드로 굳혀버린다.
 
 ## e2e 폴더 구조
 
@@ -54,7 +78,7 @@ e2e/
 ├─ pages/
 │  ├─ home.page.ts          화면별 locator + 조작
 │  ├─ mood-test.page.ts
-│  ├─ generating.page.ts
+│  ├─ mood-test-generating.page.ts
 │  ├─ edit.page.ts
 │  └─ moodboard-result.page.ts
 ├─ utils/
@@ -62,7 +86,7 @@ e2e/
 │  └─ session.ts            sessionStorage 시드 (스플래시 skip 등)
 ├─ home.spec.ts             시나리오
 ├─ mood-test.spec.ts
-├─ generating.spec.ts
+├─ mood-test-generating.spec.ts
 ├─ edit.spec.ts             생성 직후 편집 (보류)
 ├─ moodboard-edit.spec.ts   저장본 재편집
 └─ moodboard-result.spec.ts
@@ -76,11 +100,11 @@ e2e/
 
 **spec은 "무엇을 검증하는가", page는 "어떻게 조작하는가".** spec에 CSS 셀렉터가 등장하면 그건 page로 갈 코드다.
 
-| 항목      | `*.spec.ts`                             | `*.page.ts`                                 |
-| --------- | --------------------------------------- | ------------------------------------------- |
-| 담는 것   | 시나리오, `expect` 단언                 | locator, 조작 메서드, 화면 고유 지식        |
-| 금지      | 셀렉터 문자열, `page.locator(...)`      | `expect` 단언 (대기 목적의 `expect`는 예외) |
-| 읽는 사람 | "이 화면은 무엇을 보장하나"를 알고 싶은 | "이 버튼을 어떻게 찾나"를 알고 싶은         |
+| 항목      | `*.spec.ts`                             | `*.page.ts`                          |
+| --------- | --------------------------------------- | ------------------------------------ |
+| 담는 것   | 시나리오, `expect` 단언                 | locator, 조작 메서드, 화면 고유 지식 |
+| 금지      | 셀렉터 문자열, `page.locator(...)`      | `expect` 단언 (대기 목적은 예외)     |
+| 읽는 사람 | "이 화면은 무엇을 보장하나"를 알고 싶은 | "이 버튼을 어떻게 찾나"를 알고 싶은  |
 
 ```ts
 // bad — spec이 셀렉터를 안다
@@ -92,9 +116,85 @@ await moodTest.pickOne();
 await expect(moodTest.selectionStatus).toContainText("1 / 12 선택됨");
 ```
 
+### spec 파일 작성 원칙
+
+spec은 **사용자 관점의 플로우**를 시나리오로 적고 `expect`로 단언한다. 셀렉터를 직접 쓰지 않고 page object의 메서드를 호출한다.
+
+파일 상단에 다섯 가지를 주석으로 남긴다. 뒤의 두 개(전제 조건 · 테스트하지 않는 것)가 실제로 시간을 아껴 준다 — 왜 mock이 필요한지, 왜 이 화면의 어떤 부분은 검증하지 않는지를 다음 사람이 다시 추론하지 않아도 된다.
+
+1. 테스트 대상 기능
+2. 검증하려는 사용자 시나리오
+3. smoke / regression / edge case 중 어디에 가까운지
+4. 테스트 전제 조건
+5. 테스트하지 않는 것
+
+```ts
+/**
+ * 테스트 대상: 무드보드 결과 페이지 (/moodboard/[moodboardId])
+ *
+ * 시나리오:
+ * - 사용자가 편집을 마치고 결과 페이지에 진입한다.
+ * - 무드보드 캔버스와 공유·내보내기 액션을 확인한다.
+ *
+ * 테스트 성격: smoke
+ *
+ * 전제 조건:
+ * - GET /api/moodboards/{id} 를 mockMoodboard 로 가로챈다.
+ * - MOODBOARD_ID 는 fixtures/data.ts 의 고정 uuid.
+ *
+ * 테스트하지 않는 것:
+ * - AI 이미지 생성 품질
+ * - 실제 SNS 공유 성공 여부 (클립보드 복사까지만 본다)
+ */
+```
+
+**테스트 제목은 한국어로, 코드의 변수·함수명은 영어로 쓴다.** 제목은 "무엇이 보장되는가"를 문장으로 말해야 한다.
+
+| 좋은 제목                          | 나쁜 제목         |
+| ---------------------------------- | ----------------- |
+| `캔버스와 크롭 도구를 렌더한다`    | `test1`           |
+| `도형을 고르면 활성 도형이 바뀐다` | `edit page works` |
+| `저장에 실패하면 토스트를 띄운다`  | `button click`    |
+
+### page object 작성 원칙
+
+page object는 locator를 정의하고, 반복되는 UI 동작을 메서드로 캡슐화한다. **검증하는 `expect`는 두지 않는다.** 다음 단계로 넘어가기 위한 **대기**는 예외다 — `waitFor`(`edit.page.ts`)든, 반영을 기다리는 폴링용 `expect`(`mood-test.page.ts`의 `pickOne()`)든 상관없다. 기준은 "이게 실패하면 테스트가 무엇을 알려주는가"다. 시나리오의 결론을 말하면 spec으로, 다음 조작의 전제를 맞추는 것이면 page에 둔다.
+
+파일 상단에 세 가지를 남긴다: 담당 화면, spec에서 숨기는 UI 동작, 공개 메서드의 사용 기준.
+
+```ts
+/**
+ * EditPage — 크롭 편집 화면 (/moodboard/[id]/edit · /test/[sessionId]/edit)
+ *
+ * 숨기는 것:
+ * - 하단 탭과 배경 패널의 버튼 이름이 겹쳐 스코프·정확 일치가 필요하다는 사실
+ * - 저장이 곧바로 저장하지 않고 시트를 먼저 연다는 흐름
+ *
+ * 사용 기준:
+ * - 의미 있는 사용자 행동만 메서드로 노출한다 (selectShape, openSaveSheet …)
+ * - 단순 단언은 spec 에서 처리한다 — 여기서는 locator 만 내어 준다
+ */
+```
+
+공개 메서드에는 짧은 JSDoc을 붙인다. **설명이 "무엇을 하는지"에 그치면 지운다.** 코드가 이미 말하고 있다. 남길 가치가 있는 건 화면이 가진 **비직관적인 사실**이다.
+
+```ts
+// 나쁨 — 코드가 그대로 말하고 있다
+/** 저장 버튼을 클릭한다. */
+async openSaveSheet() {
+  await this.saveButton.click();
+}
+
+// 좋음 — 읽는 사람이 모르는 것을 말한다
+/** 저장된 무드보드 재편집 — 서버 조회 없이 렌더되므로 E2E 로 검증 가능하다. */
+async gotoSaved(moodboardId: string) {
+  await this.page.goto(`/moodboard/${moodboardId}/edit`);
+}
+```
+
 **page object는 처음부터 만든다.** "반복될 때만"으로 미루면 셀렉터가 spec 여기저기 박힌 뒤에야 옮기게 된다.
 
-화면이 가진 **비직관적인 사실은 page object에 주석으로 남긴다.** 그 사실을 알아야 하는 사람이 읽을 자리가 거기다. 예: 생성중 화면의 진행률이 서버 값이 아니라는 사실은 `generating.page.ts`의 `readPercent()` 위에 있다.
+화면이 가진 **비직관적인 사실은 page object에 주석으로 남긴다.** 그 사실을 알아야 하는 사람이 읽을 자리가 거기다. 예를 들어 생성중 화면의 진행률이 서버 값이 아니라는 사실은 `mood-test-generating.page.ts`의 `readPercent()` 위에 있고, 도형 `원`이 `타원`에 부분 일치해 정확 일치가 필요하다는 사실은 `edit.page.ts`의 `shape()` 위에 있다.
 
 ## fixtures 사용 기준
 
@@ -115,7 +215,7 @@ await expect(moodTest.selectionStatus).toContainText("1 / 12 선택됨");
 ## AI 이미지 생성 mock 원칙
 
 1. **E2E는 Elice AX를 호출하지 않는다.** `ELICE_MODEL_API_KEY`는 서버 전용이며 **CI에 넣지 않는다** ([ai.md](./ai.md) 보안/env). 시크릿 없이 도는 것이 이 하네스의 전제다.
-2. **생성 이미지는 고정 이미지로 대체한다.** Gemini 결과는 매번 다르다. `fixtures/data.ts`의 `BASE_IMAGE_URL`(`public/test-image/…`에 실제로 있는 파일)을 쓴다. 존재하지 않는 URL을 쓰면 캔버스가 이미지 로드 실패 화면으로 빠진다.
+2. **생성 이미지는 고정 이미지로 대체한다.** Gpt 결과는 매번 다르다. `fixtures/data.ts`의 `BASE_IMAGE_URL`(`public/test-image/…`에 실제로 있는 파일)을 쓴다. 존재하지 않는 URL을 쓰면 캔버스가 이미지 로드 실패 화면으로 빠진다.
 3. **생성은 job 상태 전이로 mock한다.** `mockGenerationJobSequence(page, [queued → processing → completed])`. 폴링될 때마다 다음 단계를 돌려주고 마지막 단계는 유지된다.
 4. **진행률(`progressPercent`) 값을 단언하지 않는다.** 진행률은 서버 값이 아니라 `useGenerationPolling`이 시간 기준으로 채우는 **클라이언트 연출**이다(10%에서 시작해 92% 상한, `completed` 신호에 100%). "증가한다"만 검증한다.
 5. **실패 경로를 반드시 함께 mock한다.** ai.md가 말하듯 *생성 호출은 실패를 전제로 구현*한다. `GENERATION_FAILED` · job `failed` · 재시도까지가 한 세트다. 성공 경로만 있는 생성 테스트는 미완성이다.
@@ -128,9 +228,9 @@ await expect(moodTest.selectionStatus).toContainText("1 / 12 선택됨");
 | 무엇을 바꿨나                       | 해야 할 일                                            |
 | ----------------------------------- | ----------------------------------------------------- |
 | 질문·화면 수·선택 규칙              | `mood-test.spec.ts` (+ `mood-test.page.ts`의 화면 수) |
-| 생성 폴링·진행률·실패 UI            | `generating.spec.ts`                                  |
+| 생성 폴링·진행률·실패 UI            | `mood-test-generating.spec.ts`                        |
 | 결과물 렌더·내보내기·공유           | `moodboard-result.spec.ts`                            |
-| 캔버스 도구·저장                    | `moodboard-edit.spec.ts` (+ 보류 중인 `edit.spec.ts`) |
+| 크롭 도형·배경·확대·저장            | `moodboard-edit.spec.ts` (+ 보류 중인 `edit.spec.ts`) |
 | API 응답 스키마                     | `fixtures/data.ts` (typecheck가 먼저 잡아준다)        |
 | 버튼 텍스트·`aria-label`            | 해당 `*.page.ts` 한 곳                                |
 | 핵심 여정 밖의 화면 (`/ui-test` 등) | 없음                                                  |
@@ -188,20 +288,22 @@ format:check → lint → typecheck → build → e2e
 
 **이 목록이 전부다.** 늘리기 전에 "이게 깨지면 공유가 막히는가"를 묻는다.
 
-| 화면            | 지키는 것                                       | 파일                       | 상태           |
-| --------------- | ----------------------------------------------- | -------------------------- | -------------- |
-| 홈              | 게스트가 로그인 없이 진입, Create → 테스트 이동 | `home.spec.ts`             | ✅             |
-| 추구미 테스트   | 8개 화면 완주 → 생성중 이동                     | `mood-test.spec.ts`        | ✅             |
-| 추구미 테스트   | 목표치 전 "다음" 비활성                         | `mood-test.spec.ts`        | ✅             |
-| 생성중          | 진행률이 채워진다                               | `generating.spec.ts`       | ✅             |
-| 생성중          | 완료 → 편집 이동                                | `generating.spec.ts`       | ✅             |
-| 생성중          | job 실패 · 생성요청 실패 · 재시도               | `generating.spec.ts`       | ✅             |
-| 결과물          | 캔버스·타입명·액션 버튼 렌더                    | `moodboard-result.spec.ts` | ✅             |
-| 결과물          | PNG 내보내기 (다운로드 이벤트 + 파일명)         | `moodboard-result.spec.ts` | ✅             |
-| 결과물          | 공유 — 링크 복사                                | `moodboard-result.spec.ts` | ✅             |
-| 결과물          | 로드 실패 화면                                  | `moodboard-result.spec.ts` | ✅             |
-| 재편집          | 도구 전환 · 스티커 · 텍스트 · Undo · 저장       | `moodboard-edit.spec.ts`   | ✅             |
-| 편집(생성 직후) | 위와 동일                                       | `edit.spec.ts`             | ⏸ `test.fixme` |
+| 화면            | 지키는 것                                       | 파일                           | 상태           |
+| --------------- | ----------------------------------------------- | ------------------------------ | -------------- |
+| 홈              | 게스트가 로그인 없이 진입, Create → 테스트 이동 | `home.spec.ts`                 | ✅             |
+| 추구미 테스트   | 8개 화면 완주 → 생성중 이동                     | `mood-test.spec.ts`            | ✅             |
+| 추구미 테스트   | 목표치 전 "다음" 비활성                         | `mood-test.spec.ts`            | ✅             |
+| 생성중          | 진행률이 채워진다                               | `mood-test-generating.spec.ts` | ✅             |
+| 생성중          | 완료 → 편집 이동                                | `mood-test-generating.spec.ts` | ✅             |
+| 생성중          | job 실패 · 생성요청 실패 · 재시도               | `mood-test-generating.spec.ts` | ✅             |
+| 결과물          | 캔버스·타입명·액션 버튼 렌더                    | `moodboard-result.spec.ts`     | ✅             |
+| 결과물          | PNG 내보내기 (다운로드 이벤트 + 파일명)         | `moodboard-result.spec.ts`     | ✅             |
+| 결과물          | 공유 — 링크 복사                                | `moodboard-result.spec.ts`     | ✅             |
+| 결과물          | 로드 실패 화면                                  | `moodboard-result.spec.ts`     | ✅             |
+| 재편집          | 도형·배경·확대 전환, 탭 전환                    | `moodboard-edit.spec.ts`       | ✅             |
+| 재편집          | 저장 시트 — PNG 다운로드 · 완성 후 결과물 이동  | `moodboard-edit.spec.ts`       | ✅             |
+| 재편집          | 저장 실패 토스트 · 나가기 확인 다이얼로그       | `moodboard-edit.spec.ts`       | ✅             |
+| 편집(생성 직후) | 위와 동일 (같은 `MoodboardCropEditor` 를 렌더)  | `edit.spec.ts`                 | ⏸ `test.fixme` |
 
 **의도적으로 넣지 않은 것**
 
@@ -210,7 +312,9 @@ format:check → lint → typecheck → build → e2e
 - "다시 만들기" — `window.confirm`을 띄운다. 브라우저 모달은 자동화를 멈춘다.
 - 데스크톱 뷰포트 — 모바일 우선(PRD §11). 프로젝트는 `mobile-chromium`(Pixel 5) 하나다.
 
-**`edit.spec.ts`가 멈춰 있는 이유**: `/test/[sessionId]/edit`의 서버 컴포넌트가 `getLatestGenerationJob()` → `createServiceClient()`로 Supabase를 직접 호출한다. 클라이언트 fetch가 아니라 `page.route`로 못 막고, 시크릿 없이 도는 전제라 진입이 500이다. 스펙은 다 써 두고 `test.fixme`로 막아 뒀다 — 테스트 DB seed나 env로 켜는 테스트 seam이 붙으면 한 줄만 지우면 된다.
+**`edit.spec.ts`가 멈춰 있는 이유**: `/test/[sessionId]/edit`의 서버 컴포넌트가 `getLatestGenerationJob()` → `createServiceClient()`로 Supabase를 직접 호출한다. 클라이언트 fetch가 아니라 `page.route`로 못 막고, 시크릿 없이 도는 전제라 진입이 500이다.
+
+같은 계층의 `getMoodboardById()`는 `canUseSupabaseService()`로 env를 확인해 mock으로 폴백하는데 `getLatestGenerationJob()`에는 그 가드가 없다 — 재편집(`/moodboard/[id]/edit`)만 돌고 생성 직후 편집은 못 도는 이유가 이 비대칭이다. 스펙은 같은 화면 기준으로 다 써 두고 `test.fixme`로 막아 뒀다. 테스트 DB seed를 붙이거나 저 가드를 맞춰 주면 한 줄만 지우면 된다.
 
 ## 실행
 
