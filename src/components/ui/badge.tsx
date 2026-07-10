@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 /** 밝은 팔레트 soft 그라디언트의 작은 pill 라벨. */
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full px-4 py-1.5 text-label uppercase tracking-wide whitespace-nowrap font-body [&_svg]:pointer-events-none [&_svg]:size-3.5",
+  "inline-flex items-center rounded-full px-4 py-1.5 !text-label uppercase tracking-wide whitespace-nowrap font-body [&_svg]:pointer-events-none [&_svg]:size-3.5",
   {
     variants: {
       tone: {
@@ -16,6 +16,7 @@ const badgeVariants = cva(
         green: "bg-[image:var(--gradient-green-soft)] text-[#255c0a]",
         mustard: "bg-[image:var(--gradient-mustard-soft)] text-[#7a4b00]",
         ink: "bg-[image:var(--gradient-ink)] text-white",
+        sand: "bg-[image:var(--gradient-sand)] text-foreground",
       },
     },
     defaultVariants: {

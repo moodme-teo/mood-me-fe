@@ -37,6 +37,7 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogActions, DialogContent } from "@/components/ui/dialog";
 import { getGenerationJob } from "@/lib/api/get-generation-job";
 import { updateMoodboard } from "@/lib/api/update-moodboard";
+import { uploadExportedImage } from "@/lib/moodboard/upload-exported-image";
 import type { AnalysisStatus, EditState, MoodProfile } from "@/types/moodboard";
 
 type Props = {
@@ -424,6 +425,11 @@ export default function MoodboardCropEditor({
     try {
       const exportedImageDataUrl =
         (await exporterRef.current?.("png")) ?? undefined;
+      // base64 dataURL을 그대로 저장 요청에 실으면 Vercel 요청 바디 제한(413)에 걸린다
+      // (#163) — Supabase Storage에 먼저 올리고 결과 URL만 보낸다.
+      const exportedImageUrl = exportedImageDataUrl
+        ? await uploadExportedImage(moodboardId, exportedImageDataUrl)
+        : undefined;
 
       // 이 화면은 서버 컴포넌트가 렌더 시점에 job을 1회만 읽어 moodProfile을 prop으로
       // 내려받는다 — 그 이후 리포트(GPT-5)가 끝나도 이 prop은 갱신되지 않는다. 저장
@@ -452,7 +458,7 @@ export default function MoodboardCropEditor({
       await updateMoodboard(moodboardId, {
         baseImageUrl,
         elements: [],
-        exportedImageDataUrl,
+        exportedImageUrl,
         editState: {
           sourceImageUrl: baseImageUrl,
           shapeId: crop.shape,
@@ -467,7 +473,8 @@ export default function MoodboardCropEditor({
           : {}),
         ...(sessionId ? { sessionId } : {}),
       });
-      router.push(`/moodboard/${moodboardId}`);
+      // 결과 페이지가 "직후 진입"과 "히스토리 재열람"을 구분하는 유일한 신호 (#157).
+      router.push(`/moodboard/${moodboardId}?from=complete`);
     } catch (error) {
       console.error(error);
       showToast("저장하지 못했어요. 다시 시도해 주세요.");

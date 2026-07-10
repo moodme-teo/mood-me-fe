@@ -1,18 +1,46 @@
 "use client";
 
+import {
+  Download,
+  Home,
+  Pencil,
+  RotateCcw,
+  Share2,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { BoardPreview, compositeOnWhite } from "@/components/canvas";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Dialog, DialogActions, DialogContent } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import { deleteMoodboard } from "@/lib/api/delete-moodboard";
 import type { GetMoodboardResponse } from "@/lib/api/get-moodboard";
 import { getMoodboard } from "@/lib/api/get-moodboard";
 import { retryMoodboardAnalysis } from "@/lib/api/retry-moodboard-analysis";
 import { ApiClientError } from "@/lib/api-client";
+import { getLoginPath } from "@/lib/auth/redirect-url";
 import type { MoodVector } from "@/types/moodboard";
 import { MOODBOARD_HEIGHT, MOODBOARD_WIDTH } from "@/types/moodboard";
+
+// exportedImageUrl이 Supabase Storage의 원격 URL일 수 있다(#163). <a download>는 교차
+// 출처 URL에서 신뢰할 수 없고, compositeOnWhite의 캔버스 합성도 CORS 없이는 tainted
+// 캔버스로 막힌다 — 한 번 fetch해 데이터 URL로 바꾸면 이후 로직은 그대로 재사용된다.
+async function toDataUrl(url: string): Promise<string> {
+  if (url.startsWith("data:")) return url;
+
+  const blob = await (await fetch(url)).blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
 
 // 재시도 후 결과를 기다리는 동안 쓰는 폴링 상수 — 생성중 화면(useGenerationPolling)과 같은
 // 간격이지만 여긴 훨씬 가볍다: 이미지·저장·공유는 이미 끝난 상태고 mood_profile 하나만 본다.
@@ -32,16 +60,36 @@ type LoadState =
   | { status: "error"; message: string; isMissing: boolean }
   | { status: "ready"; moodboard: GetMoodboardResponse };
 
+// 결과 페이지 3가지 접근 시나리오 (#157) — isOwner(서버 대조값)와 "직후 진입" 신호를 조합한다.
+// justCompleted는 URL을 벗어나면(새로고침·재방문) 사라지는 일회성 신호라 history와 구분된다.
+type ResultScenario = "justCompleted" | "history" | "shared";
+
+function resolveScenario(
+  isOwner: boolean,
+  justCompleted: boolean,
+): ResultScenario {
+  if (!isOwner) return "shared";
+  return justCompleted ? "justCompleted" : "history";
+}
+
+// MoodboardCropEditor.tsx의 테스트 완료 리다이렉트가 붙이는 "직후 진입" 신호.
+const JUST_COMPLETED_QUERY_KEY = "from";
+const JUST_COMPLETED_QUERY_VALUE = "complete";
+
+type SpectrumTone = "pink" | "violet" | "cyan" | "green" | "mustard";
+
+// 축 5개 = 브랜드 밝은 팔레트 5색과 1:1 — 각 축을 고유 색으로 구분한다.
 const MOOD_AXES: {
   key: keyof MoodVector;
   left: string;
   right: string;
+  tone: SpectrumTone;
 }[] = [
-  { key: "calm_energy", left: "고요", right: "활기" },
-  { key: "warm_cool", left: "따뜻", right: "서늘" },
-  { key: "minimal_maximal", left: "미니멀", right: "맥시멀" },
-  { key: "vintage_modern", left: "빈티지", right: "모던" },
-  { key: "real_dreamy", left: "현실", right: "몽환" },
+  { key: "calm_energy", left: "고요", right: "활기", tone: "mustard" },
+  { key: "warm_cool", left: "따뜻", right: "서늘", tone: "cyan" },
+  { key: "minimal_maximal", left: "미니멀", right: "맥시멀", tone: "pink" },
+  { key: "real_dreamy", left: "현실", right: "몽환", tone: "violet" },
+  { key: "vintage_modern", left: "빈티지", right: "모던", tone: "green" },
 ];
 
 function Toast({ message }: { message: string | null }) {
@@ -50,7 +98,7 @@ function Toast({ message }: { message: string | null }) {
   return (
     <div
       role="status"
-      className="fixed top-4 left-1/2 z-40 w-[calc(100%-32px)] max-w-sm -translate-x-1/2 rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
+      className="fixed top-4 left-1/2 z-40 w-[calc(100%-32px)] max-w-sm -translate-x-1/2 rounded-lg bg-surface-inverse px-4 py-3 text-sm font-semibold text-on-inverse shadow-ink"
     >
       {message}
     </div>
@@ -60,11 +108,11 @@ function Toast({ message }: { message: string | null }) {
 function LoadingView() {
   return (
     <main className="flex flex-1 justify-center overflow-y-auto bg-background px-4 py-5 text-foreground">
-      <div className="w-full max-w-[430px] animate-pulse space-y-4">
-        <div className="h-12 rounded-2xl bg-gray-100" />
-        <div className="mx-auto h-[520px] w-full max-w-[360px] rounded-2xl bg-gray-100" />
-        <div className="h-28 rounded-2xl bg-gray-100" />
-        <div className="h-44 rounded-2xl bg-gray-100" />
+      <div className="w-full max-w-[430px] animate-pulse space-y-4 motion-reduce:animate-none">
+        <div className="h-12 rounded-lg bg-gray-100" />
+        <div className="mx-auto h-[520px] w-full max-w-[360px] rounded-xl bg-gray-100" />
+        <div className="h-28 rounded-lg bg-gray-100" />
+        <div className="h-44 rounded-lg bg-gray-100" />
       </div>
     </main>
   );
@@ -87,18 +135,22 @@ function MissingView() {
 
   return (
     <main className="flex flex-1 items-center justify-center bg-background px-4 text-foreground">
-      <section className="w-full max-w-sm rounded-2xl bg-card p-5 text-center">
-        <h1 className="text-xl font-bold">존재하지 않는 무드보드예요.</h1>
-        <p className="mt-3 text-sm leading-6 text-gray-700">
+      <Card className="w-full max-w-sm gap-4 px-5 text-center">
+        <h1 className="text-heading-md">존재하지 않는 무드보드예요.</h1>
+        <p className="text-gray-700 text-body-sm">
           링크가 만료됐거나 삭제된 보드예요. 잠시 뒤 홈으로 이동할게요.
         </p>
         <Link
           href="/"
-          className="mt-5 block rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
+          className={buttonVariants({
+            tone: "ink",
+            size: "md",
+            className: "w-full",
+          })}
         >
           지금 홈으로 가기
         </Link>
-      </section>
+      </Card>
     </main>
   );
 }
@@ -112,58 +164,56 @@ function ErrorView({
 }) {
   return (
     <main className="flex flex-1 items-center justify-center bg-background px-4 text-foreground">
-      <section className="w-full max-w-sm rounded-2xl bg-card p-5 text-center">
-        <h1 className="text-xl font-bold">결과를 불러오지 못했어요.</h1>
-        <p className="mt-3 text-sm leading-6 text-gray-700">{message}</p>
-        <div className="mt-5 grid grid-cols-2 gap-2">
+      <Card className="w-full max-w-sm gap-4 px-5 text-center">
+        <h1 className="text-heading-md">결과를 불러오지 못했어요.</h1>
+        <p className="text-gray-700 text-body-sm">{message}</p>
+        <div className="grid grid-cols-2 gap-2">
           <Link
             href="/"
-            className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-bold"
+            className={buttonVariants({ variant: "secondary", size: "md" })}
           >
             홈으로
           </Link>
-          <button
-            type="button"
-            onClick={onRetry}
-            className="rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
-          >
+          <Button type="button" tone="ink" size="md" onClick={onRetry}>
             다시 시도
-          </button>
+          </Button>
         </div>
-      </section>
+      </Card>
     </main>
   );
 }
 
 function MoodSpectrum({ vector }: { vector: MoodVector }) {
   return (
-    <section className="rounded-2xl bg-card p-4">
-      <h2 className="text-lg font-bold">무드 성향 5축</h2>
-      <div className="mt-4 space-y-4">
+    <div className="px-4">
+      <h2 className="mb-2 text-heading-md">무드 성향 5축</h2>
+      <div className="space-y-4">
         {MOOD_AXES.map((axis) => {
           const value = vector[axis.key];
           const percent = Math.round(value * 100);
 
           return (
             <div key={axis.key}>
-              <div className="flex items-center justify-between text-xs font-bold text-gray-700">
+              <div className="flex items-center justify-between text-gray-700 text-label">
                 <span>{axis.left}</span>
                 <span>{axis.right}</span>
               </div>
-              <div className="mt-2 h-3 rounded-full bg-gray-100">
-                <div
-                  className="h-3 rounded-full bg-[#2556d9]"
-                  style={{ width: `${percent}%` }}
+              <div className="mt-2 flex items-center gap-3">
+                <Progress
+                  value={percent}
+                  tone={axis.tone}
+                  size="sm"
+                  className="flex-1"
                 />
+                <span className="w-9 shrink-0 text-right text-muted-foreground text-caption">
+                  {percent}%
+                </span>
               </div>
-              <p className="mt-1 text-right text-xs font-bold text-muted-foreground">
-                {percent}%
-              </p>
             </div>
           );
         })}
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -177,96 +227,112 @@ function AnalysisFailedBlock({
   onRetry: () => void;
 }) {
   return (
-    <section className="rounded-2xl bg-card p-4 text-center">
-      <p className="text-base font-bold text-foreground">
-        무드 성향을 읽어내지 못했어요.
-      </p>
-      <p className="mt-2 text-sm leading-6 text-gray-700">
-        무드보드는 그대로예요.
-      </p>
-      <button
+    <Card className="gap-2 px-4 text-center text-foreground">
+      <p className="font-bold text-body-md">무드 성향을 읽어내지 못했어요.</p>
+      <p className="text-gray-700 text-body-sm">무드보드는 그대로예요.</p>
+      <Button
         type="button"
+        tone="ink"
+        size="md"
+        className="mt-1 w-full"
         onClick={onRetry}
         disabled={isRetrying}
-        className="mt-4 rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white disabled:opacity-60"
       >
         {isRetrying ? "분석 다시 시도하는 중" : "분석 다시 시도"}
-      </button>
-    </section>
+      </Button>
+    </Card>
   );
 }
 
-function ReadingBlock({ moodboard }: { moodboard: GetMoodboardResponse }) {
+function ReadingTitle({ moodboard }: { moodboard: GetMoodboardResponse }) {
   const { moodProfile } = moodboard;
 
   return (
-    <section className="space-y-4">
-      <div>
-        <h1 className="text-4xl leading-tight font-bold text-foreground">
-          {moodProfile.title}
-        </h1>
-        <p className="mt-2 text-base font-bold text-[#2556d9]">
-          {moodProfile.type_name}
-        </p>
-      </div>
-      <div className="space-y-3 rounded-2xl bg-card p-4 text-[15px] leading-7 font-medium text-gray-700">
-        <p>{moodProfile.reading.conviction}</p>
-        <p>{moodProfile.reading.desire}</p>
-        <p>{moodProfile.reading.showdown}</p>
-      </div>
-    </section>
+    <div className="flex flex-col items-center gap-2 space-y-2">
+      <Badge tone="violet">{moodProfile.type_name}</Badge>
+      <h1 className="text-display-sm text-foreground">{moodProfile.title}</h1>
+    </div>
+  );
+}
+
+function ReadingBody({ moodboard }: { moodboard: GetMoodboardResponse }) {
+  const { moodProfile } = moodboard;
+
+  return (
+    <div className="gap-3 px-4 text-card-foreground text-gray-700 text-body-sm [&>*]:mb-4">
+      <p>{moodProfile.reading.conviction}</p>
+      <p>{moodProfile.reading.desire}</p>
+      <p>{moodProfile.reading.showdown}</p>
+    </div>
   );
 }
 
 function KeywordCloud({ moodboard }: { moodboard: GetMoodboardResponse }) {
-  const { keywords, sticker_phrases: stickerPhrases } = moodboard.moodProfile;
+  const { keywords } = moodboard.moodProfile;
 
-  if (keywords.length === 0 && stickerPhrases.length === 0) return null;
+  if (keywords.length === 0) return null;
 
   return (
-    <section className="space-y-3">
-      {keywords.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {keywords.map((keyword) => (
-            <span
-              key={keyword}
-              className="rounded-full bg-card px-3 py-2 text-xs font-bold text-gray-700"
-            >
-              {keyword}
-            </span>
-          ))}
-        </div>
-      ) : null}
-      {stickerPhrases.length > 0 ? (
-        <div className="grid gap-2 sm:grid-cols-3">
-          {stickerPhrases.map((phrase) => (
-            <p
-              key={phrase}
-              className="rounded-2xl bg-surface-inverse px-4 py-3 text-center text-sm font-bold text-white"
-            >
-              {phrase}
-            </p>
-          ))}
-        </div>
-      ) : null}
+    <section className="mt-6 mb-12 flex flex-wrap items-center justify-center gap-2">
+      {keywords.map((keyword) => (
+        <Badge key={keyword} tone="sand">
+          {keyword}
+        </Badge>
+      ))}
     </section>
   );
 }
 
-function GuestBanner() {
+function StickerPhraseCloud({
+  moodboard,
+}: {
+  moodboard: GetMoodboardResponse;
+}) {
+  const { sticker_phrases: stickerPhrases } = moodboard.moodProfile;
+
+  if (stickerPhrases.length === 0) return null;
+
   return (
-    <section className="rounded-2xl bg-[#e8eeff] p-4 text-foreground">
-      <p className="text-sm font-bold">로그인하면 언제든 다시 볼 수 있어요.</p>
-      <p className="mt-1 text-sm leading-6 text-gray-700">
+    <section className="grid gap-2">
+      {stickerPhrases.map((phrase) => (
+        <div key={phrase} className="flex items-center justify-center gap-1">
+          <span lang="en" className="-mb-3 font-display-en text-[32px]">
+            &ldquo;
+          </span>
+          <p className="px-4 py-3 text-center font-bold text-body-sm">
+            {phrase}
+          </p>
+          <span lang="en" className="-mb-3 font-display-en text-[32px]">
+            &rdquo;
+          </span>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function GuestBanner({ moodboardId }: { moodboardId: string }) {
+  const loginPath = getLoginPath(`/moodboard/${moodboardId}`);
+
+  return (
+    <Card className="gap-2 px-4 text-foreground">
+      <p className="font-bold text-body-md">
+        로그인하면 언제든 다시 볼 수 있어요.
+      </p>
+      <p className="text-gray-700 text-body-sm">
         지금은 게스트로도 열람, 공유, 이미지 저장을 모두 사용할 수 있습니다.
       </p>
       <Link
-        href="/login"
-        className="mt-3 inline-flex rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
+        href={loginPath}
+        className={buttonVariants({
+          tone: "violet",
+          size: "md",
+          className: "mt-1 w-full",
+        })}
       >
         로그인하고 보관하기
       </Link>
-    </section>
+    </Card>
   );
 }
 
@@ -281,59 +347,85 @@ function SaveFormatSheet({
 }) {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/48 p-4">
-      <section
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-inverse/48 p-4">
+      <Card
         role="dialog"
         aria-modal="true"
         aria-labelledby="image-save-title"
-        className="w-full max-w-sm space-y-3 rounded-2xl bg-card p-5 text-foreground"
+        className="w-full max-w-sm gap-3 px-5 text-foreground"
       >
-        <h2 id="image-save-title" className="text-lg font-bold">
+        <h2 id="image-save-title" className="text-heading-md">
           이미지 저장
         </h2>
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="md"
+          className="w-full"
           onClick={() => onSelect("png")}
-          className="w-full rounded-xl border border-gray-300 bg-card px-4 py-3 text-sm font-bold"
         >
           PNG로 저장 (투명 유지)
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="secondary"
+          size="md"
+          className="w-full"
           onClick={() => onSelect("jpeg")}
-          className="w-full rounded-xl border border-gray-300 bg-card px-4 py-3 text-sm font-bold"
         >
           JPG로 저장 (흰 배경)
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="ghost"
+          size="md"
+          className="w-full"
           onClick={onClose}
-          className="w-full rounded-xl px-4 py-3 text-sm font-bold text-gray-700"
         >
           닫기
-        </button>
-      </section>
+        </Button>
+      </Card>
     </div>
   );
 }
 
 // 브라우저 모달(window.confirm)은 페이지 스크립트를 멈추고 스타일도 제어할 수 없다.
 // ui/dialog 의 인앱 다이얼로그로 맞춘다.
+//
+// history 열람 맥락은 "방금 만든 걸 다시"라는 현재 문구와 어긋나지만, 최종 카피는
+// UXUI 리더 리뷰에서 확정한다 — 여기서는 시나리오별로 분기할 수 있는 지점만 마련한다 (#157).
+const RESTART_DIALOG_COPY: Record<
+  "justCompleted" | "history",
+  { title: string; description: string }
+> = {
+  justCompleted: {
+    title: "처음부터 다시 만들까요?",
+    description:
+      "지금 보고 있는 무드보드는 그대로 남아요. 새 테스트를 시작합니다.",
+  },
+  history: {
+    title: "처음부터 다시 만들까요?",
+    description:
+      "지금 보고 있는 무드보드는 그대로 남아요. 새 테스트를 시작합니다.",
+  },
+};
+
 function ConfirmRestartDialog({
+  scenario,
   isOpen,
   onCancel,
   onConfirm,
 }: {
+  scenario: "justCompleted" | "history";
   isOpen: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const { title, description } = RESTART_DIALOG_COPY[scenario];
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent
-        title="처음부터 다시 만들까요?"
-        description="지금 보고 있는 무드보드는 그대로 남아요. 새 테스트를 시작합니다."
-      >
+      <DialogContent title={title} description={description}>
         <DialogActions>
           <Button
             type="button"
@@ -352,72 +444,179 @@ function ConfirmRestartDialog({
   );
 }
 
+function ConfirmDeleteDialog({
+  isOpen,
+  isDeleting,
+  onCancel,
+  onConfirm,
+}: {
+  isOpen: boolean;
+  isDeleting: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent
+        title="이 무드보드를 삭제할까요?"
+        description="삭제하면 되돌릴 수 없어요."
+      >
+        <DialogActions>
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            onClick={onCancel}
+            disabled={isDeleting}
+          >
+            취소
+          </Button>
+          <Button
+            type="button"
+            tone="pink"
+            size="md"
+            onClick={onConfirm}
+            disabled={isDeleting}
+          >
+            {isDeleting ? "삭제하는 중" : "삭제할게요"}
+          </Button>
+        </DialogActions>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// !owner(공유) 전용 — 소유 관계가 없는 사람에게는 "다시 만들까요"가 아니라 신규 유입 유도가 맞다.
+function TryItYourselfCta() {
+  const router = useRouter();
+
+  return (
+    <Card className="gap-2 px-4 text-center text-foreground">
+      <p className="font-bold text-body-md">나도 이런 무드보드 만들어볼까요?</p>
+      <p className="text-gray-700 text-body-sm">
+        짧은 테스트로 나만의 AI 무드보드를 만들 수 있어요.
+      </p>
+      <Button
+        type="button"
+        tone="violet"
+        size="md"
+        className="mt-1 w-full"
+        onClick={() => router.push(`/test/${crypto.randomUUID()}`)}
+      >
+        나도 만들어보기
+      </Button>
+    </Card>
+  );
+}
+
 function ResultActions({
   moodboard,
+  scenario,
+  isDeleting,
   onOpenSave,
   onShare,
+  onDelete,
 }: {
   moodboard: GetMoodboardResponse;
+  scenario: ResultScenario;
+  isDeleting: boolean;
   onOpenSave: () => void;
   onShare: () => void;
+  onDelete: () => void;
 }) {
   const router = useRouter();
   const [isRestartOpen, setIsRestartOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   return (
-    <section className="space-y-3">
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={onShare}
-          className="rounded-xl bg-[#2556d9] px-4 py-3 text-sm font-bold text-white"
+    <section className="space-y-4">
+      <div className="flex items-center justify-center gap-2">
+        <Link
+          href="/"
+          title="홈"
+          aria-label="홈"
+          className={buttonVariants({ variant: "secondary", size: "icon-md" })}
         >
-          SNS 공유
-        </button>
-        <button
-          type="button"
-          onClick={onOpenSave}
-          className="rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
-        >
-          이미지 저장
-        </button>
-      </div>
-      {/* 편집은 소유자에게만 보인다 — 공유 링크로 들어온 사람에게는 감춘다. 실제 방어는
-          서버의 PATCH 소유자 검증이고, 이 숨김은 그 위에 얹는 안내다 (#126). */}
-      <div
-        className={
-          moodboard.isOwner
-            ? "grid grid-cols-3 gap-2"
-            : "grid grid-cols-2 gap-2"
-        }
-      >
+          <Home aria-hidden />
+        </Link>
         {moodboard.isOwner ? (
           <Link
             href={`/moodboard/${moodboard.id}/edit`}
-            className="rounded-xl border border-gray-300 bg-card px-3 py-3 text-center text-xs font-bold text-foreground"
+            title="편집"
+            aria-label="편집"
+            className={buttonVariants({
+              variant: "secondary",
+              size: "icon-md",
+            })}
           >
-            편집
+            <Pencil aria-hidden />
           </Link>
         ) : null}
-        <button
+        {scenario !== "shared" ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon-md"
+            title="다시 만들기"
+            aria-label="다시 만들기"
+            onClick={() => setIsRestartOpen(true)}
+          >
+            <RotateCcw aria-hidden />
+          </Button>
+        ) : null}
+
+        <Button
           type="button"
-          onClick={() => setIsRestartOpen(true)}
-          className="rounded-xl border border-gray-300 bg-card px-3 py-3 text-xs font-bold text-foreground"
+          variant={"secondary"}
+          size="icon-md"
+          title="이미지 저장"
+          aria-label="이미지 저장"
+          onClick={onOpenSave}
         >
-          다시 만들기
-        </button>
-        <Link
-          href="/"
-          className="rounded-xl border border-gray-300 bg-card px-3 py-3 text-center text-xs font-bold text-foreground"
-        >
-          홈
-        </Link>
+          <Download aria-hidden />
+        </Button>
+        {scenario === "history" ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon-md"
+            title="삭제"
+            aria-label="무드보드 삭제"
+            className="text-destructive"
+            onClick={() => setIsDeleteOpen(true)}
+          >
+            <Trash2 aria-hidden />
+          </Button>
+        ) : null}
+        {moodboard.isOwner ? (
+          <Button
+            type="button"
+            tone="pink"
+            size="md"
+            title="SNS 공유"
+            aria-label="SNS 공유"
+            onClick={onShare}
+          >
+            <Share2 aria-hidden /> 공유
+          </Button>
+        ) : null}
       </div>
-      <ConfirmRestartDialog
-        isOpen={isRestartOpen}
-        onCancel={() => setIsRestartOpen(false)}
-        onConfirm={() => router.push(`/test/${crypto.randomUUID()}`)}
-      />
+      {scenario !== "shared" ? (
+        <ConfirmRestartDialog
+          scenario={scenario}
+          isOpen={isRestartOpen}
+          onCancel={() => setIsRestartOpen(false)}
+          onConfirm={() => router.push(`/test/${crypto.randomUUID()}`)}
+        />
+      ) : null}
+      {scenario === "history" ? (
+        <ConfirmDeleteDialog
+          isOpen={isDeleteOpen}
+          isDeleting={isDeleting}
+          onCancel={() => setIsDeleteOpen(false)}
+          onConfirm={onDelete}
+        />
+      ) : null}
     </section>
   );
 }
@@ -441,10 +640,13 @@ async function copyText(text: string) {
 }
 
 export default function MoodboardResult({ moodboardId }: Props) {
+  const router = useRouter();
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [toast, setToast] = useState<string | null>(null);
   const [isRetryingAnalysis, setIsRetryingAnalysis] = useState(false);
   const [isSaveOpen, setIsSaveOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [justCompleted, setJustCompleted] = useState(false);
   const exportRef = useRef<(() => string | null) | null>(null);
   const analysisPollTimerRef = useRef<number | null>(null);
 
@@ -452,6 +654,20 @@ export default function MoodboardResult({ moodboardId }: Props) {
     setToast(message);
     window.setTimeout(() => setToast(null), 2600);
   }, []);
+
+  // "직후 진입" 신호는 한 번 읽고 나면 URL에서 지운다 — 남아 있으면 새로고침·재방문에서도
+  // "직후"로 오인된다 (#157). setState를 effect 본문에서 바로 부르면 react-hooks/
+  // set-state-in-effect에 걸려 microtask로 한 단계 늦춘다(아래 폴링 setState들과 같은 이유).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get(JUST_COMPLETED_QUERY_KEY) !== JUST_COMPLETED_QUERY_VALUE) {
+      return;
+    }
+    queueMicrotask(() => {
+      setJustCompleted(true);
+      router.replace(`/moodboard/${moodboardId}`, { scroll: false });
+    });
+  }, [moodboardId, router]);
 
   useEffect(() => {
     return () => {
@@ -557,11 +773,12 @@ export default function MoodboardResult({ moodboardId }: Props) {
   const handleDownload = useCallback(
     async (format: "png" | "jpeg") => {
       try {
-        const pngDataUrl = exportRef.current?.();
-        if (!pngDataUrl) {
+        const source = exportRef.current?.();
+        if (!source) {
           showToast("이미지 준비가 아직 끝나지 않았어요.");
           return;
         }
+        const pngDataUrl = await toDataUrl(source);
 
         const dataUrl =
           format === "jpeg" ? await compositeOnWhite(pngDataUrl) : pngDataUrl;
@@ -591,6 +808,21 @@ export default function MoodboardResult({ moodboardId }: Props) {
     }
   }, [showToast]);
 
+  // history 시나리오 전용 — 삭제 성공 시 메인으로 이동한다(#157). 실패는 조용히 삼키지
+  // 않고 토스트로 알린다(docs/convention/error.md).
+  const handleDelete = useCallback(() => {
+    setIsDeleting(true);
+    deleteMoodboard(moodboardId)
+      .then(() => {
+        router.push("/");
+      })
+      .catch((error: unknown) => {
+        console.error(error);
+        setIsDeleting(false);
+        showToast("삭제하지 못했어요. 다시 시도해 주세요.");
+      });
+  }, [moodboardId, router, showToast]);
+
   if (state.status === "loading") return <LoadingView />;
   if (state.status === "error") {
     return state.isMissing ? (
@@ -602,6 +834,7 @@ export default function MoodboardResult({ moodboardId }: Props) {
 
   const { moodboard } = state;
   const exportedImageUrl = moodboard.exportedImageUrl ?? null;
+  const scenario = resolveScenario(moodboard.isOwner, justCompleted);
 
   return (
     <main className="flex flex-1 justify-center overflow-y-auto bg-background text-foreground">
@@ -615,9 +848,11 @@ export default function MoodboardResult({ moodboardId }: Props) {
         <header className="mb-4 flex items-center justify-between">
           <Link
             href="/"
-            className="rounded-xl border border-gray-300 bg-card px-3 py-2 text-sm font-bold"
+            title="홈으로 이동"
+            aria-label="홈으로 이동"
+            className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
           >
-            홈
+            <Home aria-hidden />
           </Link>
           <p className="text-sm font-bold">mood·me</p>
         </header>
@@ -625,7 +860,7 @@ export default function MoodboardResult({ moodboardId }: Props) {
         {exportedImageUrl ? (
           // 크롭 에디터(#99) 결과 — 평면 이미지를 그대로 보여준다. 투명 영역은 체크보드로 표시.
           <section
-            className="mx-auto flex aspect-square w-[360px] max-w-full items-center justify-center overflow-hidden rounded-2xl"
+            className="mx-auto flex aspect-square w-[360px] max-w-full items-center justify-center overflow-hidden"
             style={{
               backgroundImage:
                 "linear-gradient(45deg, #e5e5e5 25%, transparent 25%), linear-gradient(-45deg, #e5e5e5 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e5e5e5 75%), linear-gradient(-45deg, transparent 75%, #e5e5e5 75%)",
@@ -643,7 +878,7 @@ export default function MoodboardResult({ moodboardId }: Props) {
             />
           </section>
         ) : (
-          <section className="mx-auto w-[360px] max-w-full overflow-hidden rounded-2xl bg-surface-inverse">
+          <section className="mx-auto w-[360px] max-w-full overflow-hidden rounded-xl bg-surface-inverse shadow-card">
             <BoardPreview
               width={MOODBOARD_WIDTH}
               height={MOODBOARD_HEIGHT}
@@ -657,7 +892,7 @@ export default function MoodboardResult({ moodboardId }: Props) {
           </section>
         )}
 
-        <div className="mt-6 space-y-6 pb-8">
+        <div className="mt-6 space-y-10 pb-8">
           {moodboard.analysisStatus === "failed" ? (
             <AnalysisFailedBlock
               isRetrying={isRetryingAnalysis}
@@ -665,17 +900,26 @@ export default function MoodboardResult({ moodboardId }: Props) {
             />
           ) : (
             <>
-              <ReadingBlock moodboard={moodboard} />
-              <MoodSpectrum vector={moodboard.moodProfile.mood_vector} />
+              <ReadingTitle moodboard={moodboard} />
+              <StickerPhraseCloud moodboard={moodboard} />
+              <ReadingBody moodboard={moodboard} />
               <KeywordCloud moodboard={moodboard} />
+              <MoodSpectrum vector={moodboard.moodProfile.mood_vector} />
             </>
           )}
           <ResultActions
             moodboard={moodboard}
+            scenario={scenario}
+            isDeleting={isDeleting}
             onOpenSave={() => setIsSaveOpen(true)}
             onShare={handleShare}
+            onDelete={handleDelete}
           />
-          {moodboard.isGuest ? <GuestBanner /> : null}
+          {scenario === "shared" ? (
+            <TryItYourselfCta />
+          ) : moodboard.isGuest ? (
+            <GuestBanner moodboardId={moodboardId} />
+          ) : null}
         </div>
       </div>
     </main>

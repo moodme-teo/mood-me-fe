@@ -1,6 +1,9 @@
 export const MOODBOARD_WIDTH = 360;
 export const MOODBOARD_HEIGHT = 640;
 export const EXPORT_PIXEL_RATIO = 2;
+// 크롭 결과 export 이미지를 올리는 Supabase Storage 버킷 (#163) — 공유 링크가 <img>로
+// 그대로 노출하므로 공개 버킷이다. supabase/migrations/20260712120000_moodboard_export_bucket.sql.
+export const MOODBOARD_EXPORT_BUCKET = "moodboard-exports";
 
 type BaseMoodboardElement = {
   id: string;

@@ -11,6 +11,7 @@ import {
   MOODBOARD_ANALYSIS_FAILED,
   MOODBOARD_ID,
   MOODBOARD_SUMMARIES,
+  SHARED_MOODBOARD,
 } from "../fixtures/data";
 
 // 목록(/api/moodboards)과 단건(/api/moodboards/{id})은 glob 로 구분하기 어려워
@@ -143,6 +144,30 @@ export async function mockMoodboardFailure(page: Page) {
   await page.route("**/api/moodboards/*", (route) =>
     fail(route, 500, "INTERNAL_ERROR", "불러오지 못했어요."),
   );
+}
+
+// 공유 링크로 남의 보드를 연 제3자 — isOwner: false (#157).
+export async function mockSharedMoodboard(page: Page) {
+  await page.route("**/api/moodboards/*", (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    return ok(route, SHARED_MOODBOARD);
+  });
+}
+
+// 결과 페이지 삭제 — DELETE /api/moodboards/{id} (#157). GET과 같은 URL 패턴이라
+// mockMoodboard 뒤에 이어 붙여야 한다(다른 메서드는 fallback으로 넘긴다).
+export async function mockDeleteMoodboard(page: Page) {
+  await page.route("**/api/moodboards/*", (route) => {
+    if (route.request().method() !== "DELETE") return route.fallback();
+    return ok(route, { id: MOODBOARD_ID, deleted: true });
+  });
+}
+
+export async function mockDeleteMoodboardFailure(page: Page) {
+  await page.route("**/api/moodboards/*", (route) => {
+    if (route.request().method() !== "DELETE") return route.fallback();
+    return fail(route, 500, "INTERNAL_ERROR", "삭제하지 못했어요.");
+  });
 }
 
 // 분석(GPT-5) 실패 상태 — 그래프 자리에 재시도 버튼이 뜬다(#122).

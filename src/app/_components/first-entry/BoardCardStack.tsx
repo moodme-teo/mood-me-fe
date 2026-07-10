@@ -23,7 +23,6 @@ import { useEffect, useRef } from "react";
 
 type Props = {
   active: boolean;
-  reduced: boolean;
   /** 첫 화면에 걸리는 카드 이미지가 모두 준비되면 한 번 호출된다 — 스플래시 종료 조건. */
   onAboveFoldReady?: () => void;
 };
@@ -90,15 +89,6 @@ const ARC_X = [
   "10.71%",
   "-33.33%",
 ];
-const ARC_X_REDUCED = [
-  "-14.29%",
-  "-4.76%",
-  "5.95%",
-  "3.57%",
-  "7.14%",
-  "4.76%",
-  "-14.29%",
-];
 
 // 낙하가 시작되기 전 카드가 대기하는 위치(화면 위 바깥).
 const DROP_FROM_Y = "-72vh";
@@ -111,7 +101,6 @@ type BoardArcCardProps = {
   active: boolean;
   card: Card;
   index: number;
-  reduced: boolean;
   scrollYProgress: MotionValue<number>;
 };
 
@@ -131,11 +120,7 @@ function whenPainted(img: HTMLImageElement): Promise<void> {
   return loaded.then(() => img.decode().catch(() => {}));
 }
 
-export default function BoardCardStack({
-  active,
-  reduced,
-  onAboveFoldReady,
-}: Props) {
+export default function BoardCardStack({ active, onAboveFoldReady }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ container: scrollRef });
 
@@ -177,7 +162,6 @@ export default function BoardCardStack({
             active={active}
             card={card}
             index={index}
-            reduced={reduced}
             scrollYProgress={scrollYProgress}
           />
         ))}
@@ -190,53 +174,35 @@ function BoardArcCard({
   active,
   card,
   index,
-  reduced,
   scrollYProgress,
 }: BoardArcCardProps) {
   const rawX = useTransform(
     scrollYProgress,
     ARC_CATCH_POINTS.map((point) => card.arcPeak + point),
-    reduced ? ARC_X_REDUCED : ARC_X,
+    ARC_X,
   );
-  const x = useSpring(rawX, {
-    stiffness: reduced ? 900 : 420,
-    damping: reduced ? 90 : 31,
-    mass: reduced ? 0.2 : 0.38,
-  });
-  const rotateYRange = reduced
-    ? [
-        card.rotateY * 0.45,
-        card.rotateY * 0.32,
-        card.rotateY * 0.16,
-        card.rotateY * 0.08,
-        card.rotateY * 0.14,
-        card.rotateY * 0.32,
-        card.rotateY * 0.45,
-      ]
-    : [
-        card.rotateY,
-        card.rotateY * 0.62,
-        card.rotateY * 0.22,
-        card.rotateY * 0.08,
-        card.rotateY * 0.18,
-        card.rotateY * 0.62,
-        card.rotateY,
-      ];
+  const x = useSpring(rawX, { stiffness: 420, damping: 31, mass: 0.38 });
   const rawRotateY = useTransform(
     scrollYProgress,
     ARC_CATCH_POINTS.map((point) => card.arcPeak + point),
-    rotateYRange,
+    [
+      card.rotateY,
+      card.rotateY * 0.62,
+      card.rotateY * 0.22,
+      card.rotateY * 0.08,
+      card.rotateY * 0.18,
+      card.rotateY * 0.62,
+      card.rotateY,
+    ],
   );
   const rotateY = useSpring(rawRotateY, {
-    stiffness: reduced ? 900 : 360,
-    damping: reduced ? 90 : 34,
-    mass: reduced ? 0.2 : 0.32,
+    stiffness: 360,
+    damping: 34,
+    mass: 0.32,
   });
 
   // 대기 상태 = initial 과 같은 값이라, 스플래시 동안 마운트돼도 아무 동작이 일어나지 않는다.
-  const waiting = reduced
-    ? { opacity: 0, rotate: card.rotate }
-    : { opacity: 0, y: DROP_FROM_Y, rotate: 0 };
+  const waiting = { opacity: 0, y: DROP_FROM_Y, rotate: 0 };
 
   return (
     <motion.div
@@ -254,17 +220,13 @@ function BoardArcCard({
       }}
       initial={waiting}
       animate={active ? { opacity: 1, y: 0, rotate: card.rotate } : waiting}
-      transition={
-        reduced
-          ? { duration: 0.3, delay: index * 0.04 }
-          : {
-              type: "spring",
-              stiffness: 88,
-              damping: 15,
-              mass: 0.9,
-              delay: index * 0.12,
-            }
-      }
+      transition={{
+        type: "spring",
+        stiffness: 88,
+        damping: 15,
+        mass: 0.9,
+        delay: index * 0.12,
+      }}
     >
       <Image
         src={card.src}

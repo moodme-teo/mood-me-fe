@@ -24,6 +24,9 @@ function resolveCardVisual(id: string) {
   };
 }
 
+// 캐러셀 높이는 뷰포트를 따라 줄어든다 — 540px 로 고정하면 아이폰 13 미니처럼 짧은 화면에서
+// 카드 라벨이 고정 푸터(TestFooter) 뒤로 내려간다.
+
 // 3열(위) + 2열(가운데 정렬, 아래) 배치를 6칸 그리드로 표현한다.
 const COMPLETE_GRID_SPAN = [
   "col-span-2",
@@ -53,7 +56,6 @@ export default function FinalGrid({
   const [focusIndex, setFocusIndex] = useState(() =>
     Math.floor(remainingIds.length / 2),
   );
-  const [hasRejectedOnce, setHasRejectedOnce] = useState(false);
 
   // 렌더 중 상태 조정(React 공식 패턴, DiscardStack.tsx와 동일) — 탈락으로 remainingIds가
   // 줄어든 프레임에만 focusIndex를 새 길이 안으로 다시 맞춘다.
@@ -83,11 +85,6 @@ export default function FinalGrid({
       event.preventDefault();
       moveFocus("next");
     }
-  };
-
-  const handleReject = (id: string) => {
-    setHasRejectedOnce(true);
-    onReject(id);
   };
 
   if (isComplete) {
@@ -144,7 +141,7 @@ export default function FinalGrid({
       aria-label="최종 카드 고르기 — 우측 하단으로 끌어 탈락시켜요"
       tabIndex={0}
       onKeyDown={handleKeyDown}
-      className="relative h-[540px] overflow-hidden outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="relative h-[min(540px,56dvh)] overflow-hidden outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       <AnimatePresence>
         {remainingIds.map((id, index) => {
@@ -158,10 +155,9 @@ export default function FinalGrid({
               imagePath={imagePath}
               distance={distance}
               isFocused={isFocused}
-              showHint={isFocused && !hasRejectedOnce}
               onFocus={() => setFocusIndex(index)}
               onSwipe={moveFocus}
-              onReject={() => handleReject(id)}
+              onReject={() => onReject(id)}
             />
           );
         })}

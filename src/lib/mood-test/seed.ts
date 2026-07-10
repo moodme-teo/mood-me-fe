@@ -2,6 +2,15 @@
 // 카드 이미지: public/test-image/aesthetic/{id}.jpg (수집 대장: docs/work/todo/mood-test-image.md)
 // GET /api/mood-test/questions가 이 파일을 그대로 반환한다.
 
+/**
+ * 질문 세트(카드·그림자·전환)의 버전. **이 파일의 데이터를 고치면 함께 올린다.**
+ *
+ * 저장된 드래프트는 자기가 어느 세트 위에서 만들어졌는지 이 값으로 기억한다. 세트가 바뀌면
+ * 예전 드래프트가 가리키던 카드가 사라져 있을 수 있어, 이어가지 않고 새로 시작시킨다
+ * (lib/mood-test/draft-storage.ts).
+ */
+export const QUESTION_SET_VERSION = "2026-07-07";
+
 export type Card = {
   id: string;
   label: string;

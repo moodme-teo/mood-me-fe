@@ -323,7 +323,7 @@ async function runReportAnalysis(
 }
 
 // 결과 페이지의 "분석 다시 시도"(§5.6·§10.3) — 이미 저장된 moodboard row에 직접 쓴다.
-// job을 거치지 않는다: elements·base_image_url·exported_image_data_url이 저장 후엔
+// job을 거치지 않는다: elements·base_image_url·exported_image_url이 저장 후엔
 // moodboard 자신이 원본이 되는 기존 패턴과 같다. 호출부(POST /api/moodboards/[id]/analysis)가
 // analysis_status를 "processing"으로 먼저 써 두므로, 여기서는 최종 결과(성공/실패)만 쓴다.
 export async function runMoodboardAnalysisRetry(

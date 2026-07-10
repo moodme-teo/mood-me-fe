@@ -12,7 +12,7 @@ const ERROR_STATUS = {
 
 // PRD §5.6·§10.3 — 결과 페이지 "분석 다시 시도". 이미지·저장·공유는 이미 정상 동작 중이고
 // 사용자가 잃은 건 해석뿐이라, 이 라우트는 moodboards.mood_profile·analysis_status만
-// 건드린다 — 이미지·elements·exported_image_data_url은 절대 손대지 않는다(#122).
+// 건드린다 — 이미지·elements·exported_image_url은 절대 손대지 않는다(#122).
 export async function POST(
   _request: Request,
   { params }: { params: Promise<{ moodboardId: string }> },

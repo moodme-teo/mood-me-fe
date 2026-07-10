@@ -2,6 +2,7 @@ import { moodboardSchema } from "@/lib/api/get-moodboard";
 import { updateMoodboardRequestSchema } from "@/lib/api/update-moodboard";
 import { apiError, apiSuccess } from "@/lib/api-response";
 import { getRequester } from "@/lib/auth/requester";
+import { deleteOwnedMoodboard } from "@/lib/moodboard/delete-moodboard";
 import { getMoodboardById } from "@/lib/moodboard/get-moodboard";
 import { isMoodboardOwner } from "@/lib/moodboard/moodboard-owner";
 import { saveOwnedMoodboard } from "@/lib/moodboard/save-moodboard";
@@ -14,6 +15,11 @@ function canUseSupabaseService() {
 
 const SAVE_ERROR_STATUS = {
   // 남의 보드에 저장을 시도해도 존재 여부를 흘리지 않는다 (#126).
+  NOT_FOUND: 404,
+  INTERNAL_ERROR: 500,
+} as const;
+
+const DELETE_ERROR_STATUS = {
   NOT_FOUND: 404,
   INTERNAL_ERROR: 500,
 } as const;
@@ -111,4 +117,37 @@ export async function PATCH(
     elements: parsed.data.elements,
     persisted: true,
   });
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ moodboardId: string }> },
+) {
+  const { moodboardId } = await params;
+
+  if (!canUseSupabaseService() || !isUuid(moodboardId)) {
+    return apiSuccess({ id: moodboardId, deleted: true });
+  }
+
+  // 소유자(회원·게스트)는 서버가 쿠키로만 확인한다 — 본문에 자칭하도록 두지 않는다 (#126).
+  const requester = await getRequester();
+  if (requester.kind === "anonymous") {
+    return apiError("FORBIDDEN", "본인 무드보드만 삭제할 수 있어요.", 403);
+  }
+
+  const isOwner = await isMoodboardOwner(moodboardId, requester);
+  if (!isOwner) {
+    return apiError("FORBIDDEN", "본인 무드보드만 삭제할 수 있어요.", 403);
+  }
+
+  const result = await deleteOwnedMoodboard(moodboardId, requester);
+  if (!result.ok) {
+    return apiError(
+      result.code,
+      result.error,
+      DELETE_ERROR_STATUS[result.code],
+    );
+  }
+
+  return apiSuccess({ id: moodboardId, deleted: true });
 }

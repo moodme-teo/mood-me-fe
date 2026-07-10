@@ -14,12 +14,19 @@ export class ApiClientError extends Error {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, init);
-  const json = await res.json();
+  // 플랫폼 레벨 에러(예: Vercel의 413 응답)는 우리 { error } 포맷이 아닌 HTML/텍스트로
+  // 온다 — res.json()을 무조건 부르면 SyntaxError로 원인이 가려진다(#163).
+  const contentType = res.headers.get("content-type") ?? "";
+  const json = contentType.includes("application/json")
+    ? await res.json()
+    : null;
 
   if (!res.ok) {
-    const { code, message } = json.error as {
-      code: ApiErrorCode;
-      message: string;
+    const parsedError = json?.error as
+      { code: ApiErrorCode; message: string } | undefined;
+    const { code, message } = parsedError ?? {
+      code: "INTERNAL_ERROR" as ApiErrorCode,
+      message: "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.",
     };
     throw new ApiClientError(code, message);
   }
@@ -40,4 +47,5 @@ export const apiClient = {
   get: <T>(path: string) => request<T>(path),
   post: withBody("POST"),
   patch: withBody("PATCH"),
+  delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
 };

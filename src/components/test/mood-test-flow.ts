@@ -1,6 +1,12 @@
 // 추구미 테스트 3막 상태 기계 — 화면 목록·풀·타깃 개수·커밋 규칙을 순수 함수로 정의한다.
 // 실제 React 연결은 useMoodTestFlow.ts. 스펙: docs/work/todo/mood-test-questions.md
 
+import type {
+  CommittedState,
+  CommittedTransition,
+  FlowProgress,
+} from "@/lib/mood-test/flow-state";
+import { INITIAL_COMMITTED } from "@/lib/mood-test/flow-state";
 import type { Journey } from "@/lib/mood-test/journey";
 import { CARDS, SHADOWS, TRANSITIONS } from "@/lib/mood-test/seed";
 
@@ -14,18 +20,7 @@ export type ScreenDescriptor =
   | { kind: "transition"; shadowId: string; order: number }
   | { kind: "final" };
 
-export type CommittedTransition = { shadow: string; picked: string };
-
-export type CommittedState = {
-  selected: string[]; // A 완료본 (12, 담은 순서 유지)
-  droppedR1: string[]; // B1 완료본 (4)
-  droppedR2: string[]; // B2 완료본 (3)
-  shadows: string[]; // C 완료본 (3, 선택 순서 = D 화면 순서)
-  transitions: (CommittedTransition | null)[]; // D 완료본, shadows와 인덱스 정렬 (길이 3)
-  final: string[]; // E 완료본 (5)
-  droppedFinal: string[]; // E 탈락 (3)
-  toggles: Record<string, number>; // id별 담았다 뺐다 횟수 (망설임 신호)
-};
+export type { CommittedState, CommittedTransition };
 
 export type FlowState = {
   screenIndex: number;
@@ -39,26 +34,16 @@ export type FlowAction =
   | { type: "PICK"; id: string } // 단일 선택 화면 (D)
   | { type: "CONFIRM" }
   | { type: "BACK" }
-  | { type: "UNDO" }; // 현재 화면 안에서의 마지막 선택 되돌리기
+  | { type: "UNDO" } // 현재 화면 안에서의 마지막 선택 되돌리기
+  | { type: "RESTORE"; progress: FlowProgress }; // 저장된 드래프트로 되돌아가기
 
 // 화면 8개 고정: A(1) + B1(1) + B2(1) + C(1) + D(3, 그림자별) + E(1)
 export const TOTAL_SCREENS = 8;
 
-const initialCommitted: CommittedState = {
-  selected: [],
-  droppedR1: [],
-  droppedR2: [],
-  shadows: [],
-  transitions: [null, null, null],
-  final: [],
-  droppedFinal: [],
-  toggles: {},
-};
-
 export function createInitialFlowState(): FlowState {
   return {
     screenIndex: 0,
-    committed: initialCommitted,
+    committed: INITIAL_COMMITTED,
     draft: [],
     draftHistory: [],
   };
@@ -387,6 +372,18 @@ export function buildJourney(committed: CommittedState): Journey {
 }
 
 export function flowReducer(state: FlowState, action: FlowAction): FlowState {
+  // RESTORE 는 지금 상태가 아니라 저장된 상태를 기준으로 화면을 다시 세운다.
+  if (action.type === "RESTORE") {
+    const { committed, draft } = action.progress;
+    const screens = buildScreens(committed.shadows);
+    // C(그림자)를 확정하기 전에는 D 화면이 아직 없다 — 저장된 인덱스를 그대로 믿지 않는다.
+    const screenIndex = Math.min(
+      action.progress.screenIndex,
+      screens.length - 1,
+    );
+    return { screenIndex, committed, draft, draftHistory: [] };
+  }
+
   const screens = buildScreens(state.committed.shadows);
   const screen = screens[state.screenIndex];
 

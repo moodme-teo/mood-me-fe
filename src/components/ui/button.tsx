@@ -46,7 +46,7 @@ const buttonVariants = cva(
       {
         variant: "primary",
         tone: "pink",
-        className: "bg-[image:var(--gradient-pink)] text-[#3a0d24] shadow-pink",
+        className: "bg-[image:var(--gradient-pink)] text-white shadow-pink",
       },
       {
         variant: "primary",
