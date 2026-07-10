@@ -16,24 +16,60 @@ import { useRef } from "react";
 // 작은 되감김을 넣어 카드가 글자에 잠깐 걸렸다가 풀리는 듯한 감각을 만든다.
 // 화면 중앙에 가까울수록 평면에 가깝고, 바깥으로 갈수록 다시 깊은 3D 각도를 갖는다.
 // entry 페이즈에 상단에서 스프링으로 떨어져 자리잡는다.
-// (지금은 목업 콜라주 1장을 모든 카드에 채운다 — 추후 실제 결과물 썸네일로 교체 예정)
+//
+// 카드 5장은 서로 다른 페르소나·레이아웃으로 뽑은 실제 보드 예시다 — "사람마다 다른 보드가
+// 나온다"를 첫 화면에서 바로 보여준다(PRODUCT.md). 한 번에 3장쯤 보이고 나머지는 아래로
+// 스크롤해야 나온다. 재생성: `pnpm mockup:boards` (scripts/generate-mockup-boards.ts).
 
 type Props = {
   active: boolean;
   reduced: boolean;
 };
 
-const MOCKUP_SRC = "/assets/image.png";
-
 // 한 줄 세로 배치 — left/width 는 동일(살짝 겹치며 아래로), top 은 스크롤 캔버스 기준 vh.
 // rotateY 는 카드가 화면 바깥으로 갈 때의 왼쪽 축 기준 최대 회전각, rotate 는 평면 기울기다.
 // arcPeak 는 카드가 원호의 안쪽(오른쪽)으로 가장 들어오는 scrollYProgress 지점이다.
 const CARDS = [
-  { top: "3vh", rotateY: -17, rotate: -5.5, arcPeak: -0.28 },
-  { top: "33vh", rotateY: -13, rotate: 3.5, arcPeak: 0.02 },
-  { top: "63vh", rotateY: -16, rotate: -1.5, arcPeak: 0.42 },
-  { top: "93vh", rotateY: -12, rotate: 6, arcPeak: 0.86 },
-  { top: "123vh", rotateY: -18, rotate: -8, arcPeak: 1.22 },
+  {
+    src: "/assets/first-entry/coastal-cyan-a.jpg",
+    alt: "여행하는 삶의 무드보드 예시 — 바닷마을 산책과 여권, 러닝 스냅을 여백 없이 이어 붙인 콜라주",
+    top: "3vh",
+    rotateY: -17,
+    rotate: -5.5,
+    arcPeak: -0.28,
+  },
+  {
+    src: "/assets/first-entry/warm-cream-a.jpg",
+    alt: "포근한 집의 무드보드 예시 — 코르크 게시판에 들꽃 사진과 손글씨 메모를 압정으로 듬성듬성 꽂아둔 콜라주",
+    top: "33vh",
+    rotateY: -13,
+    rotate: 3.5,
+    arcPeak: 0.02,
+  },
+  {
+    src: "/assets/first-entry/dreamy-violet.jpg",
+    alt: "몽환적인 무드보드 예시 — 초승달과 나비, 별밤 사진을 모양대로 오려 붙이고 가운데 큰 타이틀을 얹은 콜라주",
+    top: "63vh",
+    rotateY: -16,
+    rotate: -1.5,
+    arcPeak: 0.42,
+  },
+  {
+    src: "/assets/first-entry/coastal-cyan-b.jpg",
+    alt: "시원한 바다의 무드보드 예시 — 파도와 데이지, 여권과 운동화 사진을 크게 맞물려 붙인 콜라주",
+    top: "93vh",
+    rotateY: -12,
+    rotate: 6,
+    arcPeak: 0.86,
+  },
+  {
+    src: "/assets/first-entry/warm-cream-b.jpg",
+    alt: "느긋한 일상의 무드보드 예시 — 게시판에 정원 사진과 금색 액자, 달걀 바구니를 붙여둔 콜라주",
+    top: "123vh",
+    rotateY: -18,
+    rotate: -8,
+    arcPeak: 1.22,
+  },
 ] as const;
 
 const CARD_LEFT = "14%";
@@ -136,7 +172,7 @@ function BoardArcCard({
         top: card.top,
         left: CARD_LEFT,
         width: CARD_WIDTH,
-        aspectRatio: "1720 / 2552",
+        aspectRatio: "1024 / 1536", // 보드 출력 고정 비율(2:3) — 잘림 없이 한 장이 다 보인다
         transformOrigin: "left center",
       }}
       initial={
@@ -162,12 +198,11 @@ function BoardArcCard({
       }
     >
       <Image
-        src={MOCKUP_SRC}
-        alt=""
+        src={card.src}
+        alt={card.alt}
         fill
         sizes="(max-width: 430px) 64vw, 275px"
         className="object-cover"
-        style={{ objectPosition: `50% ${(index * 22) % 100}%` }}
         priority={index < 2}
       />
       {/* 오른쪽으로 물러난 면에 옅은 음영 — 3D 입체감 강조 */}

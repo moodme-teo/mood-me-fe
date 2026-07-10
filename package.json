@@ -14,7 +14,8 @@
     "e2e": "playwright test --project=mobile-chromium",
     "e2e:ui": "playwright test --project=mobile-chromium --ui",
     "e2e:visual": "playwright test --project=visual",
-    "e2e:visual:update": "playwright test --project=visual --update-snapshots"
+    "e2e:visual:update": "playwright test --project=visual --update-snapshots",
+    "mockup:boards": "node --conditions=react-server --env-file=.env.local --import ./scripts/alias-hook.mjs scripts/generate-mockup-boards.ts"
   },
   "lint-staged": {
     "*.{ts,tsx,mts}": [
