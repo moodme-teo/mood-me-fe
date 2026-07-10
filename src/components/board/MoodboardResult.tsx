@@ -35,11 +35,11 @@ const MOOD_AXES: {
   right: string;
   tone: SpectrumTone;
 }[] = [
-  { key: "calm_energy", left: "고요", right: "활기", tone: "pink" },
-  { key: "warm_cool", left: "따뜻", right: "서늘", tone: "violet" },
-  { key: "minimal_maximal", left: "미니멀", right: "맥시멀", tone: "cyan" },
+  { key: "calm_energy", left: "고요", right: "활기", tone: "mustard" },
+  { key: "warm_cool", left: "따뜻", right: "서늘", tone: "cyan" },
+  { key: "minimal_maximal", left: "미니멀", right: "맥시멀", tone: "pink" },
+  { key: "real_dreamy", left: "현실", right: "몽환", tone: "violet" },
   { key: "vintage_modern", left: "빈티지", right: "모던", tone: "green" },
-  { key: "real_dreamy", left: "현실", right: "몽환", tone: "mustard" },
 ];
 
 function Toast({ message }: { message: string | null }) {
@@ -135,8 +135,8 @@ function ErrorView({
 
 function MoodSpectrum({ vector }: { vector: MoodVector }) {
   return (
-    <Card className="px-4">
-      <h2 className="text-heading-md">무드 성향 5축</h2>
+    <div className="px-4">
+      <h2 className="mb-2 text-heading-md">무드 성향 5축</h2>
       <div className="space-y-4">
         {MOOD_AXES.map((axis) => {
           const value = vector[axis.key];
@@ -163,56 +163,73 @@ function MoodSpectrum({ vector }: { vector: MoodVector }) {
           );
         })}
       </div>
-    </Card>
+    </div>
   );
 }
 
-function ReadingBlock({ moodboard }: { moodboard: GetMoodboardResponse }) {
+function ReadingTitle({ moodboard }: { moodboard: GetMoodboardResponse }) {
   const { moodProfile } = moodboard;
 
   return (
-    <section className="space-y-4">
-      <div className="space-y-2">
-        <h1 className="text-display-sm text-foreground">{moodProfile.title}</h1>
-        <Badge tone="violet">{moodProfile.type_name}</Badge>
-      </div>
-      <Card className="gap-3 px-4 text-gray-700 text-body-md">
-        <p>{moodProfile.reading.conviction}</p>
-        <p>{moodProfile.reading.desire}</p>
-        <p>{moodProfile.reading.showdown}</p>
-      </Card>
-    </section>
+    <div className="flex flex-col items-center gap-2 space-y-2">
+      <Badge tone="violet">{moodProfile.type_name}</Badge>
+      <h1 className="text-display-sm text-foreground">{moodProfile.title}</h1>
+    </div>
+  );
+}
+
+function ReadingBody({ moodboard }: { moodboard: GetMoodboardResponse }) {
+  const { moodProfile } = moodboard;
+
+  return (
+    <div className="gap-3 px-4 text-card-foreground text-gray-700 text-body-sm [&>*]:mb-4">
+      <p>{moodProfile.reading.conviction}</p>
+      <p>{moodProfile.reading.desire}</p>
+      <p>{moodProfile.reading.showdown}</p>
+    </div>
   );
 }
 
 function KeywordCloud({ moodboard }: { moodboard: GetMoodboardResponse }) {
-  const { keywords, sticker_phrases: stickerPhrases } = moodboard.moodProfile;
+  const { keywords } = moodboard.moodProfile;
 
-  if (keywords.length === 0 && stickerPhrases.length === 0) return null;
+  if (keywords.length === 0) return null;
 
   return (
-    <section className="space-y-3">
-      {keywords.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {keywords.map((keyword) => (
-            <Badge key={keyword} tone="violet">
-              {keyword}
-            </Badge>
-          ))}
+    <section className="mt-6 mb-12 flex flex-wrap items-center justify-center gap-2">
+      {keywords.map((keyword) => (
+        <Badge key={keyword} tone="sand">
+          {keyword}
+        </Badge>
+      ))}
+    </section>
+  );
+}
+
+function StickerPhraseCloud({
+  moodboard,
+}: {
+  moodboard: GetMoodboardResponse;
+}) {
+  const { sticker_phrases: stickerPhrases } = moodboard.moodProfile;
+
+  if (stickerPhrases.length === 0) return null;
+
+  return (
+    <section className="grid gap-2 sm:grid-cols-3">
+      {stickerPhrases.map((phrase) => (
+        <div key={phrase} className="flex items-center justify-center gap-1">
+          <span lang="en" className="-mb-3 font-display-en text-[32px]">
+            &ldquo;
+          </span>
+          <p className="px-4 py-3 text-center font-bold text-body-sm">
+            {phrase}
+          </p>
+          <span lang="en" className="-mb-3 font-display-en text-[32px]">
+            &rdquo;
+          </span>
         </div>
-      ) : null}
-      {stickerPhrases.length > 0 ? (
-        <div className="grid gap-2 sm:grid-cols-3">
-          {stickerPhrases.map((phrase) => (
-            <p
-              key={phrase}
-              className="rounded-lg bg-surface-inverse px-4 py-3 text-center font-bold text-on-inverse shadow-ink text-body-sm"
-            >
-              {phrase}
-            </p>
-          ))}
-        </div>
-      ) : null}
+      ))}
     </section>
   );
 }
@@ -352,29 +369,15 @@ function ResultActions({
 
   return (
     <section className="space-y-4">
-      <div className="grid grid-cols-2 gap-2">
-        <Button
-          type="button"
-          tone="violet"
-          size="lg"
-          className="w-full"
-          onClick={onShare}
+      <div className="flex items-center justify-center gap-2">
+        <Link
+          href="/"
+          title="홈"
+          aria-label="홈"
+          className={buttonVariants({ variant: "secondary", size: "icon-md" })}
         >
-          <Share2 aria-hidden /> SNS 공유
-        </Button>
-        <Button
-          type="button"
-          tone="ink"
-          size="lg"
-          className="w-full"
-          onClick={onOpenSave}
-        >
-          <Download aria-hidden /> 이미지 저장
-        </Button>
-      </div>
-      {/* 편집은 소유자에게만 보인다 — 공유 링크로 들어온 사람에게는 감춘다. 실제 방어는
-          서버의 PATCH 소유자 검증이고, 이 숨김은 그 위에 얹는 안내다 (#126). */}
-      <div className="flex items-center justify-center gap-3">
+          <Home aria-hidden />
+        </Link>
         {moodboard.isOwner ? (
           <Link
             href={`/moodboard/${moodboard.id}/edit`}
@@ -398,14 +401,27 @@ function ResultActions({
         >
           <RotateCcw aria-hidden />
         </Button>
-        <Link
-          href="/"
-          title="홈"
-          aria-label="홈"
-          className={buttonVariants({ variant: "secondary", size: "icon-md" })}
+
+        <Button
+          type="button"
+          variant={"secondary"}
+          size="icon-md"
+          title="이미지 저장"
+          aria-label="이미지 저장"
+          onClick={onOpenSave}
         >
-          <Home aria-hidden />
-        </Link>
+          <Download aria-hidden />
+        </Button>
+        <Button
+          type="button"
+          tone="pink"
+          size="md"
+          title="SNS 공유"
+          aria-label="SNS 공유"
+          onClick={onShare}
+        >
+          <Share2 aria-hidden /> 공유
+        </Button>
       </div>
       <ConfirmRestartDialog
         isOpen={isRestartOpen}
@@ -559,7 +575,7 @@ export default function MoodboardResult({ moodboardId }: Props) {
         {exportedImageUrl ? (
           // 크롭 에디터(#99) 결과 — 평면 이미지를 그대로 보여준다. 투명 영역은 체크보드로 표시.
           <section
-            className="mx-auto flex aspect-square w-[360px] max-w-full items-center justify-center overflow-hidden rounded-xl shadow-card"
+            className="mx-auto flex aspect-square w-[360px] max-w-full items-center justify-center overflow-hidden"
             style={{
               backgroundImage:
                 "linear-gradient(45deg, #e5e5e5 25%, transparent 25%), linear-gradient(-45deg, #e5e5e5 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e5e5e5 75%), linear-gradient(-45deg, transparent 75%, #e5e5e5 75%)",
@@ -591,10 +607,13 @@ export default function MoodboardResult({ moodboardId }: Props) {
           </section>
         )}
 
-        <div className="mt-6 space-y-6 pb-8">
-          <ReadingBlock moodboard={moodboard} />
-          <MoodSpectrum vector={moodboard.moodProfile.mood_vector} />
+        <div className="mt-6 space-y-10 pb-8">
+          <ReadingTitle moodboard={moodboard} />
+          <StickerPhraseCloud moodboard={moodboard} />
+          <ReadingBody moodboard={moodboard} />
           <KeywordCloud moodboard={moodboard} />
+          <MoodSpectrum vector={moodboard.moodProfile.mood_vector} />
+
           <ResultActions
             moodboard={moodboard}
             onOpenSave={() => setIsSaveOpen(true)}

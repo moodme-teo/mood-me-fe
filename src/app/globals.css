@@ -140,7 +140,7 @@
   --gradient-sand: linear-gradient(
     205deg,
     #f1dec8 var(--mood-gradient-stop-1, 0%),
-    #f1dec8 var(--mood-gradient-stop-2, 21%),
+    #ebe7e4 var(--mood-gradient-stop-2, 21%),
     #ebe7e4 var(--mood-gradient-stop-3, 54%),
     #f7f5f3 var(--mood-gradient-stop-4, 95%),
     #f7f5f3 100%
@@ -220,8 +220,8 @@
   /* ---- Typography (font shorthand) ---- */
   --text-display-xl: 700 84px/1.02 var(--font-display-kr);
   --text-display-lg: 700 60px/1.04 var(--font-display-kr);
-  --text-display-md: 700 44px/1.08 var(--font-display-kr);
-  --text-display-sm: 700 32px/1.14 var(--font-display-kr);
+  --text-display-md: 700 32px/1.08 var(--font-display-kr);
+  --text-display-sm: 700 28px/1.14 var(--font-display-kr);
 
   --text-display-en-xl: italic 400 88px/0.95 var(--font-display-en);
   --text-display-en-lg: italic 400 64px/0.98 var(--font-display-en);
