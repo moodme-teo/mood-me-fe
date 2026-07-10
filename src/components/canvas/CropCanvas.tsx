@@ -102,6 +102,9 @@ export default function CropCanvas({
 }: Props) {
   const stageRef = useRef<Konva.Stage>(null);
   const gestureRef = useRef<Gesture | null>(null);
+  // 핀치 중/직후 Konva가 두 손가락의 연속 touchend를 같은 지점 더블탭으로 오판해
+  // dbltap→handleReset을 쏘는 문제 방어용 (Konva _touchInDblClickWindow는 포인터별로 분리되지 않음).
+  const lastMultiTouchAtRef = useRef(0);
   const [displayScale, setDisplayScale] = useState(1);
   const { image, status } = useCanvasImage(baseImageUrl, onImageError);
   // 마운트 시점 값만 쓴다 — 최초 이미지 로드 이후엔 참조하지 않는다.
@@ -283,6 +286,7 @@ export default function CropCanvas({
     if (!metricsRef.current) return;
     const touches = event.evt.touches;
     if (touches.length >= 2) {
+      lastMultiTouchAtRef.current = Date.now();
       const midClientX = (touches[0].clientX + touches[1].clientX) / 2;
       const midClientY = (touches[0].clientY + touches[1].clientY) / 2;
       const focal = toFramePoint(midClientX, midClientY);
@@ -314,6 +318,7 @@ export default function CropCanvas({
     const touches = event.evt.touches;
 
     if (gesture.mode === "pinch" && touches.length >= 2) {
+      lastMultiTouchAtRef.current = Date.now();
       const ratio = touchDistance(touches) / gesture.startDist;
       onTransformChange(
         zoomAtPoint(
@@ -341,9 +346,11 @@ export default function CropCanvas({
   };
 
   // 더블탭/더블클릭 → 기본 위치로 초기화 (mood-edit PRD §7).
+  // Konva.dblClickWindow(400ms)와 같은 창으로 방금 핀치 줌이 있었으면 오판된 dbltap으로 보고 무시.
   const handleReset = () => {
     const meta = metricsRef.current;
     if (!meta) return;
+    if (Date.now() - lastMultiTouchAtRef.current < 500) return;
     gestureRef.current = null;
     onTransformChange(getCenteredTransform(meta, CROP_SIZE, fit));
   };
