@@ -38,4 +38,4 @@
 - 내보내기는 `stage.toDataURL({ pixelRatio: EXPORT_PIXEL_RATIO })` — `exportImage()` 액션만 사용.
 - 규격은 상수로 한 곳에: 기본 캔버스 360×640 (모바일 세로 9:16), `EXPORT_PIXEL_RATIO = 2` (공유 썸네일 720×1280).
 - export 전에 ui layer(선택 표시 등)를 숨깁니다 — 결과물에 편집 UI가 찍히면 안 됩니다.
-- 저장 흐름: dataURL → Supabase Storage 업로드 → URL을 `Moodboard`에 기록. dataURL을 DB에 직접 저장하지 않습니다.
+- 저장 흐름: dataURL → Supabase Storage 업로드 → URL을 `Moodboard`에 기록. dataURL을 DB에 직접 저장하지 않습니다. dataURL을 그대로 PATCH body에 실어 우리 서버로 보내면 Vercel 요청 바디 제한(413)에 걸리므로(#163), 브라우저가 서버가 발급한 signed upload URL로 Storage에 직접 올리고(`createExportUploadTarget` → `uploadExportedImage`), 결과 URL만 PATCH에 싣습니다. 버킷(`MOODBOARD_EXPORT_BUCKET`, `types/moodboard.ts`)은 공유 링크가 `<img>`로 그대로 노출하므로 공개 버킷입니다.

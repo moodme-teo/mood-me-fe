@@ -36,6 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogActions, DialogContent } from "@/components/ui/dialog";
 import { updateMoodboard } from "@/lib/api/update-moodboard";
+import { uploadExportedImage } from "@/lib/moodboard/upload-exported-image";
 import type { AnalysisStatus, EditState, MoodProfile } from "@/types/moodboard";
 
 type Props = {
@@ -423,6 +424,11 @@ export default function MoodboardCropEditor({
     try {
       const exportedImageDataUrl =
         (await exporterRef.current?.("png")) ?? undefined;
+      // base64 dataURL을 그대로 저장 요청에 실으면 Vercel 요청 바디 제한(413)에 걸린다
+      // (#163) — Supabase Storage에 먼저 올리고 결과 URL만 보낸다.
+      const exportedImageUrl = exportedImageDataUrl
+        ? await uploadExportedImage(moodboardId, exportedImageDataUrl)
+        : undefined;
       // 크롭 결과는 한 장의 평면 이미지 — elements는 비우고 export 이미지를 저장한다.
       // moodProfile·analysisStatus는 있을 때만 함께 저장(없으면 서버가 기존 값 유지 / PENDING
       // 폴백). editState는 재편집 구도 복원용으로 항상 현재 값을 함께 커밋한다 (#116).
@@ -432,7 +438,7 @@ export default function MoodboardCropEditor({
       await updateMoodboard(moodboardId, {
         baseImageUrl,
         elements: [],
-        exportedImageDataUrl,
+        exportedImageUrl,
         editState: {
           sourceImageUrl: baseImageUrl,
           shapeId: crop.shape,

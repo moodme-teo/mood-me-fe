@@ -10,8 +10,11 @@ import type { Requester } from "@/lib/auth/requester";
 import { isOwnerOf } from "@/lib/auth/requester";
 import { createServiceClient } from "@/lib/supabase/service";
 
+// exists: 이 moodboardId로 이미 저장된 row가 있는지. 아직 없는 신규 보드는 소유자
+// 자체가 없으므로 isOwner:false와 구분해야 한다 — export-upload-url(#163)이
+// "최초 저장(insert) 전에는 아무나 업로드 URL을 받을 수 있어야 한다"를 판단하는 데 쓴다.
 export type MoodboardOwnerCheck =
-  | { ok: true; isOwner: boolean }
+  | { ok: true; isOwner: boolean; exists: boolean }
   | { ok: false; code: "OWNER_CHECK_UNAVAILABLE"; error: string };
 
 function canUseSupabaseService() {
@@ -36,13 +39,17 @@ export async function checkMoodboardOwner(
   moodboardId: string,
   requester: Requester,
 ): Promise<MoodboardOwnerCheck> {
-  if (requester.kind === "anonymous") return { ok: true, isOwner: false };
+  // 존재 여부를 조회하지 않은 채 돌려주는 값이라 exists는 임의값이다 — 호출부는
+  // 어차피 anonymous를 이 결과와 무관하게 먼저 걸러낸다.
+  if (requester.kind === "anonymous")
+    return { ok: true, isOwner: false, exists: false };
 
   if (!canUseSupabaseService()) {
     if (canUseE2EMockOwner()) {
       return {
         ok: true,
         isOwner: isE2EMockMoodboardOwner(moodboardId, requester),
+        exists: true,
       };
     }
 
@@ -68,7 +75,7 @@ export async function checkMoodboardOwner(
       error: "무드보드 소유자 검증을 할 수 없어요.",
     };
   }
-  if (!data) return { ok: true, isOwner: false };
+  if (!data) return { ok: true, isOwner: false, exists: false };
 
   return {
     ok: true,
@@ -76,6 +83,7 @@ export async function checkMoodboardOwner(
       requester,
       data as { user_id: string | null; guest_session_id: string | null },
     ),
+    exists: true,
   };
 }
 

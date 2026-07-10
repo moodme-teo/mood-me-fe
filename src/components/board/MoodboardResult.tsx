@@ -27,6 +27,21 @@ import { getLoginPath } from "@/lib/auth/redirect-url";
 import type { MoodVector } from "@/types/moodboard";
 import { MOODBOARD_HEIGHT, MOODBOARD_WIDTH } from "@/types/moodboard";
 
+// exportedImageUrl이 Supabase Storage의 원격 URL일 수 있다(#163). <a download>는 교차
+// 출처 URL에서 신뢰할 수 없고, compositeOnWhite의 캔버스 합성도 CORS 없이는 tainted
+// 캔버스로 막힌다 — 한 번 fetch해 데이터 URL로 바꾸면 이후 로직은 그대로 재사용된다.
+async function toDataUrl(url: string): Promise<string> {
+  if (url.startsWith("data:")) return url;
+
+  const blob = await (await fetch(url)).blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
 // 재시도 후 결과를 기다리는 동안 쓰는 폴링 상수 — 생성중 화면(useGenerationPolling)과 같은
 // 간격이지만 여긴 훨씬 가볍다: 이미지·저장·공유는 이미 끝난 상태고 mood_profile 하나만 본다.
 const ANALYSIS_RETRY_POLL_INTERVAL_MS = 3000;
@@ -758,11 +773,12 @@ export default function MoodboardResult({ moodboardId }: Props) {
   const handleDownload = useCallback(
     async (format: "png" | "jpeg") => {
       try {
-        const pngDataUrl = exportRef.current?.();
-        if (!pngDataUrl) {
+        const source = exportRef.current?.();
+        if (!source) {
           showToast("이미지 준비가 아직 끝나지 않았어요.");
           return;
         }
+        const pngDataUrl = await toDataUrl(source);
 
         const dataUrl =
           format === "jpeg" ? await compositeOnWhite(pngDataUrl) : pngDataUrl;
