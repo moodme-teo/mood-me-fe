@@ -30,6 +30,7 @@ const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
 export default function SplashScene({ phase }: Props) {
   const isSplash = phase === "splash";
+  const boardTop = isSplash ? "55%" : "48%";
 
   return (
     <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
@@ -124,18 +125,24 @@ export default function SplashScene({ phase }: Props) {
           )}
         </AnimatePresence>
 
-        {/* Board — 두 페이즈에 걸쳐 남는 앵커. entry 에서 살짝 위로 자리 이동 + 축소 */}
+        {/* Board — 두 페이즈에 걸쳐 남는 앵커. entry 에서 살짝 위로 자리 이동 + 축소.
+            top 을 style 에도 적는 이유: framer 의 animate 값은 서버 HTML 에 찍히지 않는다.
+            style 이 없으면 하이드레이션 전 첫 페인트에서 top:auto(=0) 가 되어 워드마크가
+            화면 맨 위에 박혔다가 아래로 튄다. initial={false} 로 마운트 시엔 애니메이션 없이
+            같은 자리에서 시작하고, 페이즈가 바뀔 때만 움직인다. */}
         <motion.span
           className="absolute right-[5%] block leading-[0.9] whitespace-nowrap"
           style={{
+            top: boardTop,
             fontSize: "clamp(4rem, 20vw, 5.4rem)",
             // 흰 헤일로 + 잉크 드롭 — 스플래시(흰 배경)에선 안 보이고, 첫진입에선
             // 뒤 카드 콜라주 위에서도 또렷하게 읽히도록 텍스트를 들어올린다.
             textShadow:
               "0 0 20px rgba(255,255,255,0.9), 0 0 7px rgba(255,255,255,0.95), 0 10px 26px rgba(40, 30, 70, 0.24)",
           }}
+          initial={false}
           animate={{
-            top: isSplash ? "55%" : "48%",
+            top: boardTop,
             scale: isSplash ? 1 : 0.98,
           }}
           transition={{

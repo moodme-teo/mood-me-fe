@@ -8,6 +8,7 @@ import type { Card } from "@/lib/mood-test/seed";
 // 담기·덜어내기 공용 카드 그리드. 프로토타입(prototype-test-page)의 3열 매스너리 콜라주 +
 // 탭 시 "쏙 담기는" pop 연출을 따른다. 선택은 상태 기계(useMoodTestFlow)의 toggle 을 그대로 쓰고,
 // 여기서는 시각/모션만 담당한다 — 정원(target)을 채우면 미선택 카드는 흐려지며 잠긴다.
+// 고정 푸터를 피하는 하단 여백은 TestLayout 의 스크롤 영역이 --test-footer-h 로 한 번에 잡는다.
 
 // 카드 세로비를 인덱스로 번갈아 줘 콜라주 리듬을 만든다(전부 정사각이면 격자처럼 딱딱해진다).
 const ASPECTS = ["3 / 4", "1 / 1", "4 / 5", "3 / 4", "5 / 6", "1 / 1"];
@@ -26,7 +27,7 @@ export default function CardGrid({
   onToggle,
 }: Props) {
   return (
-    <div className="[columns:3] gap-x-2 pt-12 pb-[14dvh]">
+    <div className="[columns:3] gap-x-2 pt-12">
       {cards.map((card, index) => {
         const order = selectedIds.indexOf(card.id);
         const selected = order !== -1;
