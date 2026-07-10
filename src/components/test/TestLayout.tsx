@@ -193,14 +193,7 @@ export default function TestLayout({ initialStepIndex = 0, sessionId }: Props) {
   };
 
   const { kicker, title, hint } = flow.copy;
-  const isDiscardScreen =
-    flow.screen.kind === "trim1" || flow.screen.kind === "trim2";
   const isFinalScreen = flow.screen.kind === "final";
-  const counterText = isDiscardScreen
-    ? `${flow.draft.length}/${flow.target} 내려놓음`
-    : isFinalScreen
-      ? `탈락 ${flow.poolIds.length - flow.draft.length} / ${flow.poolIds.length - flow.target}`
-      : `${flow.draft.length} / ${flow.target}`;
 
   const isBlocked = gate === "blocked";
 
@@ -232,12 +225,6 @@ export default function TestLayout({ initialStepIndex = 0, sessionId }: Props) {
                   {hint}
                 </p>
               )}
-              {/* <span
-                className="absolute top-0 right-0 font-medium text-muted-foreground text-caption"
-                role="status"
-              >
-                {counterText}
-              </span> */}
             </div>
             <div className="px-3">
               <StageBody

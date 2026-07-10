@@ -39,7 +39,6 @@ type Props = {
   imagePath?: string;
   distance: number;
   isFocused: boolean;
-  showHint: boolean;
   onFocus: () => void;
   onSwipe: (direction: "prev" | "next") => void;
   onReject: () => void;
@@ -50,7 +49,6 @@ export default function FinalCarouselCard({
   imagePath,
   distance,
   isFocused,
-  showHint,
   onFocus,
   onSwipe,
   onReject,

@@ -53,7 +53,6 @@ export default function FinalGrid({
   const [focusIndex, setFocusIndex] = useState(() =>
     Math.floor(remainingIds.length / 2),
   );
-  const [hasRejectedOnce, setHasRejectedOnce] = useState(false);
 
   // 렌더 중 상태 조정(React 공식 패턴, DiscardStack.tsx와 동일) — 탈락으로 remainingIds가
   // 줄어든 프레임에만 focusIndex를 새 길이 안으로 다시 맞춘다.
@@ -83,11 +82,6 @@ export default function FinalGrid({
       event.preventDefault();
       moveFocus("next");
     }
-  };
-
-  const handleReject = (id: string) => {
-    setHasRejectedOnce(true);
-    onReject(id);
   };
 
   if (isComplete) {
@@ -158,10 +152,9 @@ export default function FinalGrid({
               imagePath={imagePath}
               distance={distance}
               isFocused={isFocused}
-              showHint={isFocused && !hasRejectedOnce}
               onFocus={() => setFocusIndex(index)}
               onSwipe={moveFocus}
-              onReject={() => handleReject(id)}
+              onReject={() => onReject(id)}
             />
           );
         })}
