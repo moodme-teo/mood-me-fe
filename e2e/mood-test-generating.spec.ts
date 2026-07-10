@@ -45,9 +45,7 @@ import {
  * 테스트하지 않는 것:
  * - progressPercent 의 절대값 — 위 이유로 클라이언트 연출이다.
  *   (mood-test-generating.page.ts 의 readPercent 주석 참조)
- * - 로테이션 상태 메시지 (GeneratingMessages 의 5개 문구). 연출이라 단언하지 않는다.
- *   PRD §5.4 는 이 화면을 퍼센트 막대가 아니라 단계형 표시로 바꾸기로 했다 — 그때
- *   문구가 단계에 묶이면 검증 대상이 된다 (Refs #122).
+ * - 로테이션 상태 메시지 (GeneratingMessages 의 5개 문구) — 시간 기준 연출이다.
  * - 생성 파이프라인 자체 — 페르소나 비율 산출, 프롬프트 조립, gpt-image-2 응답.
  *   전부 서버 전용이고 비결정적이며 유료다. 결정론적인 computePersonaResult 는
  *   순수 함수라 붙인다면 E2E 가 아니라 unit test 자리다.

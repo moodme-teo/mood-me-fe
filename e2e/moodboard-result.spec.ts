@@ -62,8 +62,8 @@ import { downloadToDataUrl, readImagePixels } from "./utils/pixels";
  * - 무드 성향 5축 그래프의 값 정확성 — 렌더 여부만 화면 구성에 적어 두고 단언하지 않는다.
  *   막대 너비는 AI 가 준 mood_vector 에서 나오므로 mock 값을 되읽는 셈이 된다.
  * - 유형명 폴백 규칙 (§9) — 서버의 AI 분석 소관
- * - 카카오톡 공유·공유용 썸네일/OG 이미지 생성 — 지원 채널이 §13 Open Questions 로 미확정.
- *   OG 메타데이터는 generateMetadata(서버)라 page.route 로 검증할 수 없다.
+ * - 카카오톡 공유·공유용 썸네일/OG 이미지 — **만들지 않기로 확정됐다** (§13 Q5 해소).
+ *   공유는 링크 복사뿐이고, 그건 위에서 검증한다.
  * - 로그인 유도 배너 (§5.5 엔딩 마찰 제거)
  */
 test.describe("결과물 페이지", () => {
