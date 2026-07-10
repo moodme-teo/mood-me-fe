@@ -39,6 +39,10 @@ import {
  *   버튼이 잠긴다(§11). "홈으로"는 홈으로 이동한다.
  * - 재진입(새로고침·뒤로가기)해도 새로 생성 요청을 보내지 않고 기존 job을 이어 폴링한다 —
  *   이미 completed 인 job이면 곧장 편집 화면으로 이동한다 (§5.4 재진입, #115).
+ * - 생성이 진행 중일 때 브라우저 뒤로가기·앞으로가기를 시도하면 이동 대신 주의
+ *   다이얼로그를 띄운다(useConfirmLeave). "계속 기다리기"는 화면에 머물고, "나가기"는
+ *   홈으로 이동한다. 새로고침·탭 닫기의 네이티브 확인창(beforeunload)은 Playwright로
+ *   직접 검증하기 어려워 popstate 가로채기 동작만 E2E로 확인한다.
  *
  * 테스트 성격: smoke (+ 실패·재시도는 edge case)
  *
@@ -267,5 +271,62 @@ test.describe("생성중 화면", () => {
     await generating.goto(TEST_SESSION_ID);
 
     await expect(generating.errorHeading).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("브라우저 뒤로가기를 시도하면 주의 다이얼로그가 뜨고 화면에 머무른다", async ({
+    page,
+  }) => {
+    await mockCreateGenerationJob(page);
+    await mockGenerationJobSequence(page, [
+      { status: "processing", percent: 40 },
+    ]);
+
+    const generating = new GeneratingPage(page);
+    await generating.goto(TEST_SESSION_ID);
+    await expect(generating.progressBar).toBeVisible();
+
+    await page.goBack();
+
+    await expect(generating.leaveDialog).toBeVisible();
+    await expect(page).toHaveURL(
+      new RegExp(`/test/${TEST_SESSION_ID}/generating$`),
+    );
+  });
+
+  test("계속 기다리기를 누르면 다이얼로그가 닫히고 생성 화면에 머무른다", async ({
+    page,
+  }) => {
+    await mockCreateGenerationJob(page);
+    await mockGenerationJobSequence(page, [
+      { status: "processing", percent: 40 },
+    ]);
+
+    const generating = new GeneratingPage(page);
+    await generating.goto(TEST_SESSION_ID);
+    await expect(generating.progressBar).toBeVisible();
+    await page.goBack();
+    await expect(generating.leaveDialog).toBeVisible();
+
+    await generating.leaveCancelButton.click();
+
+    await expect(generating.leaveDialog).toBeHidden();
+    await expect(generating.progressBar).toBeVisible();
+  });
+
+  test("나가기를 확인하면 홈으로 이동한다", async ({ page }) => {
+    await mockCreateGenerationJob(page);
+    await mockGenerationJobSequence(page, [
+      { status: "processing", percent: 40 },
+    ]);
+
+    const generating = new GeneratingPage(page);
+    await generating.goto(TEST_SESSION_ID);
+    await expect(generating.progressBar).toBeVisible();
+    await page.goBack();
+    await expect(generating.leaveDialog).toBeVisible();
+
+    await generating.leaveConfirmButton.click();
+
+    await page.waitForURL("/");
   });
 });

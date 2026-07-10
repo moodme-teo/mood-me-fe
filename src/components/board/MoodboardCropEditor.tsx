@@ -36,6 +36,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogActions, DialogContent } from "@/components/ui/dialog";
+import { useConfirmLeave } from "@/hooks/useConfirmLeave";
 import { getGenerationJob } from "@/lib/api/get-generation-job";
 import { updateMoodboard } from "@/lib/api/update-moodboard";
 import {
@@ -347,7 +348,7 @@ export default function MoodboardCropEditor({
   const [tab, setTab] = useState<EditTab>("shape");
   const [toast, setToast] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isLeaveOpen, setIsLeaveOpen] = useState(false);
+  const { isLeaveOpen, setIsLeaveOpen } = useConfirmLeave(true);
   const [isBaseImageFailed, setIsBaseImageFailed] = useState(false);
   const [metrics, setMetrics] = useState<ImageMetrics | null>(null);
 
@@ -358,33 +359,6 @@ export default function MoodboardCropEditor({
   const showToast = useCallback((message: string) => {
     setToast(message);
     window.setTimeout(() => setToast(null), 2600);
-  }, []);
-
-  useEffect(() => {
-    // 브라우저 뒤로가기는 헤더의 뒤로 버튼과 달리 곧장 화면을 떠나 버린다 — 더미
-    // history 항목을 하나 쌓아 두고, popstate 가 오면 실제로 이동하는 대신 같은
-    // 확인 모달을 띄워 두 경로의 이탈 UX를 통일한다 (#119).
-    window.history.pushState(null, "", window.location.href);
-
-    const handlePopState = () => {
-      window.history.pushState(null, "", window.location.href);
-      setIsLeaveOpen(true);
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  useEffect(() => {
-    // 새로고침 · 탭 닫기는 브라우저가 직접 처리해 커스텀 모달을 띄울 수 없다 —
-    // 네이티브 확인창이라도 뜨게 해 실수로 나가 편집 내용을 잃는 걸 막는다.
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
   useEffect(() => {
