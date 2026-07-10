@@ -428,36 +428,56 @@ export default function MoodboardCropEditor({
     try {
       const exportedImageDataUrl =
         (await exporterRef.current?.("png")) ?? undefined;
-      // base64 dataURL을 그대로 저장 요청에 실으면 Vercel 요청 바디 제한(413)에 걸린다
-      // (#163) — Supabase Storage에 먼저 올리고 결과 URL만 보낸다.
-      const exportedImageUrl = exportedImageDataUrl
-        ? await uploadExportedImage(moodboardId, exportedImageDataUrl)
-        : undefined;
 
-      // baseImageUrl은 생성 시점에 이미 Storage URL이어야 정상이다(uploadGeneratedBaseImage,
-      // generate-mood-analysis.ts) — 그 전에 만들어진 레거시 보드만 아직 base64일 수 있어
-      // 재저장 시 여기서 자가 치유한다. 그러지 않으면 이 값도 exportedImageUrl과 같은
-      // 이유로 PATCH body에서 413을 일으킨다 (#163 후속).
-      const persistedBaseImageUrl = baseImageUrl.startsWith("data:")
-        ? ((await uploadBaseImage(moodboardId, baseImageUrl)) ?? baseImageUrl)
-        : baseImageUrl;
+      // 업로드 2건과 최신 job 재조회는 서로 독립적이다 — 순차로 기다리면 저장 버튼을
+      // 누른 뒤 그만큼 그대로 화면이 멈춰 있는 것처럼 보인다. 동시에 진행한다.
+      const [exportedImageUrl, persistedBaseImageUrl, jobFetch] =
+        await Promise.all([
+          // base64 dataURL을 그대로 저장 요청에 실으면 Vercel 요청 바디 제한(413)에
+          // 걸린다(#163) — Supabase Storage에 먼저 올리고 결과 URL만 보낸다.
+          exportedImageDataUrl
+            ? uploadExportedImage(moodboardId, exportedImageDataUrl)
+            : Promise.resolve(undefined),
+          // baseImageUrl은 생성 시점에 이미 Storage URL이어야 정상이다
+          // (uploadGeneratedBaseImage, generate-mood-analysis.ts) — 그 전에 만들어진
+          // 레거시 보드만 아직 base64일 수 있어 재저장 시 여기서 자가 치유한다.
+          // 그러지 않으면 이 값도 exportedImageUrl과 같은 이유로 PATCH body에서
+          // 413을 일으킨다(#163 후속).
+          baseImageUrl.startsWith("data:")
+            ? uploadBaseImage(moodboardId, baseImageUrl).then(
+                (url) => url ?? baseImageUrl,
+              )
+            : Promise.resolve(baseImageUrl),
+          // 이 화면은 서버 컴포넌트가 렌더 시점에 job을 1회만 읽어 moodProfile을 prop으로
+          // 내려받는다 — 그 이후 리포트(GPT-5)가 끝나도 이 prop은 갱신되지 않는다. 저장
+          // 직전에 최신 job을 한 번 더 조회해 그 스냅샷 대신 쓴다 — 그래야 편집 화면에
+          // 머무는 동안 리포트가 끝난 경우에도 결과가 유실되지 않는다(#125). sessionId가
+          // 없으면(재편집) 애초에 다시 조회할 job이 없다. 재조회 실패해도 저장 자체를
+          // 막지 않는다 — ok:false로 표시해 기존 prop 스냅샷으로 폴백한다.
+          sessionId
+            ? getGenerationJob(sessionId).then(
+                (job) => ({ ok: true as const, job }),
+                (error: unknown) => {
+                  console.error(error);
+                  return { ok: false as const };
+                },
+              )
+            : Promise.resolve({ ok: false as const }),
+        ]);
 
-      // 이 화면은 서버 컴포넌트가 렌더 시점에 job을 1회만 읽어 moodProfile을 prop으로
-      // 내려받는다 — 그 이후 리포트(GPT-5)가 끝나도 이 prop은 갱신되지 않는다. 저장
-      // 직전에 최신 job을 한 번 더 조회해 그 스냅샷 대신 쓴다 — 그래야 편집 화면에
-      // 머무는 동안 리포트가 끝난 경우에도 결과가 유실되지 않는다(#125). sessionId가
-      // 없으면(재편집) 애초에 다시 조회할 job이 없으므로 기존 prop 값을 그대로 쓴다.
-      let latestMoodProfile = moodProfile;
-      let latestAnalysisStatus = analysisStatus;
-      if (sessionId) {
-        try {
-          const latestJob = await getGenerationJob(sessionId);
-          latestMoodProfile = latestJob.moodProfile;
-          latestAnalysisStatus = latestJob.analysisStatus;
-        } catch (error) {
-          // 재조회 실패해도 저장 자체를 막지 않는다 — 가진 스냅샷으로 진행한다.
-          console.error(error);
-        }
+      const latestMoodProfile = jobFetch.ok
+        ? jobFetch.job.moodProfile
+        : moodProfile;
+      const latestAnalysisStatus = jobFetch.ok
+        ? jobFetch.job.analysisStatus
+        : analysisStatus;
+
+      // 결과 화면은 이 URL을 <img src>로 그대로 보여준다 — 방금 올라간 Storage 경로라
+      // 캐시 미스가 확정이다. PATCH가 끝나길 기다리는 동안 미리 받아두면, 결과 화면
+      // 도착 시점엔 캐시에 있어 이미지가 뒤늦게 뜨는 게 덜 보인다(useGenerationPolling의
+      // 프리로드와 같은 이유 — 여긴 <img>로 그대로 보여주기만 하니 crossOrigin은 불필요).
+      if (exportedImageUrl) {
+        new window.Image().src = exportedImageUrl;
       }
 
       // 크롭 결과는 한 장의 평면 이미지 — elements는 비우고 export 이미지를 저장한다.
