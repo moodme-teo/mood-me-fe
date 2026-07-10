@@ -24,6 +24,13 @@ const TEST_URL = /\/test\/[0-9a-f-]{36}$/;
 export class HomePage {
   readonly createButton: Locator;
 
+  /**
+   * 진행 중인 작업이 있을 때만 뜨는 이어하기 링크. 메인·History 양쪽에 모두 나온다.
+   * 라벨은 추구미 테스트 드래프트면 "N단계", 편집 드래프트면 "편집 중" 이고,
+   * 둘 다 있으면 updatedAt 이 최신인 쪽 하나만 뜬다.
+   */
+  readonly continueLink: Locator;
+
   /** History 상태 */
   readonly historyHeading: Locator;
   readonly moodboardCount: Locator;
@@ -33,6 +40,7 @@ export class HomePage {
 
   constructor(private readonly page: Page) {
     this.createButton = page.getByRole("button", { name: CREATE_CTA });
+    this.continueLink = page.getByRole("link", { name: /^이어서 만들기/ });
 
     this.historyHeading = page.getByRole("heading", { name: "History" });
     this.moodboardCount = page.getByText(/\d+개의 무드보드를 모았어요/);

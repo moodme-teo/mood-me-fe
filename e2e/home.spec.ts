@@ -1,10 +1,16 @@
 import { expect, test } from "@playwright/test";
 
-import { MOODBOARD_SUMMARIES } from "./fixtures/data";
+import { MOODBOARD_SUMMARIES, TEST_SESSION_ID } from "./fixtures/data";
 import { HomePage } from "./pages/home.page";
 import { MoodTestPage } from "./pages/mood-test.page";
 import { mockMoodboards, mockMoodboardsFailure } from "./utils/mock-api";
-import { seedGuestSession, skipSplash } from "./utils/session";
+import {
+  DRAFT_MOODBOARD_ID,
+  seedGuestSession,
+  seedMoodboardDraft,
+  seedMoodTestDraft,
+  skipSplash,
+} from "./utils/session";
 
 /**
  * 테스트 대상: 홈 진입 분기 (`/`) — 메인(PRD §5.2)과 History(§5.2-A)
@@ -28,7 +34,14 @@ import { seedGuestSession, skipSplash } from "./utils/session";
  * - 보드가 없으면 메인, CTA 를 누르면 새 sessionId 가 발급되고 추구미 테스트로 간다 (§5.2).
  * - 보드가 있으면 History 가 뜨고, "N개의 무드보드를 모았어요" 카운트와 카드가 보인다.
  *   카드를 탭하면 그 보드의 결과물 페이지로 이동한다 (§5.2-A 동작).
+ * - 진행 중인 작업이 있으면 "이어서 만들기" 로 마지막 지점에 복귀한다 (§5.7).
  * - 목록을 못 불러오면 History 안에 재시도 패널이 뜬다.
+ *
+ * "이어서 만들기" 는 저장소가 둘로 갈린다 (§5.7 — 진행 상태는 서버가 아니라 클라이언트에 둔다).
+ *   추구미 테스트 드래프트 → localStorage `mood-me:test-draft:v1`  → 라벨 "N단계"
+ *   편집 드래프트         → IndexedDB `mood-me` / `moodboard-drafts` → 라벨 "편집 중"
+ * 요소·펜 path 가 쌓이면 localStorage 의 용량·동기 API 한계를 넘으므로 편집만 IndexedDB 다.
+ * 둘 다 있으면 updatedAt 이 최신인 쪽 하나만 뜬다. 링크는 메인·History 양쪽에 모두 나온다.
  *
  * 테스트 성격: smoke (+ 목록 로드 실패는 edge case)
  *
@@ -46,7 +59,8 @@ import { seedGuestSession, skipSplash } from "./utils/session";
  * - 프로필(아바타) 버튼의 계정 메뉴·로그아웃 (§5.1)
  * - 회원(로그인) History — 서버에서 supabase.auth.getUser() 를 타므로 mock 되지 않는다.
  *   게스트 History 와 렌더 경로가 같아 잃는 커버리지는 귀속 로직뿐이다.
- * - "이어서 만들기" 드래프트 복원 (§5.7) — IndexedDB(편집 드래프트) 시드가 필요하다
+ * - 이어간 뒤 실제로 그 단계의 선택값이 복원되는지 — 드래프트가 sessionId·stepIndex 만
+ *   담고 선택값은 담지 않는다. 복원은 추구미 테스트 화면의 몫이라 여기서는 이동까지만 본다.
  * - 스플래시 애니메이션 자체
  */
 test.describe("홈", () => {
@@ -99,6 +113,70 @@ test.describe("홈", () => {
     await home.moodboardCard(saved.typeName, saved.title).click();
 
     await page.waitForURL(`**/moodboard/${saved.id}`);
+  });
+
+  // "이어서 만들기" 는 진행 중인 작업이 있을 때만 뜬다 (§5.7 — 진행 상태는 클라이언트 보존).
+  test("진행 중인 테스트가 있으면 이어서 만들기를 보여준다", async ({
+    page,
+  }) => {
+    await seedMoodTestDraft(page, {
+      sessionId: TEST_SESSION_ID,
+      stepIndex: 2,
+      updatedAt: "2026-07-09T10:00:00.000Z",
+    });
+
+    const home = new HomePage(page);
+    await home.goto();
+
+    // 라벨은 stepIndex + 1 — 사용자에겐 0부터가 아니라 1부터 센다.
+    await expect(home.continueLink).toContainText("3단계");
+
+    await home.continueLink.click();
+
+    await page.waitForURL(`**/test/${TEST_SESSION_ID}?step=2`);
+  });
+
+  test("편집 중인 보드가 있으면 편집 중으로 이어간다", async ({ page }) => {
+    await seedMoodboardDraft(page, {
+      moodboardId: DRAFT_MOODBOARD_ID,
+      updatedAt: "2026-07-09T10:00:00.000Z",
+    });
+
+    const home = new HomePage(page);
+    await home.goto();
+
+    await expect(home.continueLink).toContainText("편집 중");
+
+    await home.continueLink.click();
+
+    await page.waitForURL(`**/moodboard/${DRAFT_MOODBOARD_ID}/edit`);
+  });
+
+  // 두 드래프트가 모두 있으면 updatedAt 이 최신인 쪽 하나만 뜬다.
+  test("드래프트가 둘이면 최근에 만진 쪽을 이어간다", async ({ page }) => {
+    await seedMoodTestDraft(page, {
+      sessionId: TEST_SESSION_ID,
+      stepIndex: 2,
+      updatedAt: "2026-07-09T10:00:00.000Z",
+    });
+    await seedMoodboardDraft(page, {
+      moodboardId: DRAFT_MOODBOARD_ID,
+      updatedAt: "2026-07-09T18:00:00.000Z", // 더 최신
+    });
+
+    const home = new HomePage(page);
+    await home.goto();
+
+    await expect(home.continueLink).toContainText("편집 중");
+    await expect(home.continueLink).not.toContainText("3단계");
+  });
+
+  test("진행 중인 작업이 없으면 이어서 만들기를 숨긴다", async ({ page }) => {
+    const home = new HomePage(page);
+    await home.goto();
+
+    await expect(home.createButton).toBeVisible();
+    await expect(home.continueLink).toBeHidden();
   });
 
   test("저장한 보드를 불러오지 못하면 다시 시도를 보여준다", async ({
