@@ -1,4 +1,7 @@
-// 프로토타입 헤더의 얇은 진척 바 — 3px 트랙 위 잉크 필이 폭으로 차오르고, 아래에 N/총 라벨.
+import { Progress } from "@/components/ui/progress";
+
+// 프로토타입 헤더의 얇은 진척 바 — 트랙은 공통 Progress(ui)를 쓰고, 헤더 규격에 맞춰
+// 높이만 3px로 좁힌다. 아래에 N/총 라벨을 붙인다.
 export default function ProgressBar({
   current,
   total,
@@ -7,14 +10,14 @@ export default function ProgressBar({
   total: number;
 }) {
   return (
-    <div className="flex flex-1 flex-col items-center gap-1">
-      <div className="h-[3px] w-full overflow-hidden rounded-pill bg-surface-sunken">
-        <div
-          className="h-full rounded-pill bg-[image:var(--gradient-violet)] transition-[width] duration-[400ms] ease-standard"
-          style={{ width: `${(current / total) * 100}%` }}
-        />
-      </div>
-      <span className="tracking-wide text-muted-foreground text-caption">
+    <div className="relative flex flex-1 flex-col items-center gap-1">
+      <Progress
+        value={(current / total) * 100}
+        tone="green"
+        className="h-[4px] max-w-[120px]"
+        aria-label="테스트 진행률"
+      />
+      <span className="absolute top-3 tracking-wide text-muted-foreground text-caption">
         {current} / {total}
       </span>
     </div>

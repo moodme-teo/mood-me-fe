@@ -31,13 +31,15 @@ export type FlowState = {
   screenIndex: number;
   committed: CommittedState;
   draft: string[]; // 현재 화면에서 진행 중인 선택
+  draftHistory: string[][]; // 현재 화면에서의 되돌리기(UNDO)용 draft 스냅샷 스택
 };
 
 export type FlowAction =
   | { type: "TOGGLE"; id: string } // 다중 선택 화면 (A/B1/B2/C/E)
   | { type: "PICK"; id: string } // 단일 선택 화면 (D)
   | { type: "CONFIRM" }
-  | { type: "BACK" };
+  | { type: "BACK" }
+  | { type: "UNDO" }; // 현재 화면 안에서의 마지막 선택 되돌리기
 
 // 화면 8개 고정: A(1) + B1(1) + B2(1) + C(1) + D(3, 그림자별) + E(1)
 export const TOTAL_SCREENS = 8;
@@ -54,7 +56,12 @@ const initialCommitted: CommittedState = {
 };
 
 export function createInitialFlowState(): FlowState {
-  return { screenIndex: 0, committed: initialCommitted, draft: [] };
+  return {
+    screenIndex: 0,
+    committed: initialCommitted,
+    draft: [],
+    draftHistory: [],
+  };
 }
 
 export function buildScreens(shadows: string[]): ScreenDescriptor[] {
@@ -142,7 +149,11 @@ export function initialDraftForScreen(
         : [];
     }
     case "final":
-      return committed.final;
+      // E는 걸러내기(subtractive) UI다 — draft는 "남길 카드"를 의미하므로, 아직 확정 전이면
+      // pool 전체(8장)에서 시작해 드래그로 하나씩 줄여나간다. commitScreen 계약은 그대로 유지된다.
+      return committed.final.length > 0
+        ? committed.final
+        : poolIdsForScreen(screen, committed);
   }
 }
 
@@ -363,7 +374,12 @@ export function flowReducer(state: FlowState, action: FlowAction): FlowState {
         target,
         state.committed.toggles,
       );
-      return { ...state, draft, committed: { ...state.committed, toggles } };
+      return {
+        ...state,
+        draft,
+        draftHistory: [...state.draftHistory, state.draft],
+        committed: { ...state.committed, toggles },
+      };
     }
     case "PICK": {
       const { draft, toggles } = pickDraftId(
@@ -371,7 +387,12 @@ export function flowReducer(state: FlowState, action: FlowAction): FlowState {
         action.id,
         state.committed.toggles,
       );
-      return { ...state, draft, committed: { ...state.committed, toggles } };
+      return {
+        ...state,
+        draft,
+        draftHistory: [...state.draftHistory, state.draft],
+        committed: { ...state.committed, toggles },
+      };
     }
     case "CONFIRM": {
       const committed = commitScreen(screen, state.draft, state.committed);
@@ -382,6 +403,7 @@ export function flowReducer(state: FlowState, action: FlowAction): FlowState {
         screenIndex: nextIndex,
         committed,
         draft: initialDraftForScreen(nextScreen, committed),
+        draftHistory: [],
       };
     }
     case "BACK": {
@@ -391,6 +413,16 @@ export function flowReducer(state: FlowState, action: FlowAction): FlowState {
         ...state,
         screenIndex: prevIndex,
         draft: initialDraftForScreen(prevScreen, state.committed),
+        draftHistory: [],
+      };
+    }
+    case "UNDO": {
+      if (state.draftHistory.length === 0) return state;
+      const draft = state.draftHistory[state.draftHistory.length - 1];
+      return {
+        ...state,
+        draft,
+        draftHistory: state.draftHistory.slice(0, -1),
       };
     }
   }

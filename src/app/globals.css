@@ -255,9 +255,11 @@
 
   /* ---- Shadows — depth 는 전부 색조 그림자(never flat black) ---- */
   --shadow-card:
-    0 1px 3px rgba(84, 64, 56, 0.08), 0 6px 16px rgba(84, 64, 56, 0.1);
+    0 3px 6px rgba(84, 64, 56, 0.1), 0 6px 16px rgba(84, 64, 56, 0.2);
   --shadow-card-hover:
-    0 3px 6px rgba(84, 64, 56, 0.1), 0 16px 32px rgba(84, 64, 56, 0.16);
+    0 3px 6px rgba(84, 64, 56, 0.9), 0 16px 32px rgba(84, 64, 56, 0.4);
+  --shadow-card-press:
+    0 2px 3px rgba(84, 64, 56, 0.4), 0 2px 3px rgba(84, 64, 56, 0.5);
 
   --shadow-ink: 0 3px 6px -4px rgba(52, 38, 34, 0.45);
   --shadow-ink-hover: 0 5px 10px -4px rgba(52, 38, 34, 0.55);
@@ -267,9 +269,9 @@
   --shadow-pink-hover: 0 5px 10px -4px rgba(196, 108, 153, 0.55);
   --shadow-pink-press: 0 1px 3px -2px rgba(196, 108, 153, 0.4);
 
-  --shadow-violet: 0 3px 6px -4px rgba(138, 115, 195, 0.45);
+  --shadow-violet: 0 3px 6px rgba(138, 115, 195, 1);
   --shadow-violet-hover: 0 5px 10px -4px rgba(138, 115, 195, 0.55);
-  --shadow-violet-press: 0 1px 3px -2px rgba(138, 115, 195, 0.4);
+  --shadow-violet-press: 0 1px 3px rgba(138, 115, 195, 1);
 
   --shadow-cyan: 0 3px 6px -4px rgba(86, 174, 191, 0.45);
   --shadow-cyan-hover: 0 5px 10px -4px rgba(86, 174, 191, 0.55);
@@ -391,6 +393,7 @@
   /* shadows (색조) */
   --shadow-card: var(--shadow-card);
   --shadow-card-hover: var(--shadow-card-hover);
+  --shadow-card-press: var(--shadow-card-press);
   --shadow-ink: var(--shadow-ink);
   --shadow-ink-hover: var(--shadow-ink-hover);
   --shadow-ink-press: var(--shadow-ink-press);
@@ -559,7 +562,7 @@
       #6b87fb 100%
     );
     --gradient-green: linear-gradient(
-      36deg,
+      205deg,
       #e0cdb3 var(--mood-gradient-stop-1, 0%),
       #f96d42 var(--mood-gradient-stop-2, 21%),
       #f8502f var(--mood-gradient-stop-3, 54%),
@@ -575,7 +578,7 @@
       #fef403 100%
     );
     --gradient-ink: linear-gradient(
-      36deg,
+      205deg,
       #606060 var(--mood-gradient-stop-1, 0%),
       #300018 var(--mood-gradient-stop-2, 21%),
       #290009 var(--mood-gradient-stop-3, 54%),

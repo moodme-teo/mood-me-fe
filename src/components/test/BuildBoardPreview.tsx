@@ -14,7 +14,7 @@ export default function BuildBoardPreview({ cardIds }: { cardIds: string[] }) {
   return (
     <div
       aria-label="완성되어 가는 추구미 무드보드"
-      className="grid h-12 w-12 shrink-0 grid-cols-4 content-start gap-0.5 rounded-md border border-dashed border-neutral-300 p-0.5"
+      className="grid h-12 w-12 shrink-0 grid-cols-4 content-start gap-0.5 rounded-md border border-dashed border-gray-300 p-0.5"
     >
       {cardIds.map((id) => {
         const card = CARD_MAP.get(id);
@@ -24,7 +24,7 @@ export default function BuildBoardPreview({ cardIds }: { cardIds: string[] }) {
             key={id}
             layout
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="relative aspect-square overflow-hidden rounded-[2px] bg-neutral-200"
+            className="relative aspect-square overflow-hidden rounded-[2px] bg-gray-100"
           >
             <Image
               src={card.imagePath}
@@ -32,6 +32,7 @@ export default function BuildBoardPreview({ cardIds }: { cardIds: string[] }) {
               fill
               sizes="12px"
               className="object-cover"
+              draggable={false}
             />
           </motion.div>
         );

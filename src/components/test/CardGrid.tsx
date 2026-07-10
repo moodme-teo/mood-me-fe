@@ -26,7 +26,7 @@ export default function CardGrid({
   onToggle,
 }: Props) {
   return (
-    <div className="[columns:3] [column-gap:6px]">
+    <div className="[columns:3] gap-x-2">
       {cards.map((card, index) => {
         const order = selectedIds.indexOf(card.id);
         const selected = order !== -1;
@@ -40,15 +40,15 @@ export default function CardGrid({
             disabled={disabled}
             aria-pressed={selected}
             aria-label={card.label}
-            whileTap={{ scale: 0.92 }}
+            // whileTap={{ scale: 0.92 }}
             animate={{
-              scale: selected ? 0.95 : 1,
-              opacity: disabled ? 0.35 : 1,
+              y: selected ? 4 : 0,
+              opacity: disabled ? 0.35 : selected ? 1 : 0.8,
             }}
             transition={{ type: "spring", stiffness: 320, damping: 26 }}
             style={{ aspectRatio: ASPECTS[index % ASPECTS.length] }}
-            className={`relative mb-1.5 block w-full break-inside-avoid overflow-hidden rounded-md transition-shadow outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${
-              selected ? "shadow-violet" : "shadow-card"
+            className={`relative mb-2.5 block w-full break-inside-avoid overflow-hidden rounded-sm transition-shadow outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${
+              selected ? "shadow-card-press" : "shadow-card-hover"
             } ${disabled ? "cursor-default" : "cursor-pointer"}`}
           >
             <Image
@@ -57,25 +57,22 @@ export default function CardGrid({
               fill
               sizes="(max-width: 430px) 30vw, 130px"
               className="object-cover"
+              loading={index === 0 ? "eager" : "lazy"}
+              draggable={false}
             />
             {/* 선택 시 보라 링 + 담긴 순번 배지로 "확정" 피드백을 준다. */}
-            <span
+            {/* <span
               aria-hidden
               className={`pointer-events-none absolute inset-0 rounded-md ring-2 transition-opacity ${
                 selected
                   ? "opacity-100 ring-accent-violet"
                   : "opacity-0 ring-transparent"
               }`}
-            />
+            /> */}
             {selected && (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 500, damping: 24 }}
-                className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-accent-violet text-[11px] font-bold text-white shadow-violet"
-              >
+              <span className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-[var(--gray-500)] bg-surface-inverse text-[10px] font-bold text-white">
                 {order + 1}
-              </motion.span>
+              </span>
             )}
             <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/55 to-transparent px-1.5 pt-4 pb-1 text-left text-[11px] font-medium text-white">
               {card.label}

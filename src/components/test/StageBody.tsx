@@ -81,9 +81,9 @@ export default function StageBody({
       return (
         <FinalGrid
           poolIds={poolIds}
-          selectedIds={draft}
-          atCapacity={draft.length >= target}
-          onToggle={onToggle}
+          keptIds={draft}
+          target={target}
+          onReject={onToggle}
         />
       );
   }

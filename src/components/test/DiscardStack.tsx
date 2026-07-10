@@ -6,12 +6,12 @@ import {
   type PanInfo,
   useReducedMotion,
 } from "framer-motion";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import type { Card } from "@/lib/mood-test/seed";
-
 // 덜어내기(trim1·trim2) 전용 카드 스택. 프로토타입(prototype-test-page/카드 선택
 // 프로토타입.dc.html, screen: 'discard')의 "가운데 스택 → 좌우로 넘겨보고, 아래로
 // 끌어내려 버린다" 인터랙션을 따른다. 최상단 카드만 조작 가능하고, 좌우 스와이프는
@@ -89,8 +89,42 @@ export default function DiscardStack({
     .filter((card): card is Card => Boolean(card));
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="relative h-[320px] w-full max-w-[240px]">
+    <div className="flex min-h-[560px] flex-col items-center justify-center gap-9">
+      {remaining.length > 0 && (
+        <div className="gap- flex w-full items-center justify-between px-5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="이전 카드 미리보기"
+            disabled={visible.length < 2}
+            onClick={() => cyclePreview("prev")}
+          >
+            <ArrowLeft />
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={atCapacity}
+            onClick={() => onToggle(stackOrder[0])}
+          >
+            이 카드 버리기
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="다음 카드 미리보기"
+            disabled={visible.length < 2}
+            onClick={() => cyclePreview("next")}
+          >
+            <ArrowRight />
+          </Button>
+        </div>
+      )}
+
+      <div className="relative mb-8 h-[320px] w-full max-w-[240px]">
         <AnimatePresence>
           {visible.map((card, position) => {
             const isFront = position === 0;
@@ -99,7 +133,7 @@ export default function DiscardStack({
             return (
               <motion.div
                 key={card.id}
-                className="absolute inset-0 m-auto overflow-hidden rounded-lg shadow-card"
+                className="absolute inset-0 m-auto overflow-hidden rounded-sm shadow-card"
                 style={{
                   zIndex: visible.length - position,
                   touchAction: "none",
@@ -146,46 +180,10 @@ export default function DiscardStack({
           </p>
         )}
       </div>
-
-      {remaining.length > 0 && (
-        <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label="이전 카드 미리보기"
-            disabled={visible.length < 2}
-            onClick={() => cyclePreview("prev")}
-          >
-            ←
-          </Button>
-          <p className="text-center text-muted-foreground text-caption">
-            아래로 끌어 버리고, 좌우로 넘겨 미리 봐요
-          </p>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label="다음 카드 미리보기"
-            disabled={visible.length < 2}
-            onClick={() => cyclePreview("next")}
-          >
-            →
-          </Button>
-        </div>
-      )}
-
-      {remaining.length > 0 && (
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          disabled={atCapacity}
-          onClick={() => onToggle(stackOrder[0])}
-        >
-          이 카드 버리기
-        </Button>
-      )}
+      <p className="text-center text-muted-foreground text-caption">
+        아래로 끌어 버리고, <br />
+        좌우로 넘겨 미리 봐요
+      </p>
     </div>
   );
 }
