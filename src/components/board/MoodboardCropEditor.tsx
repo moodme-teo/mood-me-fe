@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowLeft,
   Image as ImageIcon,
   type LucideIcon,
   PaintBucket,
@@ -28,6 +29,8 @@ import {
   useCropEditor,
   zoomAtPoint,
 } from "@/components/canvas";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { updateMoodboard } from "@/lib/api/update-moodboard";
 import type { MoodProfile } from "@/types/moodboard";
 
@@ -53,12 +56,15 @@ const SOLID_PRESETS: { label: string; color: string }[] = [
   { label: "검정", color: "#171717" },
 ];
 
+const CHIP_MOTION =
+  "transition-all duration-fast ease-spring hover:-translate-y-0.5 active:translate-y-px active:scale-[0.97]";
+
 function Toast({ message }: { message: string | null }) {
   if (!message) return null;
   return (
     <div
       role="status"
-      className="fixed top-4 left-1/2 z-40 w-[calc(100%-32px)] max-w-sm -translate-x-1/2 rounded-xl bg-surface-inverse px-4 py-3 text-sm font-semibold text-white shadow-lg"
+      className="fixed top-4 left-1/2 z-40 w-[calc(100%-32px)] max-w-sm -translate-x-1/2 rounded-lg bg-surface-inverse px-4 py-3 text-sm font-semibold text-on-inverse shadow-ink"
     >
       {message}
     </div>
@@ -76,36 +82,39 @@ function ConfirmLeaveDialog({
 }) {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-surface-inverse/48 p-4 sm:items-center sm:justify-center">
-      <div
+    <div className="fixed inset-0 z-50 flex items-end bg-surface-inverse/48 px-4 pt-4 pb-[max(env(safe-area-inset-bottom),1rem)] sm:items-center sm:justify-center">
+      <Card
         role="dialog"
         aria-modal="true"
         aria-labelledby="leave-title"
-        className="w-full max-w-sm rounded-2xl bg-card p-5 text-foreground shadow-xl"
+        className="w-full max-w-sm gap-4 px-5 text-foreground"
       >
-        <h2 id="leave-title" className="text-lg font-bold">
+        <h2 id="leave-title" className="text-heading-md">
           편집을 그만두시겠어요?
         </h2>
-        <p className="mt-2 text-sm leading-6 text-gray-700">
+        <p className="text-gray-700 text-body-sm">
           저장하지 않은 크롭 편집 내용은 사라져요.
         </p>
-        <div className="mt-5 grid grid-cols-2 gap-2">
-          <button
+        <div className="grid grid-cols-2 gap-2">
+          <Button
             type="button"
+            variant="secondary"
+            size="md"
             onClick={onCancel}
-            className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-bold text-foreground"
           >
             계속 편집
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="primary"
+            tone="ink"
+            size="md"
             onClick={onConfirm}
-            className="rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
           >
             나가기
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -125,49 +134,60 @@ function SaveSheet({
 }) {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-surface-inverse/48 p-4 sm:items-center sm:justify-center">
-      <div
+    <div className="fixed inset-0 z-50 flex items-end bg-surface-inverse/48 px-4 pt-4 pb-[max(env(safe-area-inset-bottom),1rem)] sm:items-center sm:justify-center">
+      <Card
         role="dialog"
         aria-modal="true"
         aria-labelledby="save-title"
-        className="w-full max-w-sm space-y-2 rounded-2xl bg-card p-5 text-foreground shadow-xl"
+        className="w-full max-w-sm gap-3 px-5 text-foreground"
       >
-        <h2 id="save-title" className="text-lg font-bold">
-          저장하기
-        </h2>
-        <p className="mb-2 text-sm leading-6 text-gray-700">
-          미리보기 그대로 저장돼요. 투명 배경은 PNG에서 유지됩니다.
-        </p>
-        <button
+        <div>
+          <h2 id="save-title" className="text-heading-md">
+            저장하기
+          </h2>
+          <p className="mt-2 text-gray-700 text-body-sm">
+            미리보기 그대로 저장돼요. 투명 배경은 PNG에서 유지됩니다.
+          </p>
+        </div>
+        <Button
           type="button"
+          variant="secondary"
+          size="md"
+          className="w-full"
           onClick={() => onDownload("png")}
-          className="w-full rounded-xl border border-gray-300 bg-card px-4 py-3 text-sm font-bold text-foreground"
         >
           PNG로 저장 (투명 유지)
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="secondary"
+          size="md"
+          className="w-full"
           onClick={() => onDownload("jpeg")}
-          className="w-full rounded-xl border border-gray-300 bg-card px-4 py-3 text-sm font-bold text-foreground"
         >
           JPG로 저장 (흰 배경)
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="primary"
+          tone="violet"
+          size="md"
+          className="w-full"
           disabled={isSaving}
           onClick={onComplete}
-          className="w-full rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white disabled:opacity-45"
         >
           {isSaving ? "저장 중" : "완성하고 공유하기"}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="ghost"
+          size="md"
+          className="w-full"
           onClick={onClose}
-          className="w-full rounded-xl px-4 py-2 text-sm font-bold text-gray-700"
         >
           닫기
-        </button>
-      </div>
+        </Button>
+      </Card>
     </div>
   );
 }
@@ -185,7 +205,7 @@ function ImagePanel({
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm leading-6 font-semibold text-gray-700">
+      <p className="text-gray-700 text-body-sm">
         두 손가락으로 확대·축소, 드래그로 이동, 더블탭으로 구도를 초기화할 수
         있어요.
       </p>
@@ -199,18 +219,20 @@ function ImagePanel({
           value={zoom}
           disabled={!hasImage}
           onChange={(event) => onZoomChange(Number(event.target.value))}
-          className="mt-2 w-full accent-neutral-950 disabled:opacity-40"
+          className="mt-2 w-full accent-gray-900 disabled:opacity-40"
           aria-label="확대"
         />
       </label>
-      <button
+      <Button
         type="button"
+        variant="secondary"
+        size="md"
+        className="w-full"
         onClick={onReset}
         disabled={!hasImage}
-        className="w-full rounded-xl border border-gray-300 bg-card px-4 py-3 text-sm font-bold text-foreground disabled:opacity-40"
       >
         구도 초기화
-      </button>
+      </Button>
     </div>
   );
 }
@@ -232,10 +254,10 @@ function ShapePanel({
           title={item.label}
           aria-pressed={shape === item.id}
           onClick={() => onSelect(item.id)}
-          className={`flex size-16 shrink-0 items-center justify-center rounded-2xl border bg-card p-3 transition ${
+          className={`flex size-16 shrink-0 items-center justify-center rounded-lg border bg-card p-3 ${CHIP_MOTION} ${
             shape === item.id
-              ? "border-foreground ring-2 ring-foreground"
-              : "border-gray-200"
+              ? "border-foreground shadow-ink ring-2 ring-foreground"
+              : "border-gray-300 hover:bg-surface-sunken"
           }`}
         >
           <CropShapeIcon
@@ -269,10 +291,10 @@ function BackgroundPanel({
         type="button"
         aria-pressed={isTransparent}
         onClick={onTransparent}
-        className={`min-h-14 rounded-2xl border px-4 text-xs font-bold transition ${
+        className={`min-h-14 rounded-lg border px-4 text-xs font-bold ${CHIP_MOTION} ${
           isTransparent
-            ? "border-foreground bg-surface-inverse text-white"
-            : "border-gray-100 bg-card text-gray-700"
+            ? "border-foreground bg-surface-inverse text-on-inverse shadow-ink"
+            : "border-gray-100 bg-card text-gray-700 hover:bg-surface-sunken"
         }`}
       >
         투명
@@ -281,10 +303,10 @@ function BackgroundPanel({
         type="button"
         aria-pressed={isBlur}
         onClick={onBlur}
-        className={`min-h-14 rounded-2xl border px-4 text-xs font-bold transition ${
+        className={`min-h-14 rounded-lg border px-4 text-xs font-bold ${CHIP_MOTION} ${
           isBlur
-            ? "border-foreground bg-surface-inverse text-white"
-            : "border-gray-100 bg-card text-gray-700"
+            ? "border-foreground bg-surface-inverse text-on-inverse shadow-ink"
+            : "border-gray-100 bg-card text-gray-700 hover:bg-surface-sunken"
         }`}
       >
         이미지 블러
@@ -295,10 +317,10 @@ function BackgroundPanel({
           type="button"
           aria-pressed={activeColor === preset.color}
           onClick={() => onSolid(preset.color)}
-          className={`min-h-14 rounded-2xl border px-4 text-xs font-bold transition ${
+          className={`min-h-14 rounded-lg border px-4 text-xs font-bold ${CHIP_MOTION} ${
             activeColor === preset.color
               ? "border-foreground ring-2 ring-foreground"
-              : "border-gray-200"
+              : "border-gray-300"
           }`}
           style={{
             backgroundColor: preset.color,
@@ -308,7 +330,7 @@ function BackgroundPanel({
           {preset.label}
         </button>
       ))}
-      <label className="flex min-h-14 cursor-pointer items-center gap-2 rounded-2xl border border-gray-100 bg-card px-4 text-xs font-bold text-gray-700">
+      <label className="flex min-h-14 cursor-pointer items-center gap-2 rounded-lg border border-gray-100 bg-card px-4 text-xs font-bold text-gray-700 transition hover:bg-surface-sunken">
         직접 선택
         <input
           type="color"
@@ -333,7 +355,7 @@ function ColorPanel({
 }) {
   if (palette.length === 0) {
     return (
-      <p className="text-sm leading-6 font-semibold text-gray-700">
+      <p className="text-gray-700 text-body-sm">
         이미지에서 추천 색을 추출하지 못했어요. 배경 탭에서 직접 색을 골라
         보세요.
       </p>
@@ -353,10 +375,10 @@ function ColorPanel({
             aria-label={`${color} 배경`}
             aria-pressed={activeColor === color}
             onClick={() => onSelect(color)}
-            className={`h-11 w-11 rounded-full border-2 transition ${
+            className={`h-11 w-11 rounded-full border-2 ${CHIP_MOTION} ${
               activeColor === color
                 ? "border-foreground ring-2 ring-foreground"
-                : "border-white shadow-sm"
+                : "border-white shadow-card"
             }`}
             style={{ backgroundColor: color }}
           />
@@ -503,43 +525,49 @@ export default function MoodboardCropEditor({
         onComplete={handleComplete}
       />
 
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-foreground/5 bg-background/95 px-4 py-3 backdrop-blur">
-        <button
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-foreground/5 bg-background/95 px-4 pt-[max(env(safe-area-inset-top),0.75rem)] pb-3 backdrop-blur">
+        <Button
           type="button"
+          variant="secondary"
+          size="icon-md"
+          aria-label="뒤로"
           onClick={() => setIsLeaveOpen(true)}
-          className="rounded-xl border border-gray-300 bg-card px-3 py-2 text-sm font-bold"
         >
-          뒤로
-        </button>
-        <h1 className="text-base font-bold">편집</h1>
-        <button
+          <ArrowLeft aria-hidden />
+        </Button>
+        <h1 className="text-heading-md">편집</h1>
+        <Button
           type="button"
+          variant="primary"
+          tone="ink"
+          size="md"
           disabled={isBaseImageFailed}
           onClick={() => setIsSaveOpen(true)}
-          className="rounded-xl bg-surface-inverse px-3 py-2 text-sm font-bold text-white disabled:opacity-45"
         >
           저장
-        </button>
+        </Button>
       </header>
 
       <div className="flex flex-1 items-center justify-center px-4 py-5">
         {isBaseImageFailed ? (
-          <div className="w-full max-w-sm rounded-2xl bg-card p-5 text-center shadow-sm">
-            <p className="text-lg font-bold">이미지를 불러오지 못했어요.</p>
-            <p className="mt-2 text-sm leading-6 text-gray-700">
+          <Card className="w-full max-w-sm px-5 text-center">
+            <p className="text-heading-md">이미지를 불러오지 못했어요.</p>
+            <p className="text-gray-700 text-body-sm">
               네트워크를 확인한 뒤 다시 시도해 주세요.
             </p>
-            <button
+            <Button
               type="button"
+              variant="primary"
+              tone="ink"
+              size="md"
               onClick={() => {
                 setIsBaseImageFailed(false);
                 router.refresh();
               }}
-              className="mt-4 rounded-xl bg-surface-inverse px-4 py-3 text-sm font-bold text-white"
             >
               다시 시도
-            </button>
-          </div>
+            </Button>
+          </Card>
         ) : (
           <CropCanvas
             baseImageUrl={baseImageUrl}
@@ -567,17 +595,17 @@ export default function MoodboardCropEditor({
               title={item.label}
               aria-pressed={tab === item.id}
               onClick={() => setTab(item.id)}
-              className={`flex min-h-11 items-center justify-center rounded-2xl border transition ${
+              className={`flex min-h-11 items-center justify-center rounded-lg border ${CHIP_MOTION} ${
                 tab === item.id
-                  ? "border-foreground bg-surface-inverse text-white"
-                  : "border-gray-100 bg-card text-gray-700"
+                  ? "border-foreground bg-surface-inverse text-on-inverse shadow-ink"
+                  : "border-gray-100 bg-card text-gray-700 hover:bg-surface-sunken"
               }`}
             >
               <item.Icon className="size-5" aria-hidden strokeWidth={2.25} />
             </button>
           ))}
         </nav>
-        <section className="rounded-t-3xl bg-card px-4 pt-3 pb-5 shadow-[0_-8px_24px_rgba(0,0,0,0.10)]">
+        <section className="rounded-t-xl bg-card px-4 pt-3 pb-[max(env(safe-area-inset-bottom),1.25rem)] shadow-card-hover">
           {tab === "image" ? (
             <ImagePanel
               zoom={crop.transform.zoom}
