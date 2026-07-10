@@ -34,6 +34,7 @@ import {
 } from "@/components/canvas";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogActions, DialogContent } from "@/components/ui/dialog";
 import { updateMoodboard } from "@/lib/api/update-moodboard";
 import type { EditState, MoodProfile } from "@/types/moodboard";
 
@@ -99,20 +100,12 @@ function ConfirmLeaveDialog({
   onConfirm: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-inverse/48 p-4">
-      <Card
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="leave-title"
-        className="w-full max-w-sm gap-4 px-5 text-foreground"
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent
+        title="편집을 그만두시겠어요?"
+        description="저장하지 않은 크롭 편집 내용은 사라져요."
       >
-        <h2 id="leave-title" className="text-heading-md">
-          편집을 그만두시겠어요?
-        </h2>
-        <p className="text-gray-700 text-caption">
-          저장하지 않은 크롭 편집 내용은 사라져요.
-        </p>
-        <div className="grid grid-cols-2 gap-2">
+        <DialogActions>
           <Button
             type="button"
             variant="secondary"
@@ -121,18 +114,12 @@ function ConfirmLeaveDialog({
           >
             계속 편집
           </Button>
-          <Button
-            type="button"
-            variant="primary"
-            tone="ink"
-            size="md"
-            onClick={onConfirm}
-          >
+          <Button type="button" tone="ink" size="md" onClick={onConfirm}>
             나가기
           </Button>
-        </div>
-      </Card>
-    </div>
+        </DialogActions>
+      </DialogContent>
+    </Dialog>
   );
 }
 

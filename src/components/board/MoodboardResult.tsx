@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { BoardPreview, compositeOnWhite } from "@/components/canvas";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogActions, DialogContent } from "@/components/ui/dialog";
 import type { GetMoodboardResponse } from "@/lib/api/get-moodboard";
 import { getMoodboard } from "@/lib/api/get-moodboard";
 import { ApiClientError } from "@/lib/api-client";
