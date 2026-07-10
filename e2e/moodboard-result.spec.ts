@@ -9,12 +9,15 @@ import {
 } from "./fixtures/data";
 import { MoodboardResultPage } from "./pages/moodboard-result.page";
 import {
+  mockDeleteMoodboard,
+  mockDeleteMoodboardFailure,
   mockLegacyMoodboard,
   mockMoodboard,
   mockMoodboardAnalysisFailed,
   mockMoodboardFailure,
   mockMoodboardSequence,
   mockRetryAnalysis,
+  mockSharedMoodboard,
 } from "./utils/mock-api";
 import { downloadToDataUrl, readImagePixels } from "./utils/pixels";
 
@@ -51,6 +54,11 @@ import { downloadToDataUrl, readImagePixels } from "./utils/pixels";
  * - "다시 만들기" 는 확인 다이얼로그를 거쳐야 새 테스트로 간다.
  * - 레거시 보드는 캔버스로 합성해 보여준다.
  * - 무드보드를 불러오지 못하면 에러 화면을 보여준다.
+ * - 접근 시나리오별로 다른 액션이 뜬다 (#157): justCompleted(직후 진입)·history(재열람)·
+ *   shared(공유받은 타인). history 에서만 삭제가 뜨고, shared 에서는 공유·다시 만들기 대신
+ *   "나도 만들어보기" CTA 가 뜬다. justCompleted 는 URL의 `?from=complete` 신호로만
+ *   구별되고, 한 번 읽으면 URL 에서 지워진다.
+ * - history 에서 삭제하면 확인 다이얼로그를 거쳐 홈으로 이동한다.
  *
  * 테스트 성격: smoke (+ 로드 실패·레거시 보드는 edge case)
  *
@@ -234,5 +242,87 @@ test.describe("결과물 페이지", () => {
 
     await expect(result.moodSpectrumHeading).toBeVisible({ timeout: 15_000 });
     await expect(result.analysisFailedHeading).toBeHidden();
+  });
+
+  // 접근 시나리오 분기 (#157) — justCompleted(직후 진입)·history(재열람)·shared(공유받은 타인).
+  test.describe("접근 시나리오", () => {
+    test("공유받은 타인에게는 공유·다시 만들기 대신 나도 만들어보기 CTA를 보여준다", async ({
+      page,
+    }) => {
+      await mockSharedMoodboard(page);
+
+      const result = new MoodboardResultPage(page);
+      await result.goto(MOODBOARD_ID);
+
+      await expect(result.exportedImage).toBeVisible();
+      await expect(result.shareButton).toBeHidden();
+      await expect(result.restartButton).toBeHidden();
+      await expect(result.deleteButton).toBeHidden();
+      await expect(result.tryItYourselfButton).toBeVisible();
+    });
+
+    test("히스토리로 재열람하면 삭제 버튼을 보여준다", async ({ page }) => {
+      await mockMoodboard(page);
+
+      const result = new MoodboardResultPage(page);
+      await result.goto(MOODBOARD_ID);
+
+      await expect(result.deleteButton).toBeVisible();
+    });
+
+    test("직후 진입에서는 삭제 버튼을 보이지 않고, 신호를 소비한 뒤 URL에서 지운다", async ({
+      page,
+    }) => {
+      await mockMoodboard(page);
+
+      const result = new MoodboardResultPage(page);
+      await result.gotoJustCompleted(MOODBOARD_ID);
+
+      await expect(result.exportedImage).toBeVisible();
+      await expect(result.deleteButton).toBeHidden();
+      await expect(result.restartButton).toBeVisible();
+      await expect(page).toHaveURL(new RegExp(`/moodboard/${MOODBOARD_ID}$`));
+    });
+
+    test("삭제하면 확인을 받고 홈으로 이동한다", async ({ page }) => {
+      await mockMoodboard(page);
+      await mockDeleteMoodboard(page);
+
+      const result = new MoodboardResultPage(page);
+      await result.goto(MOODBOARD_ID);
+
+      await result.deleteButton.click();
+      await expect(result.deleteDialog).toBeVisible();
+
+      await result.deleteConfirmButton.click();
+
+      await page.waitForURL("/");
+    });
+
+    test("삭제를 취소하면 결과물에 머문다", async ({ page }) => {
+      await mockMoodboard(page);
+
+      const result = new MoodboardResultPage(page);
+      await result.goto(MOODBOARD_ID);
+
+      await result.deleteButton.click();
+      await result.deleteCancelButton.click();
+
+      await expect(result.deleteDialog).toBeHidden();
+      expect(new URL(page.url()).pathname).toBe(`/moodboard/${MOODBOARD_ID}`);
+    });
+
+    test("삭제에 실패하면 토스트를 보여준다", async ({ page }) => {
+      await mockMoodboard(page);
+      await mockDeleteMoodboardFailure(page);
+
+      const result = new MoodboardResultPage(page);
+      await result.goto(MOODBOARD_ID);
+
+      await result.deleteButton.click();
+      await result.deleteConfirmButton.click();
+
+      await expect(result.deleteFailedToast).toBeVisible();
+    });
   });
 });
