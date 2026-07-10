@@ -1,5 +1,16 @@
 import type { Download, Locator, Page } from "@playwright/test";
 
+/**
+ * MoodboardResultPage — 최종 결과물 페이지 (`/moodboard/[moodboardId]`)
+ *
+ * 숨기는 것:
+ * - "SNS 공유" 가 공유 시트가 아니라 링크 클립보드 복사라는 사실
+ * - 결과물이 Konva Stage 로 그려진 <canvas> 라 텍스트로 검증할 수 없다는 사실
+ * - "편집" 은 버튼이 아니라 링크(`a`)라는 사실 — 이동이므로 role 이 다르다
+ *
+ * 사용 기준:
+ * - exportPng() 는 다운로드 이벤트를 받아 돌려준다. spec 이 파일명을 단언한다.
+ */
 export class MoodboardResultPage {
   /** BoardPreview 는 Konva Stage 로 <canvas> 를 그린다 (배럴 경유 ssr:false). */
   readonly canvas: Locator;

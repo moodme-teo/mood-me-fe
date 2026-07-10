@@ -1,15 +1,23 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
 // 추구미 테스트는 8개 화면(담기 12 → 덜어내기 4 → 3 → 그림자 3 → 전환×3 → 최종 5)이다.
-// mood-test-flow.ts 의 TOTAL_SCREENS 와 맞춘다.
+// components/test/mood-test-flow.ts 의 TOTAL_SCREENS 와 맞춘다.
 const TOTAL_SCREENS = 8;
 
 const SELECTION_PATTERN = /(\d+)\s*\/\s*(\d+)\s*선택됨/;
 
 /**
- * 화면 종류를 몰라도 넘길 수 있게, 선택지 버튼의 aria-pressed 와
- * TestLayout 의 "N / M 선택됨" 상태 텍스트만으로 조작한다.
- * (data-testid 를 새로 뿌리지 않기 위한 선택 — 네 개 선택 컴포넌트가 모두 이 둘을 노출한다.)
+ * MoodTestPage — 추구미 테스트 (`/test/[sessionId]`)
+ *
+ * 숨기는 것:
+ * - 8개 화면의 선택지 UI 가 세 종류(이미지·키워드·혼합)로 다르다는 사실. 화면 종류를
+ *   몰라도 넘길 수 있게 aria-pressed 와 "N / M 선택됨" 상태 텍스트만으로 조작한다.
+ *   (data-testid 를 새로 뿌리지 않기 위한 선택 — 네 개 선택 컴포넌트가 모두 이 둘을 노출한다.)
+ * - 마지막 화면에서 "다음" 이 "무드보드 생성하기" 로 바뀐다는 사실
+ *
+ * 사용 기준:
+ * - complete() 는 완주가 목적일 때만 쓴다. 선택 규칙 자체를 검증한다면 pickOne() 으로
+ *   한 번에 한 칸씩 눌러 spec 이 중간 상태를 단언할 수 있게 한다.
  */
 export class MoodTestPage {
   readonly nextButton: Locator;
