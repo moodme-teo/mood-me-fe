@@ -15,12 +15,12 @@ export default function GeneratingBoardAnimation({
   return (
     <div
       aria-label="채워지는 무드보드"
-      className="grid aspect-square grid-cols-3 gap-2 rounded-2xl border border-gray-100 bg-surface-sunken p-3"
+      className="grid aspect-square w-full max-w-[240px] grid-cols-3 gap-2 rounded-2xl border border-gray-100 bg-surface-sunken p-3"
     >
       {SAMPLE_CARDS.map((card, i) => (
         <div
           key={card.id}
-          className="relative overflow-hidden rounded-lg bg-gray-100 transition-opacity duration-700"
+          className="relative overflow-hidden rounded-lg bg-gray-100 transition-opacity duration-[var(--duration-slow)] ease-standard"
           style={{ opacity: i < revealedCount ? 1 : 0 }}
         >
           <Image

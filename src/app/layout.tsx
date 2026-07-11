@@ -26,9 +26,28 @@ const GOOGLE_FONT_ORIGINS = [
   "https://fonts.gstatic.com",
 ] as const;
 
+// 링크 공유(카카오톡·SNS)에서 뜨는 카드 문구. openGraph 를 안 주면 카카오가 og:description
+// 을 못 읽어 "여기를 눌러 링크를 확인하세요" 라는 자기 기본 문구를 대신 띄운다 — 그래서
+// title·description 을 openGraph/twitter 에도 함께 실어 준다. (og:image 는 아직 지정하지
+// 않아 스크래퍼가 페이지 이미지를 자동으로 고른다 — 공유 이미지 고정은 #8 후속.)
+const SHARE_TITLE = "mood·me | 나만의 추구미 무드보드";
+const SHARE_DESCRIPTION = "나의 무드를 찾고, 보드를 만들어보세요.";
+
 export const metadata: Metadata = {
-  title: "mood·me",
-  description: "짧은 테스트로 나만의 AI 무드보드를 만들고 공유하는 mood·me",
+  title: SHARE_TITLE,
+  description: SHARE_DESCRIPTION,
+  openGraph: {
+    type: "website",
+    siteName: "mood·me",
+    locale: "ko_KR",
+    title: SHARE_TITLE,
+    description: SHARE_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SHARE_TITLE,
+    description: SHARE_DESCRIPTION,
+  },
   manifest: "/assets/favicons/manifest.json",
   icons: {
     icon: [

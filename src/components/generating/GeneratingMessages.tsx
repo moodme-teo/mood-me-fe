@@ -4,11 +4,11 @@
 import { useEffect, useState } from "react";
 
 const MESSAGES = [
-  "당신이 고른 공기를 모으는 중…",
-  "색과 결을 섞고 있어요…",
-  "흩어진 조각들을 이어붙이는 중…",
-  "빛을 조금 더 얹는 중…",
-  "거의 다 됐어요, 마지막 손질 중…",
+  "고른 답들 사이에서 취향을 찾는 중…",
+  "당신이 원하는 분위기를 좁혀가는 중…",
+  "추구미에 어울리는 장면을 모으는 중…",
+  "사진과 문구를 한 장에 맞춰보는 중…",
+  "당신의 추구미보드가 거의 완성됐어요…",
 ];
 
 const ROTATE_INTERVAL_MS = 2500;
@@ -33,7 +33,7 @@ export default function GeneratingMessages({
   }, [isReentry]);
 
   return (
-    <p role="status" className="text-sm text-muted-foreground">
+    <p role="status" className="text-muted-foreground text-body-sm">
       {isReentry ? REENTRY_MESSAGE : MESSAGES[index]}
     </p>
   );
