@@ -5,14 +5,11 @@
 
 import { useRouter } from "next/navigation";
 
-import GeneratingBoardAnimation from "@/components/generating/GeneratingBoardAnimation";
 import GeneratingError from "@/components/generating/GeneratingError";
 import GeneratingMessages from "@/components/generating/GeneratingMessages";
 import GenerationPercent from "@/components/generating/GenerationPercent";
 import GenerationProgressBar from "@/components/generating/GenerationProgressBar";
 import { useGenerationPolling } from "@/components/generating/useGenerationPolling";
-
-const TOTAL_CARDS = 5;
 
 export default function GeneratingLayout({ sessionId }: { sessionId: string }) {
   const router = useRouter();
@@ -24,8 +21,6 @@ export default function GeneratingLayout({ sessionId }: { sessionId: string }) {
     isReentry,
     retry,
   } = useGenerationPolling(sessionId);
-
-  const revealedCount = Math.floor((percent / 100) * TOTAL_CARDS);
 
   if (failureReason) {
     return (
@@ -42,16 +37,16 @@ export default function GeneratingLayout({ sessionId }: { sessionId: string }) {
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-16 px-6 py-12">
-      {/* 상단: 진행률 → 상태 문구 → 프로그레스바 */}
+    <div className="flex flex-1 flex-col items-center justify-center px-6 py-12">
+      {/* 진행률 → 상태 문구 → 프로그레스바 → 소요 시간 안내 */}
       <div className="flex w-full max-w-xs flex-col items-center gap-4">
         <GenerationPercent percent={percent} />
         <GeneratingMessages isReentry={isReentry} />
         <GenerationProgressBar percent={percent} />
+        <p className="text-muted-foreground text-caption">
+          완성까지 최대 1분 정도 걸려요
+        </p>
       </div>
-
-      {/* 하단: 인터랙티브하게 채워지는 무드보드 생성 연출 */}
-      <GeneratingBoardAnimation revealedCount={revealedCount} />
     </div>
   );
 }
