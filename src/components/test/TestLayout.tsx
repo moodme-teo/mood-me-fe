@@ -181,7 +181,7 @@ export default function TestLayout({ initialStepIndex = 0, sessionId }: Props) {
     }
   };
 
-  const { kicker, title, hint } = flow.copy;
+  const { title, hint } = flow.copy;
   const isFinalScreen = flow.screen.kind === "final";
 
   const isBlocked = gate === "blocked";
@@ -210,10 +210,7 @@ export default function TestLayout({ initialStepIndex = 0, sessionId }: Props) {
         <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto">
           <section className="flex flex-col gap-0.5">
             <div className="sticky top-0 left-0 z-[99] bg-background/90 [mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)] px-4 pt-1 pb-7 backdrop-blur-md [-webkit-mask-image:linear-gradient(to_bottom,black_80%,transparent_100%)]">
-              <p className="font-semibold tracking-wide text-muted-foreground text-caption">
-                {kicker}
-              </p>
-              <h2 className="mt-1 font-[family-name:var(--font-display-kr)] text-[24px] leading-[1.32] font-bold text-foreground">
+              <h2 className="font-[family-name:var(--font-display-kr)] text-[24px] leading-[1.32] font-bold whitespace-pre-line text-foreground">
                 {title}
               </h2>
               {hint && (
