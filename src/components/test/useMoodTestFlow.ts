@@ -1,0 +1,88 @@
+import { useCallback, useMemo, useReducer } from "react";
+
+import {
+  buildJourney,
+  buildScreens,
+  commitScreen,
+  createInitialFlowState,
+  flowReducer,
+  getScreenCopy,
+  poolIdsForScreen,
+  previewCardIdsForScreen,
+  targetCountForScreen,
+  TOTAL_SCREENS,
+} from "@/components/test/mood-test-flow";
+import type { FlowProgress } from "@/lib/mood-test/flow-state";
+import { SHADOWS } from "@/lib/mood-test/seed";
+
+export function useMoodTestFlow() {
+  const [state, dispatch] = useReducer(
+    flowReducer,
+    undefined,
+    createInitialFlowState,
+  );
+
+  const screens = useMemo(
+    () => buildScreens(state.committed.shadows),
+    [state.committed.shadows],
+  );
+  const screen = screens[state.screenIndex];
+  const target = targetCountForScreen(screen);
+  const poolIds = poolIdsForScreen(screen, state.committed);
+  const previewCardIds = previewCardIdsForScreen(
+    screen,
+    state.draft,
+    state.committed,
+  );
+  const shadowLabel =
+    screen.kind === "transition"
+      ? SHADOWS.find((s) => s.id === screen.shadowId)?.label
+      : undefined;
+  const copy = getScreenCopy(screen, shadowLabel);
+
+  const toggle = useCallback(
+    (id: string) => {
+      dispatch(
+        screen.kind === "transition"
+          ? { type: "PICK", id }
+          : { type: "TOGGLE", id },
+      );
+    },
+    [screen.kind],
+  );
+
+  const confirm = useCallback(() => dispatch({ type: "CONFIRM" }), []);
+  const back = useCallback(() => dispatch({ type: "BACK" }), []);
+  const undo = useCallback(() => dispatch({ type: "UNDO" }), []);
+  const restore = useCallback(
+    (progress: FlowProgress) => dispatch({ type: "RESTORE", progress }),
+    [],
+  );
+
+  const buildJourneyFromDraft = useCallback(() => {
+    const committed = commitScreen(screen, state.draft, state.committed);
+    return buildJourney(committed);
+  }, [screen, state.draft, state.committed]);
+
+  return {
+    screen,
+    screenIndex: state.screenIndex,
+    totalScreens: TOTAL_SCREENS,
+    poolIds,
+    committed: state.committed,
+    draft: state.draft,
+    target,
+    canConfirm: state.draft.length === target,
+    isFirstScreen: state.screenIndex === 0,
+    isLastScreen: state.screenIndex === TOTAL_SCREENS - 1,
+    canUndo: state.draftHistory.length > 0,
+    copy,
+    previewCardIds,
+    toggle,
+    confirm,
+    back,
+    undo,
+    restore,
+    buildJourneyFromDraft,
+  };
+}

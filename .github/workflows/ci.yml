@@ -1,0 +1,61 @@
+# PR/push 시 최소 품질 게이트. npm ci → format:check → lint → typecheck → build 순서로 실행.
+# 로컬에서는 pre-commit(lint-staged)이 스테이징된 파일만 빠르게 검사하고, CI 는 전체를 검사한다.
+# Node 버전은 .nvmrc(24) 기준.
+#
+# E2E 는 CI 에서 돌리지 않는다 (`npm run e2e` 로 로컬에서 돌린다).
+#
+# 스펙은 PRD 를 기준으로 쓰여 있고, 지금 구현이 그 기준에 아직 닿지 않았다. dev 의 디자인
+# 프로토타입(#109 추구미 테스트 · #110 히스토리 캐러셀)이 화면을 다시 만들면서 스펙이 기대는
+# 접근성 계약이 사라졌기 때문이다 — 자세한 목록은 #129.
+#
+# **스펙을 구현에 맞춰 무르지 않는다.** 스펙이 옳고 구현이 따라와야 한다. 그때까지 CI 를
+# 빨간불로 두면 무관한 PR 까지 막히므로, E2E 게이트를 잠시 내린다.
+# #129 를 끝내면 아래 두 스텝을 되살린다:
+#
+#   - name: Install Playwright browsers
+#     run: npx playwright install --with-deps chromium
+#   - name: E2E
+#     run: npm run e2e            # 시크릿 불필요 — page.route mock + 빈 env 서버
+#   - name: Upload Playwright report
+#     if: failure()
+#     uses: actions/upload-artifact@v4
+#     with: { name: playwright-report, path: playwright-report/, retention-days: 7 }
+#
+# 되살릴 때 Build 스텝 뒤에 둔다 — Playwright webServer 가 그 `.next` 를 `next start` 로
+# 그대로 띄우므로 빌드를 두 번 하지 않는다.
+
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build

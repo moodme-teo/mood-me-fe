@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" width="220" height="220">
+  <!-- d05 찢은 가장자리 종이 프레임 (마스크용 흰 테두리) -->
+  <path d="M8 12 Q30 6 55 12 Q80 4 110 10 Q140 4 165 12 Q195 6 212 14
+           Q206 40 212 70 Q205 100 212 130 Q206 165 210 200
+           Q180 208 150 202 Q115 210 85 203 Q55 210 22 204
+           Q10 170 8 140 Q4 105 8 72 Q5 42 8 12 Z"
+        fill="none" stroke="#fdfcf8" stroke-width="14" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,75 @@
+import "server-only";
+
+import { createServiceClient } from "@/lib/supabase/service";
+import type { MoodboardElement, MoodProfile } from "@/types/moodboard";
+
+// Supabase 생성 타입이 아직 없어 API 경계에서 row 타입을 손으로 좁힌다
+// (src/lib/moodboard/list.ts와 동일한 패턴).
+type GenerationJobRow = {
+  id: string;
+  status: "queued" | "processing" | "completed" | "failed";
+  analysis_status: "queued" | "processing" | "completed" | "failed";
+  progress_percent: number;
+  status_message: string | null;
+  elements: unknown;
+  base_image_url: string | null;
+  mood_profile: unknown;
+};
+
+export type LatestGenerationJob = {
+  id: string;
+  status: "queued" | "processing" | "completed" | "failed";
+  // 이미지 갈래(status)와 독립된 분석 갈래 진행 상태 — 결과 페이지가 "아직 안 끝남"과
+  // "실패"를 구별하는 데 쓴다(#122).
+  analysisStatus: "queued" | "processing" | "completed" | "failed";
+  progressPercent: number;
+  statusMessage: string | null;
+  elements: MoodboardElement[];
+  baseImageUrl: string | null;
+  // 리포트(GPT-5)는 이미지 생성과 독립적으로 돈다 — 편집 화면 진입 시점에는 아직 안
+  // 끝났을 수 있어 null일 수 있다(generate-mood-analysis.ts의 runReportAnalysis 참고).
+  moodProfile: MoodProfile | null;
+};
+
+export type GetLatestGenerationJobResult =
+  { ok: true; value: LatestGenerationJob } | { ok: false; error: string };
+
+// 재시도는 같은 test_session_id로 새 job row를 만드는 방식이라(#37), 조회 시 해당 세션의
+// 최신 job(created_at desc limit 1)을 기준으로 삼는다.
+export async function getLatestGenerationJob(
+  testSessionId: string,
+): Promise<GetLatestGenerationJobResult> {
+  const service = createServiceClient();
+  const { data, error } = await service
+    .from("moodboard_generation_jobs")
+    .select(
+      "id, status, analysis_status, progress_percent, status_message, elements, base_image_url, mood_profile",
+    )
+    .eq("test_session_id", testSessionId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+  if (!data) {
+    return { ok: false, error: "생성 job을 찾을 수 없습니다" };
+  }
+
+  const row = data as GenerationJobRow;
+
+  return {
+    ok: true,
+    value: {
+      id: row.id,
+      status: row.status,
+      analysisStatus: row.analysis_status,
+      progressPercent: row.progress_percent,
+      statusMessage: row.status_message,
+      elements: (row.elements as MoodboardElement[] | null) ?? [],
+      baseImageUrl: row.base_image_url,
+      moodProfile: (row.mood_profile as MoodProfile | null) ?? null,
+    },
+  };
+}

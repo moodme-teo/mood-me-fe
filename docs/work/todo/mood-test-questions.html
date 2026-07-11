@@ -1,0 +1,1078 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>추구미 테스트 프로토타입 — mood-test-questions</title>
+    <!--
+  ⚠️ 프로토타입 — 추구미 테스트 3막 플로우 검증용 (./mood-test-questions.md)
+  시드·세션 API(#34) 없이 전부 클라이언트 상태로 동작하고, 완료 시 여정 JSON을 그대로 보여준다.
+  브라우저에서 이 파일을 직접 열면 됨 (이미지는 리포의 public/test-image/aesthetic/ 상대경로).
+-->
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        font-family:
+          "Pretendard",
+          "Apple SD Gothic Neo",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: #fafafa;
+        color: #171717;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+        background: none;
+        border: none;
+        cursor: pointer;
+      }
+      main {
+        max-width: 64rem;
+        margin: 0 auto;
+        min-height: 100dvh;
+        padding: 1rem 1rem 7rem;
+      }
+      @media (min-width: 640px) {
+        main {
+          padding-left: 2rem;
+          padding-right: 2rem;
+        }
+      }
+
+      /* 헤더 */
+      header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.25rem;
+      }
+      .back {
+        border-radius: 9999px;
+        padding: 0.25rem 0.5rem;
+        font-size: 1.125rem;
+      }
+      .back:disabled {
+        opacity: 0.25;
+        cursor: default;
+      }
+      .track {
+        height: 0.375rem;
+        flex: 1;
+        overflow: hidden;
+        border-radius: 9999px;
+        background: #e5e5e5;
+      }
+      .bar {
+        height: 100%;
+        width: 100%;
+        border-radius: 9999px;
+        background: #262626;
+        transform-origin: left;
+        transition: transform 0.5s;
+      }
+      .step {
+        font-size: 0.75rem;
+        color: #737373;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* 프리뷰 — 남은 카드가 자리를 잡아간다 */
+      .preview {
+        display: flex;
+        height: 3rem;
+        align-items: center;
+        gap: 0.25rem;
+        overflow: hidden;
+        margin-bottom: 1rem;
+      }
+      .preview .empty {
+        font-size: 0.75rem;
+        color: #a3a3a3;
+      }
+      .preview img {
+        height: 2.75rem;
+        width: 2rem;
+        border-radius: 0.25rem;
+        object-fit: cover;
+        transition:
+          opacity 0.3s,
+          transform 0.3s;
+      }
+
+      h1 {
+        font-size: 1.125rem;
+        font-weight: 700;
+        line-height: 1.375;
+      }
+      .sub {
+        margin: 0.25rem 0 1rem;
+        font-size: 0.875rem;
+        color: #737373;
+      }
+
+      /* 카드 그리드 */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+      }
+      @media (min-width: 640px) {
+        .grid {
+          grid-template-columns: repeat(6, 1fr);
+          gap: 0.75rem;
+        }
+      }
+      .card {
+        position: relative;
+        aspect-ratio: 3 / 4;
+        overflow: hidden;
+        border-radius: 0.75rem;
+        border: 2px solid transparent;
+        transition: all 0.15s;
+        padding: 0;
+        text-align: left;
+      }
+      .card img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .card .label {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+        padding: 1rem 0.375rem 0.375rem;
+        font-size: 11px;
+        font-weight: 500;
+        color: #fff;
+      }
+      .card.on {
+        border-color: #262626;
+      }
+      .card.marked {
+        border-color: #a3a3a3;
+        opacity: 0.35;
+        filter: grayscale(1);
+      } /* 내려놓기 표시 */
+      .check {
+        position: absolute;
+        right: 0.375rem;
+        top: 0.375rem;
+        display: flex;
+        height: 1.25rem;
+        width: 1.25rem;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9999px;
+        background: #171717;
+        font-size: 11px;
+        color: #fff;
+      }
+
+      /* C. 그림자 칩 */
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      .chip {
+        border-radius: 9999px;
+        border: 1px solid #d4d4d4;
+        background: #fff;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      .chip.on {
+        border-color: #262626;
+        background: #262626;
+        color: #fff;
+      }
+
+      /* D. 전환 4지선다 */
+      .trans {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+      }
+      @media (min-width: 640px) {
+        .trans {
+          gap: 1rem;
+        }
+      }
+      .trans button {
+        border-radius: 1rem;
+        border: 1px solid #d4d4d4;
+        background: #fff;
+        padding: 2rem 0.75rem;
+        font-size: 1rem;
+        font-weight: 500;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        transition: transform 0.1s;
+      }
+      .trans button:active {
+        transform: scale(0.95);
+      }
+      .trans .count {
+        grid-column: span 2;
+        text-align: center;
+        font-size: 0.75rem;
+        color: #a3a3a3;
+      }
+
+      /* E. 열망 카드 */
+      .desire {
+        display: flex;
+        height: 100%;
+        width: 100%;
+        align-items: center;
+        justify-content: center;
+        background: #262626;
+        padding: 0.5rem;
+        text-align: center;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #fff;
+      }
+      .card.off {
+        opacity: 0.9;
+      }
+
+      /* CTA */
+      .cta-wrap {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        margin: 0 auto;
+        max-width: 64rem;
+        background: linear-gradient(to top, #fafafa, #fafafa, transparent);
+        padding: 2rem 1rem 1.25rem;
+      }
+      @media (min-width: 640px) {
+        .cta-wrap {
+          padding-left: 2rem;
+          padding-right: 2rem;
+        }
+      }
+      .cta {
+        width: 100%;
+        border-radius: 0.75rem;
+        background: #171717;
+        padding: 0.875rem 0;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #fff;
+        transition: opacity 0.15s;
+      }
+      .cta:disabled {
+        opacity: 0.25;
+        cursor: default;
+      }
+
+      /* R. 결과 */
+      .result {
+        padding-top: 1.5rem;
+      }
+      .picks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+        margin-bottom: 0.75rem;
+      }
+      .pick {
+        border-radius: 9999px;
+        background: #262626;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.75rem;
+        color: #fff;
+      }
+      pre {
+        overflow: auto;
+        border-radius: 0.75rem;
+        background: #171717;
+        padding: 1rem;
+        font-size: 11px;
+        line-height: 1.6;
+        color: #f5f5f5;
+      }
+      pre.prompt {
+        margin-top: 0.5rem;
+        max-height: 28rem;
+        white-space: pre-wrap;
+      }
+      .prompt-head {
+        margin-top: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+      .prompt-head h2 {
+        font-size: 1rem;
+        font-weight: 700;
+      }
+      .prompt-head p {
+        margin-top: 0.125rem;
+        font-size: 0.75rem;
+        color: #737373;
+      }
+      .copy {
+        flex-shrink: 0;
+        border-radius: 0.5rem;
+        border: 1px solid #d4d4d4;
+        background: #fff;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+      .retry {
+        margin-top: 1rem;
+        width: 100%;
+        border-radius: 0.75rem;
+        border: 1px solid #d4d4d4;
+        background: #fff;
+        padding: 0.75rem 0;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="app"></main>
+
+    <script>
+      // ---------- 데이터 (스펙 카드 풀 테이블과 동일: ./mood-test-questions.md) ----------
+      const CARDS = [
+        ["c01", "새벽 요가 매트"],
+        ["c02", "정돈된 화장대"],
+        ["c03", "테니스 코트"],
+        ["c04", "요트 위 리넨 셔츠"],
+        ["c05", "새틴 리본 발레슈즈"],
+        ["c06", "딸기 케이크와 도일리"],
+        ["c07", "반짝이 폴더폰"],
+        ["c08", "비즈 목걸이 무더기"],
+        ["c09", "플래시 터진 파티 스냅"],
+        ["c10", "지하 공연장 스티커 벽"],
+        ["c11", "촛불 아래 고서"],
+        ["c12", "오래된 도서관 사다리"],
+        ["c13", "크림톤 노트와 아침 커피"],
+        ["c14", "오전의 스터디 카페 창가"],
+        ["c15", "갓 구운 빵과 밀가루 손"],
+        ["c16", "텃밭에서 딴 채소 바구니"],
+        ["c17", "숲속 빛내림"],
+        ["c18", "유리병 속 페어리라이트"],
+        ["c19", "파도 거품과 소금기"],
+        ["c20", "모래 위 맨발"],
+        ["c21", "가죽 재킷과 체인"],
+        ["c22", "흑백 콘서트 조명"],
+        ["c23", "다크 모노톤 데스크 셋업"],
+        ["c24", "금속 프레임의 네온 반사"],
+        ["c25", "과감한 패턴 벨벳 소파"],
+        ["c26", "반짝이는 드레스룸 거울"],
+        ["c27", "시어 커튼 사이 레이스"],
+        ["c28", "빛바랜 러브레터"],
+        ["c29", "네잎클로버 책갈피"],
+        ["c30", "공항 라운지의 노트북"],
+        ["c31", "러닝 후 기록 화면"],
+        ["c32", "기차역 플랫폼의 배낭"],
+        ["c33", "낡은 여권과 스탬프"],
+        ["c34", "타로 카드와 달 조명"],
+        ["c35", "담요 속 고양이와 낮잠"],
+        ["c36", "홈카페 라떼와 창밖 비"],
+      ];
+
+      const SHADOWS = [
+        ["s1", "번아웃"],
+        ["s2", "비교하는 마음"],
+        ["s3", "미루는 버릇"],
+        ["s4", "눈치보기"],
+        ["s5", "조급함"],
+        ["s6", "무기력"],
+        ["s7", "어중간함"],
+        ["s8", "쏟아지는 알림"],
+      ];
+
+      // 각 그림자의 4지선다 — index 0이 ★뻔한 반대말 (UI에는 표시하지 않음)
+      const TRANSITIONS = {
+        s1: ["휴식", "몰입", "활력", "훌쩍 떠나기"],
+        s2: ["자존감", "나만의 속도", "나의 세계", "행운의 감각"],
+        s3: ["실행력", "가벼운 시작", "설레는 목표", "짜릿한 마감"],
+        s4: ["당당함", "솔직함", "나의 편", "쿨한 거리"],
+        s5: ["여유", "순간의 감각", "깊이", "흐름에 맡기기"],
+        s6: ["활력", "작은 불씨", "낯선 공기", "손의 재미"],
+        s7: ["확실함", "대담함", "나다움", "한 우물"],
+        s8: ["고요", "진짜 연결", "완전한 몰입", "자연 속 리셋"],
+      };
+
+      // 전환 선택지 → 인생 테마 6종 매핑 (스펙 전환 4지선다 표, 7/8 재매핑 #77). ★(뻔한 반대말)은 테마 없음(null).
+      const TRANSITION_THEME = {
+        휴식: null,
+        몰입: "커리어 보스",
+        활력: "웰니스 러너",
+        "훌쩍 떠나기": "트래블러",
+        자존감: null,
+        "나만의 속도": "웰니스 러너",
+        "나의 세계": "코지 홈바디",
+        "행운의 감각": "러키걸",
+        실행력: null,
+        "가벼운 시작": "웰니스 러너",
+        "설레는 목표": "러키걸",
+        "짜릿한 마감": "커리어 보스",
+        당당함: null,
+        솔직함: "커리어 보스",
+        "나의 편": "코지 홈바디",
+        "쿨한 거리": "스피리추얼",
+        여유: null,
+        "순간의 감각": "웰니스 러너",
+        깊이: "커리어 보스",
+        "흐름에 맡기기": "스피리추얼",
+        // s6 "활력"은 s1과 라벨 중복 — s6 문맥에서도 웰니스 러너로 동일 매핑
+        "작은 불씨": "러키걸",
+        "낯선 공기": "트래블러",
+        "손의 재미": "코지 홈바디",
+        확실함: null,
+        대담함: "러키걸",
+        나다움: "스피리추얼",
+        "한 우물": "커리어 보스",
+        고요: null,
+        "진짜 연결": "코지 홈바디",
+        "완전한 몰입": "커리어 보스",
+        "자연 속 리셋": "트래블러",
+      };
+
+      // 카드 페르소나 가중 (스펙 카드 풀 테이블과 동일 — persona_scores 합산용). 미학 코어/인생 테마 혼재.
+      const CARD_PERSONA = {
+        c01: { "클린 걸": 0.6, "웰니스 러너": 0.4 },
+        c02: { "클린 걸": 0.7, "올드 머니": 0.3 },
+        c03: { "올드 머니": 0.7, "클린 걸": 0.3 },
+        c04: { "올드 머니": 0.5, 코스탈: 0.5 },
+        c05: { 코케트: 0.8, "네오 로맨틱": 0.2 },
+        c06: { 코케트: 0.6, "코지 홈바디": 0.4 },
+        c07: { "Y2K 키치": 0.8, "맥시멀 글램": 0.2 },
+        c08: { "Y2K 키치": 0.6, "맥시멀 글램": 0.4 },
+        c09: { "인디 슬리즈": 0.8, "소프트 그런지": 0.2 },
+        c10: { "인디 슬리즈": 0.5, "소프트 그런지": 0.5 },
+        c11: { "다크 아카데미아": 0.8, "네오 로맨틱": 0.2 },
+        c12: { "다크 아카데미아": 0.6, "라이트 아카데미아": 0.4 },
+        c13: { "라이트 아카데미아": 0.7, "클린 걸": 0.3 },
+        c14: { "라이트 아카데미아": 0.7, "커리어 보스": 0.3 },
+        c15: { 코티지코어: 0.8, "코지 홈바디": 0.2 },
+        c16: { 코티지코어: 0.8, "웰니스 러너": 0.2 },
+        c17: { 페어리코어: 0.8, 스피리추얼: 0.2 },
+        c18: { 페어리코어: 0.7, "네오 로맨틱": 0.3 },
+        c19: { 코스탈: 0.8, 트래블러: 0.2 },
+        c20: { 코스탈: 0.7, "클린 걸": 0.3 },
+        c21: { "소프트 그런지": 0.8, "인디 슬리즈": 0.2 },
+        c22: { "소프트 그런지": 0.7, "맥시멀 글램": 0.3 },
+        c23: { "테크 노어": 0.8, "커리어 보스": 0.2 },
+        c24: { "테크 노어": 0.7, "Y2K 키치": 0.3 },
+        c25: { "맥시멀 글램": 0.8, "네오 로맨틱": 0.2 },
+        c26: { "맥시멀 글램": 0.7, "Y2K 키치": 0.3 },
+        c27: { "네오 로맨틱": 0.8, 페어리코어: 0.2 },
+        c28: { "네오 로맨틱": 0.7, "다크 아카데미아": 0.3 },
+        c29: { 러키걸: 0.7, 스피리추얼: 0.3 },
+        c30: { "커리어 보스": 0.7, 트래블러: 0.3 },
+        c31: { "웰니스 러너": 0.8, "클린 걸": 0.2 },
+        c32: { 트래블러: 0.8, 코스탈: 0.2 },
+        c33: { 트래블러: 0.8, "올드 머니": 0.2 },
+        c34: { 스피리추얼: 0.8, "다크 아카데미아": 0.2 },
+        c35: { "코지 홈바디": 0.8, 코티지코어: 0.2 },
+        c36: { "코지 홈바디": 0.7, "라이트 아카데미아": 0.3 },
+      };
+
+      const CORE_SET = new Set([
+        "클린 걸",
+        "올드 머니",
+        "코케트",
+        "Y2K 키치",
+        "인디 슬리즈",
+        "다크 아카데미아",
+        "라이트 아카데미아",
+        "코티지코어",
+        "페어리코어",
+        "코스탈",
+        "소프트 그런지",
+        "테크 노어",
+        "맥시멀 글램",
+        "네오 로맨틱",
+      ]);
+      const THEME_SET = new Set([
+        "커리어 보스",
+        "웰니스 러너",
+        "트래블러",
+        "러키걸",
+        "스피리추얼",
+        "코지 홈바디",
+      ]);
+
+      const LABEL = Object.fromEntries(CARDS);
+      const SHADOW_LABEL = Object.fromEntries(SHADOWS);
+      const img = (id) => `../../../public/test-image/aesthetic/${id}.jpg`;
+
+      // 카드별 프롬프트 태그 (스펙 카드 풀 테이블과 동일)
+      const TAGS = {
+        c01: ["뉴트럴 톤", "아침 빛", "고요한 루틴"],
+        c02: ["미니멀", "유리", "크림 톤"],
+        c03: ["리넨", "잔디", "콰이어트 럭셔리"],
+        c04: ["바람", "화이트", "여유"],
+        c05: ["파스텔", "새틴", "로맨스"],
+        c06: ["러블리", "파스텔", "달콤함"],
+        c07: ["글리터", "원색", "플라스틱"],
+        c08: ["알록달록", "키치", "장난기"],
+        c09: ["그레인", "새벽", "논 흔적"],
+        c10: ["로우파이", "청춘", "낙서"],
+        c11: ["앤틱", "깊은 브라운", "지적"],
+        c12: ["목재", "고전", "아카이브"],
+        c13: ["밝은 베이지", "부드러운 빛", "성실"],
+        c14: ["따뜻한 우드", "집중", "오전 빛"],
+        c15: ["크러스트", "온기", "슬로우 리빙"],
+        c16: ["흙", "초록", "손노동"],
+        c17: ["몽환", "안개", "초록 빛"],
+        c18: ["반짝임", "어스름", "동화"],
+        c19: ["청량", "물빛", "바람"],
+        c20: ["자연스러움", "베이지", "느린 오후"],
+        c21: ["블랙", "락", "마모된 질감"],
+        c22: ["모노크롬", "스포트라이트", "열기"],
+        c23: ["무채색", "미래적 절제", "딥 블랙"],
+        c24: ["크롬", "네온", "도시 밤"],
+        c25: ["벨벳", "주얼 톤", "드라마틱"],
+        c26: ["글램", "조명", "스타일링"],
+        c27: ["겹침", "부드러운 빛", "로맨틱"],
+        c28: ["세피아", "손글씨", "그리움"],
+        c29: ["행운", "초록", "확언"],
+        c30: ["출장", "유리창 활주로", "성취"],
+        c31: ["땀", "새벽 러닝", "활력"],
+        c32: ["떠남", "이른 아침", "자유"],
+        c33: ["여정의 흔적", "종이 질감"],
+        c34: ["신비", "자정", "달 주기"],
+        c35: ["포근", "낮잠", "반려"],
+        c36: ["스팀", "빗소리", "아늑"],
+      };
+
+      // 스펙 부록의 시스템 프롬프트 전문 (./mood-test-questions.md)
+      const SYSTEM_PROMPT = `당신은 '무드미'의 무드 분석가입니다. 사용자가 추구미 테스트에서 남긴 선택 여정 전체를 읽고,
+그 사람의 확신과 열망을 해석해 무드보드 재료를 만듭니다.
+
+[해석 규칙]
+1. convictions = 두 번의 덜어내기에서 살아남은 카드. 이미 그 사람 안에 있는 확신으로 해석합니다.
+2. transitions = 그림자(요즘 무겁게 하는 것)를 넘어서기 위해 고른 힘. 지금 갈망하는 방향입니다.
+   - was_obvious_antonym이 false면 뻔한 반대말 대신 자기만의 해석을 고른 것 — not_picked와 대비해 그 비틀림을 읽어냅니다.
+   - was_obvious_antonym이 true면 정면 돌파형 — 솔직하고 직관적인 성향의 신호로 해석합니다.
+3. final_showdown = 확신과 열망의 최종 대결.
+   - kept_desires(확신을 밀어낸 열망)가 있다면 그것이 지금 가장 강한 갈망입니다.
+   - dropped_convictions(밀려난 확신)는 흘려보낼 준비가 된 것으로 해석합니다.
+4. journey.late_drops는 마지막까지 붙들다 놓은 카드 — 미련으로, early_drops보다 무겁게 다룹니다.
+5. hesitation 값이 큰 카드는 망설임이 담긴 카드입니다. 해석의 참고로만 쓰고 문장에 직접 인용하지 않습니다.
+6. persona_scores는 참고용 후보입니다. core_scores(미학 코어 후보)와 theme_scores(인생 테마 후보)로 나뉩니다. 여정 해석과 어긋나면 여정을 우선합니다.
+
+[type_name 규칙 — 반드시 준수]
+- type_name = "<미학 코어 1개> × <인생 테마 1개>" 형식. 왼쪽은 아래 미학 코어 14종에서만, 오른쪽은 아래 인생 테마 6종에서만 고릅니다. 목록에 없는 이름을 새로 만들지 마세요.
+- 미학 코어(14): 클린 걸 · 올드 머니 · 코케트 · Y2K 키치 · 인디 슬리즈 · 다크 아카데미아 · 라이트 아카데미아 · 코티지코어 · 페어리코어 · 코스탈 · 소프트 그런지 · 테크 노어 · 맥시멀 글램 · 네오 로맨틱
+- 인생 테마(6): 커리어 보스 · 웰니스 러너 · 트래블러 · 러키걸 · 스피리추얼 · 코지 홈바디
+- 코어는 convictions(확신 카드)의 결과 core_scores에서, 테마는 transitions(열망)과 theme_scores에서 도출합니다. 테마 자리에 코어 이름을 넣지 마세요.
+
+[작성 규칙]
+- 한국어, 부드러운 존댓말. 가볍고 놀이 같은 톤 — 사색적이거나 무거운 문체 금지.
+- 단정하되 근거는 항상 여정에서: "~를 마지막까지 붙들었으니까요"처럼 선택 행동을 근거로 씁니다.
+- 페르소나 이름은 type_name에만 사용하고 reading 문장에는 노출하지 않습니다.
+- sticker_phrases는 매니페스테이션 확언 톤의 한국어, 각 12자 이내.
+- image_prompt는 영문 한 문단 — kept_desires와 convictions의 태그를 조합한 무드보드용 감성 컷 묘사.
+  사진 스타일(감성 디테일 컷), 색감, 조명을 명시하고 인물 얼굴·텍스트·로고는 넣지 않습니다.
+
+[출력]
+아래 JSON만 출력합니다. 설명 문장·마크다운 금지.
+mood_vector의 다섯 축은 반드시 0.0~1.0 사이의 값입니다. 음수를 쓰지 마세요 (0.0이 왼쪽 극: 고요/따뜻/미니멀/빈티지/현실, 1.0이 오른쪽 극: 활기/서늘/맥시멀/모던/몽환, 0.5가 중립).
+{
+  "title": "리포트 타이틀 한 줄 (20자 이내)",
+  "type_name": "미학 코어 × 인생 테마 (예: 다크 아카데미아 × 커리어 보스)",
+  "reading": {
+    "conviction": "확신 해석 2~3문장",
+    "desire": "열망 해석 2~3문장",
+    "showdown": "최종 대결 해석 1~2문장 — 무엇이 무엇을 밀어냈는지"
+  },
+  "mood_vector": {
+    "calm_energy": 0.5,
+    "warm_cool": 0.5,
+    "minimal_maximal": 0.5,
+    "vintage_modern": 0.5,
+    "real_dreamy": 0.5
+  },
+  "keywords": ["9개의 무드 키워드"],
+  "sticker_phrases": ["확언 톤 문구 3개"],
+  "image_prompt": "english prompt for fal.ai"
+}
+
+[사용자 여정]
+`;
+
+      const STAGE_NO = { A: 1, B1: 2, B2: 3, C: 4, D: 5, E: 6, R: 6 };
+
+      const COPY = {
+        A: [
+          "끌리는 카드 12장을 담아주세요",
+          "생각은 넣어두고, 손이 먼저 가는 걸로요",
+        ],
+        B1: [
+          "이 중 4장을 내려놓아 주세요",
+          "아깝죠? 괜찮아요, 남는 게 더 선명해져요",
+        ],
+        B2: ["3장만 더 내려놓을게요", "지금 남은 5장이 당신의 확신이에요"],
+        C: [
+          "요즘 나를 무겁게 하는 것 3개를 골라주세요",
+          "솔직할수록 보드가 정확해져요",
+        ],
+        D: ["", ""], // 그림자 동적 삽입
+        E: [
+          "마지막이에요 — 당신의 무드보드에 남길 5장을 골라주세요",
+          "지켜온 것과 바라는 것, 무엇이 남을까요",
+        ],
+        R: ["", ""],
+      };
+
+      // ---------- 상태 ----------
+      const S = {
+        stage: "A",
+        selected: [], // A: 담은 순서 유지
+        marksR1: [],
+        marksR2: [],
+        droppedR1: [],
+        droppedR2: [],
+        shadows: [],
+        transIdx: 0,
+        transitions: [], // { shadow, picked }
+        finalPick: [],
+        toggles: {}, // 카드별 담았다 뺐다 카운터 (망설임 신호)
+        copied: false,
+      };
+
+      const bump = (id) => {
+        S.toggles[id] = (S.toggles[id] ?? 0) + 1;
+      };
+
+      const survivors = () =>
+        S.selected.filter(
+          (c) => !S.droppedR1.includes(c) && !S.droppedR2.includes(c),
+        );
+
+      // E단계 후보: 확신 카드 5 + 열망 단어 3 (t{n}-{i} id)
+      const finalPool = () => {
+        const desires = S.transitions.map((t) => {
+          const idx = TRANSITIONS[t.shadow].indexOf(t.picked);
+          return {
+            id: `t${t.shadow.slice(1)}-${idx + 1}`,
+            label: t.picked,
+            type: "desire",
+          };
+        });
+        return [
+          ...survivors().map((c) => ({
+            id: c,
+            label: LABEL[c],
+            type: "conviction",
+          })),
+          ...desires,
+        ];
+      };
+
+      const journey = () => ({
+        selected: S.selected,
+        dropped_r1: S.droppedR1,
+        dropped_r2: S.droppedR2,
+        survivors: survivors(),
+        shadows: S.shadows,
+        transitions: S.transitions.map((t) => ({
+          shadow: t.shadow,
+          picked: `t${t.shadow.slice(1)}-${TRANSITIONS[t.shadow].indexOf(t.picked) + 1}`,
+        })),
+        final: S.finalPick,
+        dropped_final: finalPool()
+          .map((f) => f.id)
+          .filter((id) => !S.finalPick.includes(id)),
+        toggles: S.toggles,
+        toggle_count: Object.values(S.toggles).reduce((a, b) => a + b, 0),
+      });
+
+      // 원본 로그 → Claude 페이로드 변환 (스펙 부록 1: id → 라벨·태그 조인)
+      const fullPrompt = () => {
+        const card = (c) => ({
+          label: LABEL[c],
+          tags: TAGS[c],
+          ...(S.toggles[c] ? { hesitation: S.toggles[c] } : {}),
+        });
+        const pool = finalPool();
+        const desireLabels = S.transitions.map((t) => t.picked);
+        const keptDesires = pool
+          .filter((f) => f.type === "desire" && S.finalPick.includes(f.id))
+          .map((f) => f.label);
+        const payload = {
+          convictions: survivors().map(card),
+          journey: {
+            early_drops: S.droppedR1.map(card),
+            late_drops: S.droppedR2.map(card),
+          },
+          shadows: S.shadows.map((s) => SHADOW_LABEL[s]),
+          transitions: S.transitions.map((t) => {
+            const opts = TRANSITIONS[t.shadow];
+            const idx = opts.indexOf(t.picked);
+            const theme = TRANSITION_THEME[t.picked]; // ★는 null
+            return {
+              shadow: SHADOW_LABEL[t.shadow],
+              picked: t.picked,
+              ...(theme ? { theme } : {}),
+              was_obvious_antonym: idx === 0,
+              not_picked: opts
+                .filter((o) => o !== t.picked)
+                .map((o) => (o === opts[0] ? `${o}(뻔한 반대말)` : o)),
+            };
+          }),
+          final_showdown: {
+            kept_convictions: survivors()
+              .filter((c) => S.finalPick.includes(c))
+              .map((c) => LABEL[c]),
+            kept_desires: keptDesires,
+            dropped_convictions: survivors()
+              .filter((c) => !S.finalPick.includes(c))
+              .map((c) => LABEL[c]),
+            dropped_desires: desireLabels.filter(
+              (d) => !keptDesires.includes(d),
+            ),
+          },
+          // 실서비스에서 서버가 산출(#36). 카드 페르소나 가중(생존+최종 유지 확신) + 전환 테마 가중을 코어/테마로 분리.
+          persona_scores: personaScores(),
+        };
+        return SYSTEM_PROMPT + JSON.stringify(payload, null, 2);
+      };
+
+      // persona_scores 산출 — 코어/테마 분리, 소수 1자리. 카드 가중 + 전환 테마(선택당 +0.5) 합산.
+      const personaScores = () => {
+        const acc = {};
+        const add = (persona, w) => {
+          acc[persona] = (acc[persona] ?? 0) + w;
+        };
+        const addCard = (c) => {
+          for (const [p, w] of Object.entries(CARD_PERSONA[c])) add(p, w);
+        };
+        survivors().forEach(addCard);
+        survivors()
+          .filter((c) => S.finalPick.includes(c))
+          .forEach(addCard); // 최종 5장에 남은 확신 재가산
+        S.transitions.forEach((t) => {
+          const th = TRANSITION_THEME[t.picked];
+          if (th) add(th, 0.5);
+        });
+        const bucket = (set) =>
+          Object.fromEntries(
+            Object.entries(acc)
+              .filter(([p]) => set.has(p))
+              .sort((a, b) => b[1] - a[1])
+              .map(([p, v]) => [p, Math.round(v * 10) / 10]),
+          );
+        return {
+          core_scores: bucket(CORE_SET),
+          theme_scores: bucket(THEME_SET),
+        };
+      };
+
+      // ---------- 동작 ----------
+      function toggleIn(list, id, max, countRemoval = true) {
+        const i = list.indexOf(id);
+        if (i >= 0) {
+          list.splice(i, 1);
+          if (countRemoval) bump(id);
+        } else if (list.length < max) {
+          list.push(id);
+        }
+        render();
+      }
+
+      function goBack() {
+        if (S.stage === "B1") {
+          S.marksR1 = [];
+          S.stage = "A";
+        } else if (S.stage === "B2") {
+          S.marksR2 = [];
+          S.droppedR1 = [];
+          S.marksR1 = [];
+          S.stage = "B1";
+        } else if (S.stage === "C") {
+          S.droppedR2 = [];
+          S.marksR2 = [];
+          S.stage = "B2";
+        } else if (S.stage === "D") {
+          if (S.transIdx > 0) {
+            S.transitions.pop();
+            S.transIdx -= 1;
+          } else {
+            S.transitions = [];
+            S.stage = "C";
+          }
+        } else if (S.stage === "E") {
+          S.finalPick = [];
+          S.transIdx = 2;
+          S.stage = "D";
+        }
+        render();
+      }
+
+      function next(stage) {
+        S.stage = stage;
+        render();
+      }
+      function confirmR1() {
+        S.droppedR1 = [...S.marksR1];
+        S.stage = "B2";
+        render();
+      }
+      function confirmR2() {
+        S.droppedR2 = [...S.marksR2];
+        S.stage = "C";
+        render();
+      }
+      function pickTransition(opt) {
+        S.transitions.push({ shadow: S.shadows[S.transIdx], picked: opt });
+        if (S.transIdx < 2) S.transIdx += 1;
+        else S.stage = "E";
+        render();
+      }
+
+      async function copyPrompt() {
+        const text = fullPrompt();
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch {
+          // file:// 등 clipboard API 불가 환경 폴백
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          ta.remove();
+        }
+        S.copied = true;
+        render();
+        setTimeout(() => {
+          S.copied = false;
+          render();
+        }, 1500);
+      }
+
+      // ---------- 렌더 ----------
+      const esc = (s) =>
+        s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+
+      function survivorsPreview() {
+        if (S.stage === "B1")
+          return S.selected.filter((c) => !S.marksR1.includes(c));
+        if (S.stage === "B2")
+          return S.selected.filter(
+            (c) => !S.droppedR1.includes(c) && !S.marksR2.includes(c),
+          );
+        return survivors();
+      }
+
+      function cardGrid(ids, active, tapFn, dim = false) {
+        return (
+          `<div class="grid">` +
+          ids
+            .map((id) => {
+              const on = active.includes(id);
+              const cls = on ? (dim ? "card marked" : "card on") : "card";
+              return `<button class="${cls}" onclick="${tapFn}('${id}')">
+      <img src="${img(id)}" alt="${esc(LABEL[id])}" loading="lazy" />
+      <span class="label">${esc(LABEL[id])}</span>
+      ${on && !dim ? `<span class="check">✓</span>` : ""}
+    </button>`;
+            })
+            .join("") +
+          `</div>`
+        );
+      }
+
+      function cta(label, enabled, onclick) {
+        return `<div class="cta-wrap">
+    <button class="cta" ${enabled ? "" : "disabled"} onclick="${onclick}">${label}</button>
+  </div>`;
+      }
+
+      function render() {
+        const app = document.getElementById("app");
+        let html = "";
+
+        if (S.stage !== "R") {
+          const preview = S.stage === "A" ? S.selected : survivorsPreview();
+          const title =
+            S.stage === "D"
+              ? `'${SHADOW_LABEL[S.shadows[S.transIdx]]}'를 넘어서기 위해, 지금 당신에게 필요한 힘은?`
+              : COPY[S.stage][0];
+          const sub =
+            S.stage === "D"
+              ? "정답은 없어요 — 끌리는 쪽이 답이에요"
+              : COPY[S.stage][1];
+
+          html += `<header>
+      <button class="back" ${S.stage === "A" ? "disabled" : ""} onclick="goBack()" aria-label="이전 단계로">←</button>
+      <div class="track"><div class="bar" style="transform:scaleX(${STAGE_NO[S.stage] / 6})"></div></div>
+      <span class="step">${STAGE_NO[S.stage]} / 6</span>
+    </header>
+    <div class="preview">
+      ${preview.length === 0 ? `<span class="empty">담은 카드가 여기에 채워져요</span>` : ""}
+      ${preview.map((c) => `<img src="${img(c)}" alt="${esc(LABEL[c])}" />`).join("")}
+    </div>
+    <h1>${title}</h1>
+    <p class="sub">${sub}</p>`;
+        }
+
+        // ---------- A. 담기 ----------
+        if (S.stage === "A") {
+          html += cardGrid(
+            CARDS.map(([id]) => id),
+            S.selected,
+            "tapA",
+          );
+          html += cta(
+            `다음 (${S.selected.length}/12)`,
+            S.selected.length === 12,
+            "next('B1')",
+          );
+        }
+
+        // ---------- B1 / B2. 덜어내기 ----------
+        if (S.stage === "B1") {
+          html += cardGrid(S.selected, S.marksR1, "tapB1", true);
+          html += cta(
+            `내려놓기 (${S.marksR1.length}/4)`,
+            S.marksR1.length === 4,
+            "confirmR1()",
+          );
+        }
+        if (S.stage === "B2") {
+          html += cardGrid(
+            S.selected.filter((c) => !S.droppedR1.includes(c)),
+            S.marksR2,
+            "tapB2",
+            true,
+          );
+          html += cta(
+            `내려놓기 (${S.marksR2.length}/3)`,
+            S.marksR2.length === 3,
+            "confirmR2()",
+          );
+        }
+
+        // ---------- C. 그림자 ----------
+        if (S.stage === "C") {
+          html +=
+            `<div class="chips">` +
+            SHADOWS.map(
+              ([id, label]) =>
+                `<button class="chip ${S.shadows.includes(id) ? "on" : ""}" onclick="tapC('${id}')">${label}</button>`,
+            ).join("") +
+            `</div>`;
+          html += cta(
+            `다음 (${S.shadows.length}/3)`,
+            S.shadows.length === 3,
+            "next('D')",
+          );
+        }
+
+        // ---------- D. 전환 ----------
+        if (S.stage === "D") {
+          html +=
+            `<div class="trans">` +
+            TRANSITIONS[S.shadows[S.transIdx]]
+              .map(
+                (opt) =>
+                  `<button onclick="pickTransition('${esc(opt)}')">${opt}</button>`,
+              )
+              .join("") +
+            `<p class="count">${S.transIdx + 1} / 3</p></div>`;
+        }
+
+        // ---------- E. 최종 대결 ----------
+        if (S.stage === "E") {
+          html +=
+            `<div class="grid">` +
+            finalPool()
+              .map((item) => {
+                const on = S.finalPick.includes(item.id);
+                return `<button class="card ${on ? "on" : "off"}" onclick="tapE('${item.id}')">
+        ${
+          item.type === "conviction"
+            ? `<img src="${img(item.id)}" alt="${esc(item.label)}" /><span class="label">${esc(item.label)}</span>`
+            : `<span class="desire">${esc(item.label)}</span>`
+        }
+        ${on ? `<span class="check">✓</span>` : ""}
+      </button>`;
+              })
+              .join("") +
+            `</div>`;
+          html += cta(
+            `무드보드 만들기 (${S.finalPick.length}/5)`,
+            S.finalPick.length === 5,
+            "next('R')",
+          );
+        }
+
+        // ---------- R. 결과 (여정 JSON) ----------
+        if (S.stage === "R") {
+          const pool = finalPool();
+          html += `<div class="result">
+      <h1>테스트 완료 — 여정 데이터</h1>
+      <p class="sub">실제 서비스에서는 이 JSON이 세션에 저장되고, Claude 분석(#36)으로 넘어가요.</p>
+      <div class="picks">
+        ${S.finalPick
+          .map(
+            (id) =>
+              `<span class="pick">${
+                id.startsWith("c")
+                  ? esc(LABEL[id])
+                  : esc(pool.find((f) => f.id === id)?.label ?? id)
+              }</span>`,
+          )
+          .join("")}
+      </div>
+      <pre>${esc(JSON.stringify(journey(), null, 2))}</pre>
+
+      <div class="prompt-head">
+        <div>
+          <h2>Claude에게 전달할 프롬프트</h2>
+          <p>시스템 프롬프트 + 페이로드(라벨·태그 조인) — 복사해서 Claude에 붙여넣으면 분석 품질을 바로 테스트할 수 있어요</p>
+        </div>
+        <button class="copy" onclick="copyPrompt()">${S.copied ? "복사됨 ✓" : "복사"}</button>
+      </div>
+      <pre class="prompt">${esc(fullPrompt())}</pre>
+
+      <button class="retry" onclick="location.reload()">다시 하기</button>
+    </div>`;
+        }
+
+        app.innerHTML = html;
+      }
+
+      // 단계별 탭 핸들러
+      const tapA = (id) => toggleIn(S.selected, id, 12);
+      const tapB1 = (id) => toggleIn(S.marksR1, id, 4);
+      const tapB2 = (id) => toggleIn(S.marksR2, id, 3);
+      const tapC = (id) => toggleIn(S.shadows, id, 3, false);
+      const tapE = (id) => toggleIn(S.finalPick, id, 5, false);
+
+      render();
+    </script>
+  </body>
+</html>

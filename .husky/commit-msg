@@ -1,0 +1,41 @@
+msg_file="$1"
+
+# 첫 줄(제목)만 검사. 주석(#)·빈 줄은 건너뜀.
+subject="$(grep -vE '^\s*#' "$msg_file" | grep -vE '^\s*$' | head -n1)"
+
+# merge / revert 커밋은 git이 자동 생성하므로 예외 허용.
+case "$subject" in
+  "Merge "*|"Revert "*) exit 0 ;;
+esac
+
+# 허용 prefix — README '커밋 prefix' 및 docs/convention/commit-convention.md와 동일하게 유지.
+pattern='^(feat|fix|refactor|rename|remove|style|chore|docs|hotfix|test|perf) : .+'
+
+if printf '%s' "$subject" | grep -qE "$pattern"; then
+  exit 0
+fi
+
+echo ""
+echo "  ✖ 커밋 메시지 컨벤션에 맞지 않습니다."
+echo ""
+echo "    입력한 제목: $subject"
+echo ""
+echo "    형식: <prefix> : <메시지>   (prefix 뒤 '공백 콜론 공백' 필수)"
+echo "    예시: feat : 무드보드 공유 버튼 추가"
+echo ""
+echo "    허용 prefix:"
+echo "      feat     새로운 기능 추가"
+echo "      fix      버그 및 기타 수정"
+echo "      refactor 코드 리팩토링"
+echo "      rename   네이밍 수정, 파일 이동, 오타 수정"
+echo "      remove   파일 삭제"
+echo "      style    css style 관련 변경"
+echo "      chore    빌드/패키지 매니저/config 수정, 모듈 추가"
+echo "      docs     문서 작성"
+echo "      hotfix   긴급 작업"
+echo "      test     테스트 코드 관련"
+echo "      perf     퍼포먼스 효율 개선 관련"
+echo ""
+echo "    자세히: docs/convention/commit-convention.md"
+echo ""
+exit 1
