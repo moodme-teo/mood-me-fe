@@ -15,8 +15,14 @@ import type { MoodboardSummary } from "@/lib/moodboard/summary";
 // `position` 을 공유해 한쪽을 돌리면 다른 쪽도 함께 돈다. 중앙 카드를 탭하면
 // 해당 무드보드 결과(상세) 페이지로 이동한다.
 
+// 저장된 보드(MoodboardSummary)와, 아직 저장 전인 편집중 세션을 같은 캐러셀에 함께 싣는다.
+// editing 카드는 id 를 sessionId 로 쓰고, 탭하면 결과가 아니라 편집 화면으로 되돌아간다.
+export type HistoryCarouselItem = MoodboardSummary & {
+  editing?: boolean;
+};
+
 type Props = {
-  moodboards: MoodboardSummary[];
+  moodboards: HistoryCarouselItem[];
 };
 
 // 카드 한 칸을 넘기는 데 필요한 다이얼 회전각(도). position×이 값 = 다이얼 회전각.
@@ -39,13 +45,17 @@ const CARD_HEIGHT_RATIO = 0.78;
 // 중앙 정렬(공식상 (1 - CARD_HEIGHT_RATIO) * 50)보다 위쪽에 둬 바닥 여유를 확보한다.
 const CARD_TOP_PERCENT = 6;
 
-function MoodboardImage({ moodboard }: { moodboard: MoodboardSummary }) {
+function MoodboardImage({ moodboard }: { moodboard: HistoryCarouselItem }) {
   const [hasFailed, setHasFailed] = useState(false);
+  // 편집중 카드는 type_name 이 아직 없을 수 있어(리포트 진행 중) 캡션 대신 상태 문구로 대체한다.
+  const label = moodboard.editing ? "편집 중" : moodboard.typeName;
 
-  if (hasFailed) {
+  // 편집중 카드는 미리보기 URL 이 없을 수 있다(data: 라 저장 안 됨/리포트 전) — 빈 src 로
+  // next/image 를 태우면 던지므로, 없으면 실패와 똑같이 플레이스홀더를 보여준다.
+  if (hasFailed || !moodboard.thumbnailUrl) {
     return (
       <div className="flex h-full items-end bg-surface-sunken p-4 font-semibold text-foreground text-body-sm">
-        {moodboard.typeName}
+        {label}
       </div>
     );
   }
@@ -55,7 +65,7 @@ function MoodboardImage({ moodboard }: { moodboard: MoodboardSummary }) {
       fill
       unoptimized
       src={moodboard.thumbnailUrl}
-      alt={`${moodboard.typeName} 무드보드 썸네일`}
+      alt={`${label} 무드보드 썸네일`}
       sizes="(max-width: 768px) 70vw, 320px"
       // 크롭 에디터 결과는 1:1 정사각(원·별 등 비사각형 모양 + 투명/블러 배경 포함)이라
       // object-cover 로 카드 비율(3:4)에 맞춰 다시 잘라내면 사용자가 고른 크롭이 잘린다.
@@ -211,6 +221,9 @@ export default function HistoryCarousel({ moodboards }: Props) {
   if (count === 0) return null;
 
   const activeMoodboard = moodboards[activeIndex];
+  const activeLabel = activeMoodboard.editing
+    ? "편집 중"
+    : activeMoodboard.typeName;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -224,7 +237,7 @@ export default function HistoryCarousel({ moodboards }: Props) {
           ref={stageRef}
           role="group"
           tabIndex={0}
-          aria-label={`${count}개 중 ${activeIndex + 1}번째, ${activeMoodboard.typeName}`}
+          aria-label={`${count}개 중 ${activeIndex + 1}번째, ${activeLabel}`}
           onPointerDown={handleCardPointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -271,21 +284,36 @@ export default function HistoryCarousel({ moodboards }: Props) {
                 >
                   <div className="relative h-full w-full overflow-hidden rounded-sm">
                     <MoodboardImage moodboard={moodboard} />
-                    {moodboard.isGuest ? (
+                    {/* 라벨: 편집중이면 '편집'(공통), 완성본은 게스트만 '임시'·로그인은 없음 */}
+                    {moodboard.editing ? (
+                      <span className="absolute top-3 left-3 rounded-full bg-surface-inverse/80 px-2 py-1 font-semibold text-white text-caption">
+                        편집
+                      </span>
+                    ) : moodboard.isGuest ? (
                       <span className="absolute top-3 left-3 rounded-full bg-surface-inverse/80 px-2 py-1 font-semibold text-white text-caption">
                         임시
                       </span>
                     ) : null}
-                    {/* 카드 전체 탭 → 무드보드 상세(결과물) 페이지 */}
+                    {/* 카드 전체 탭 → 완성본은 결과 페이지, 편집중은 편집 화면으로 되돌아간다 */}
                     {isActive ? (
                       <Link
-                        href={`/moodboard/${moodboard.id}`}
-                        aria-label={`${moodboard.typeName} 결과 보기`}
+                        href={
+                          moodboard.editing
+                            ? `/test/${moodboard.id}/edit`
+                            : `/moodboard/${moodboard.id}`
+                        }
+                        aria-label={
+                          moodboard.editing
+                            ? "편집 이어가기"
+                            : `${moodboard.typeName} 결과 보기`
+                        }
                         className="absolute inset-0"
                       >
-                        <p className="line-clamp-1 text-center font-semibold text-body-sm">
-                          {moodboard.typeName}
-                        </p>
+                        {moodboard.editing ? null : (
+                          <p className="line-clamp-1 text-center font-semibold text-body-sm">
+                            {moodboard.typeName}
+                          </p>
+                        )}
                       </Link>
                     ) : null}
                   </div>
@@ -307,7 +335,7 @@ export default function HistoryCarousel({ moodboards }: Props) {
 
       {/* 선택 상태 변화를 스크린리더에 알림 */}
       <p className="sr-only" aria-live="polite">
-        {`${activeIndex + 1} / ${count} · ${activeMoodboard.typeName}`}
+        {`${activeIndex + 1} / ${count} · ${activeLabel}`}
       </p>
     </div>
   );

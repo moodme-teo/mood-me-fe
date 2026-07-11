@@ -5,9 +5,11 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import EditingBoardsButton from "@/app/_components/EditingBoardsButton";
 import BoardCardStack from "@/app/_components/first-entry/BoardCardStack";
 import SplashScene from "@/app/_components/first-entry/SplashScene";
 import ProfileMenu from "@/components/auth/ProfileMenu";
+import type { EditProgress } from "@/lib/mood-test/edit-progress-storage";
 
 // 첫진입(메인) 화면 — 저장 보드가 0개일 때의 얼굴. 스플래시가 화면 이동 없이 애니메이션으로
 // 첫진입 화면으로 이어지고(디자인 시안), 상단에서 이미지 카드가 떨어져 흩뿌려진 배치로
@@ -24,6 +26,7 @@ export type ContinueTarget = {
 type Props = {
   isLoggedIn: boolean;
   continueTarget: ContinueTarget | null;
+  editingBoards: EditProgress[];
   onCreate: () => void;
 };
 
@@ -57,6 +60,7 @@ function elapsedSinceSplashShown() {
 export default function FirstEntryLanding({
   isLoggedIn,
   continueTarget,
+  editingBoards,
   onCreate,
 }: Props) {
   const [minElapsed, setMinElapsed] = useState(false);
@@ -145,6 +149,9 @@ export default function FirstEntryLanding({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: EASE_IN, delay: 0.35 }}
             >
+              {/* 편집중(미저장 보드) — 이어서 만들기와 별개 진입점. 여러 개일 수 있어 시트로 편다. */}
+              <EditingBoardsButton boards={editingBoards} />
+
               {continueTarget && (
                 <Link
                   href={continueTarget.href}
