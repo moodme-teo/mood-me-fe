@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   CloudFog,
   Image as ImageIcon,
+  Loader2,
   type LucideIcon,
   PaintBucket,
   Palette,
@@ -35,12 +36,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogActions, DialogContent } from "@/components/ui/dialog";
+import { useConfirmLeave } from "@/hooks/useConfirmLeave";
 import { getGenerationJob } from "@/lib/api/get-generation-job";
 import { updateMoodboard } from "@/lib/api/update-moodboard";
+import {
+  clearEditProgress,
+  saveEditProgress,
+} from "@/lib/mood-test/edit-progress-storage";
 import {
   uploadBaseImage,
   uploadExportedImage,
 } from "@/lib/moodboard/upload-exported-image";
+import { preloadImage } from "@/lib/preload-image";
 import type { AnalysisStatus, EditState, MoodProfile } from "@/types/moodboard";
 
 type Props = {
@@ -341,7 +348,7 @@ export default function MoodboardCropEditor({
   const [tab, setTab] = useState<EditTab>("shape");
   const [toast, setToast] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isLeaveOpen, setIsLeaveOpen] = useState(false);
+  const { isLeaveOpen, setIsLeaveOpen } = useConfirmLeave(true);
   const [isBaseImageFailed, setIsBaseImageFailed] = useState(false);
   const [metrics, setMetrics] = useState<ImageMetrics | null>(null);
 
@@ -355,31 +362,11 @@ export default function MoodboardCropEditor({
   }, []);
 
   useEffect(() => {
-    // 브라우저 뒤로가기는 헤더의 뒤로 버튼과 달리 곧장 화면을 떠나 버린다 — 더미
-    // history 항목을 하나 쌓아 두고, popstate 가 오면 실제로 이동하는 대신 같은
-    // 확인 모달을 띄워 두 경로의 이탈 UX를 통일한다 (#119).
-    window.history.pushState(null, "", window.location.href);
-
-    const handlePopState = () => {
-      window.history.pushState(null, "", window.location.href);
-      setIsLeaveOpen(true);
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  useEffect(() => {
-    // 새로고침 · 탭 닫기는 브라우저가 직접 처리해 커스텀 모달을 띄울 수 없다 —
-    // 네이티브 확인창이라도 뜨게 해 실수로 나가 편집 내용을 잃는 걸 막는다.
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, []);
+    // 생성 직후 편집(sessionId 있음)만 이어하기 표시를 남긴다 — 아직 저장 전이라 여기서
+    // 나가면 완료된 job 이 서버에 남아 있어도 홈에서 편집으로 되돌아올 길이 없다. 저장한
+    // 보드 재편집(sessionId 없음)은 이미 히스토리에 있으므로 표시하지 않는다.
+    if (sessionId) saveEditProgress(sessionId);
+  }, [sessionId]);
 
   const handleImageLoad = useCallback(
     (image: HTMLImageElement) => {
@@ -428,36 +415,76 @@ export default function MoodboardCropEditor({
     try {
       const exportedImageDataUrl =
         (await exporterRef.current?.("png")) ?? undefined;
-      // base64 dataURL을 그대로 저장 요청에 실으면 Vercel 요청 바디 제한(413)에 걸린다
-      // (#163) — Supabase Storage에 먼저 올리고 결과 URL만 보낸다.
-      const exportedImageUrl = exportedImageDataUrl
-        ? await uploadExportedImage(moodboardId, exportedImageDataUrl)
-        : undefined;
 
-      // baseImageUrl은 생성 시점에 이미 Storage URL이어야 정상이다(uploadGeneratedBaseImage,
-      // generate-mood-analysis.ts) — 그 전에 만들어진 레거시 보드만 아직 base64일 수 있어
-      // 재저장 시 여기서 자가 치유한다. 그러지 않으면 이 값도 exportedImageUrl과 같은
-      // 이유로 PATCH body에서 413을 일으킨다 (#163 후속).
-      const persistedBaseImageUrl = baseImageUrl.startsWith("data:")
-        ? ((await uploadBaseImage(moodboardId, baseImageUrl)) ?? baseImageUrl)
-        : baseImageUrl;
+      // 업로드 2건과 최신 job 재조회는 서로 독립적이다 — 순차로 기다리면 저장 버튼을
+      // 누른 뒤 그만큼 그대로 화면이 멈춰 있는 것처럼 보인다. 동시에 진행한다.
+      //
+      // Promise.all이 아니라 allSettled를 쓴다 — all은 하나가 실패하면 즉시 reject하고
+      // 나머지는 백그라운드에서 계속 돈다. 그 상태로 사용자가 바로 다시 "완성하고
+      // 공유하기"를 누르면, 이번 시도의 새 업로드와 아까 실패로 처리했던 시도의 남은
+      // 업로드가 같은 Storage 경로(upsert)를 두고 경합해 새 저장이 오래된 내용으로
+      // 덮어써질 수 있다. allSettled로 셋 다 완전히 끝난 뒤에야 실패 여부를 판단하면,
+      // 다음 시도가 시작될 때(=isSaving이 풀릴 때) 이전 시도의 요청은 전부 끝나 있다.
+      const [exportedUpload, baseUpload, jobFetchResult] =
+        await Promise.allSettled([
+          // base64 dataURL을 그대로 저장 요청에 실으면 Vercel 요청 바디 제한(413)에
+          // 걸린다(#163) — Supabase Storage에 먼저 올리고 결과 URL만 보낸다.
+          exportedImageDataUrl
+            ? uploadExportedImage(moodboardId, exportedImageDataUrl)
+            : Promise.resolve(undefined),
+          // baseImageUrl은 생성 시점에 이미 Storage URL이어야 정상이다
+          // (uploadGeneratedBaseImage, generate-mood-analysis.ts) — 그 전에 만들어진
+          // 레거시 보드만 아직 base64일 수 있어 재저장 시 여기서 자가 치유한다.
+          // 그러지 않으면 이 값도 exportedImageUrl과 같은 이유로 PATCH body에서
+          // 413을 일으킨다(#163 후속).
+          baseImageUrl.startsWith("data:")
+            ? uploadBaseImage(moodboardId, baseImageUrl).then(
+                (url) => url ?? baseImageUrl,
+              )
+            : Promise.resolve(baseImageUrl),
+          // 이 화면은 서버 컴포넌트가 렌더 시점에 job을 1회만 읽어 moodProfile을 prop으로
+          // 내려받는다 — 그 이후 리포트(GPT-5)가 끝나도 이 prop은 갱신되지 않는다. 저장
+          // 직전에 최신 job을 한 번 더 조회해 그 스냅샷 대신 쓴다 — 그래야 편집 화면에
+          // 머무는 동안 리포트가 끝난 경우에도 결과가 유실되지 않는다(#125). sessionId가
+          // 없으면(재편집) 애초에 다시 조회할 job이 없다. 재조회 실패해도 저장 자체를
+          // 막지 않는다 — ok:false로 표시해 기존 prop 스냅샷으로 폴백한다.
+          sessionId
+            ? getGenerationJob(sessionId).then(
+                (job) => ({ ok: true as const, job }),
+                (error: unknown) => {
+                  console.error(error);
+                  return { ok: false as const };
+                },
+              )
+            : Promise.resolve({ ok: false as const }),
+        ]);
 
-      // 이 화면은 서버 컴포넌트가 렌더 시점에 job을 1회만 읽어 moodProfile을 prop으로
-      // 내려받는다 — 그 이후 리포트(GPT-5)가 끝나도 이 prop은 갱신되지 않는다. 저장
-      // 직전에 최신 job을 한 번 더 조회해 그 스냅샷 대신 쓴다 — 그래야 편집 화면에
-      // 머무는 동안 리포트가 끝난 경우에도 결과가 유실되지 않는다(#125). sessionId가
-      // 없으면(재편집) 애초에 다시 조회할 job이 없으므로 기존 prop 값을 그대로 쓴다.
-      let latestMoodProfile = moodProfile;
-      let latestAnalysisStatus = analysisStatus;
-      if (sessionId) {
-        try {
-          const latestJob = await getGenerationJob(sessionId);
-          latestMoodProfile = latestJob.moodProfile;
-          latestAnalysisStatus = latestJob.analysisStatus;
-        } catch (error) {
-          // 재조회 실패해도 저장 자체를 막지 않는다 — 가진 스냅샷으로 진행한다.
-          console.error(error);
-        }
+      // 업로드 2건은 실패하면 저장 자체를 막아야 한다(기존 동작) — allSettled로 모아뒀으니
+      // 여기서 직접 던져 아래 catch로 보낸다. job 재조회는 이미 내부에서 실패를 삼켜
+      // 항상 fulfilled다.
+      if (exportedUpload.status === "rejected") throw exportedUpload.reason;
+      if (baseUpload.status === "rejected") throw baseUpload.reason;
+
+      const exportedImageUrl = exportedUpload.value;
+      const persistedBaseImageUrl = baseUpload.value;
+      const jobFetch =
+        jobFetchResult.status === "fulfilled"
+          ? jobFetchResult.value
+          : ({ ok: false } as const);
+
+      const latestMoodProfile = jobFetch.ok
+        ? jobFetch.job.moodProfile
+        : moodProfile;
+      const latestAnalysisStatus = jobFetch.ok
+        ? jobFetch.job.analysisStatus
+        : analysisStatus;
+
+      // 결과 화면은 이 URL을 <img src>로 그대로 보여준다 — 방금 올라간 Storage 경로라
+      // 캐시 미스가 확정이다. PATCH가 끝나길 기다리는 동안 미리 받아두면, 결과 화면
+      // 도착 시점엔 캐시에 있어 이미지가 뒤늦게 뜨는 게 덜 보인다(useGenerationPolling의
+      // 프리로드와 같은 이유 — 여긴 <img>로 그대로 보여주기만 하니 crossOrigin은 불필요).
+      if (exportedImageUrl) {
+        preloadImage(exportedImageUrl);
       }
 
       // 크롭 결과는 한 장의 평면 이미지 — elements는 비우고 export 이미지를 저장한다.
@@ -484,6 +511,8 @@ export default function MoodboardCropEditor({
           : {}),
         ...(sessionId ? { sessionId } : {}),
       });
+      // 저장까지 마쳤으니 편집 이어하기 표시를 거둔다 — 이제 히스토리에서 열 수 있다.
+      if (sessionId) clearEditProgress(sessionId);
       // 결과 페이지가 "직후 진입"과 "히스토리 재열람"을 구분하는 유일한 신호 (#157).
       router.push(`/moodboard/${moodboardId}?from=complete`);
     } catch (error) {
@@ -530,6 +559,7 @@ export default function MoodboardCropEditor({
           variant="ghost"
           size="icon-md"
           aria-label="뒤로"
+          disabled={isSaving}
           onClick={() => setIsLeaveOpen(true)}
         >
           <ArrowLeft aria-hidden />
@@ -544,7 +574,16 @@ export default function MoodboardCropEditor({
           disabled={isBaseImageFailed || isSaving}
           onClick={handleComplete}
         >
-          <Save aria-hidden />
+          {/* 아이콘만 있는 버튼이라 disabled의 옅어짐(40%)만으로는 "눌렸다"가 잘 안
+              보인다 — 저장 중엔 아이콘 자체를 스피너로 바꿔 확실한 진행 신호를 준다. */}
+          {isSaving ? (
+            <Loader2
+              aria-hidden
+              className="animate-spin motion-reduce:animate-none"
+            />
+          ) : (
+            <Save aria-hidden />
+          )}
         </Button>
       </header>
 

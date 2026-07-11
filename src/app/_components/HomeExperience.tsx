@@ -22,6 +22,7 @@ import { getMoodboards } from "@/lib/api/get-moodboards";
 import { ApiClientError } from "@/lib/api-client";
 import { loadMoodTestDraft } from "@/lib/mood-test/draft-storage";
 import type { MoodTestDraft } from "@/lib/mood-test/draft-storage";
+import { loadEditProgress } from "@/lib/mood-test/edit-progress-storage";
 import type { MoodboardSummary } from "@/lib/moodboard/summary";
 
 type Props = {
@@ -80,18 +81,20 @@ function RetryPanel({
   return (
     <section
       aria-live="polite"
-      className="rounded-lg border border-[#f1b2a7] bg-[#fff0ed] p-4 text-foreground"
+      className="flex flex-col gap-1 rounded-lg p-4 text-foreground shadow-[inset_0_1px_4px_rgba(0,0,0,0.3)]"
     >
-      <p className="text-sm font-bold">저장한 보드를 불러오지 못했어요.</p>
-      <p className="mt-1 text-sm leading-6 text-gray-700">{error}</p>
-      <button
+      <p className="text-md font-bold">저장한 보드를 불러오지 못했어요.</p>
+      <p className="text-sm leading-6 text-gray-700">{error}</p>
+      <Button
+        tone="sand"
+        size="md"
         type="button"
         onClick={onRetry}
         disabled={isRetrying}
-        className="mt-3 min-h-11 rounded-full bg-surface-inverse px-4 py-2 text-sm font-bold text-white disabled:opacity-55"
+        className="mt-3 ml-auto"
       >
         {isRetrying ? "다시 불러오는 중" : "다시 시도"}
-      </button>
+      </Button>
     </section>
   );
 }
@@ -102,7 +105,7 @@ function ContinueDraftEntry({ target }: { target: ContinueTarget | null }) {
   return (
     <Link
       href={target.href}
-      className="flex items-center justify-between rounded-lg border border-[#2556d9]/35 bg-[#eef3ff] px-4 py-3 text-sm font-bold text-[#163b98] ring-ring outline-none focus-visible:ring-2"
+      className="flex items-center justify-between rounded-full border bg-secondary px-4 py-3.5 text-sm font-bold text-gray-700 ring-ring outline-none focus-visible:ring-2"
     >
       <span>이어서 만들기</span>
       <span className="text-xs font-bold">{target.label}</span>
@@ -123,28 +126,18 @@ function HistoryContent({
   moodboards: MoodboardSummary[];
 }) {
   return (
-    <main className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden pt-2 pb-3">
+    <main className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden pb-3">
       <div className="mx-auto w-full max-w-[680px] space-y-3 px-4">
-        <div>
-          {/* docs/design/history-page.png 워드마크 — public/assets 벡터를 그대로 인라인 SVG로 */}
-          <h1 lang="en" className="flex flex-col items-start text-foreground">
-            <span className="sr-only">Vision Mode Vibe Chugumi Board</span>
-            <VisionMark className="mb-3 h-[26px] w-auto" />
-            <ModeMark className="mb-3 h-[27px] w-auto" />
-            <VibeMark className="mb-3 h-[27px] w-auto" />
-            <span className="flex items-center gap-2">
-              <ChugumiMark className="h-[34px] w-auto" />
-              <BoardMark className="-mt-3 h-[27px] w-auto" />
-            </span>
-          </h1>
-          <p className="mt-2 font-semibold text-gray-500 text-label">
-            {isRetrying
-              ? "저장한 무드보드를 불러오고 있어요"
-              : hasError
-                ? "저장한 무드보드를 확인하지 못했어요"
-                : `${moodboards.length}개의 무드보드를 모았어요`}
-          </p>
-        </div>
+        <h1 lang="en" className="">
+          <span className="sr-only">Vision Mode Vibe Chugumi Board</span>
+        </h1>
+        <p className="mt-2 font-semibold text-gray-500 text-label">
+          {isRetrying
+            ? "저장한 무드보드를 불러오고 있어요"
+            : hasError
+              ? "저장한 무드보드를 확인하지 못했어요"
+              : `${moodboards.length}개의 무드보드를 모았어요`}
+        </p>
         {errorPanel}
       </div>
       {isRetrying ? (
@@ -181,18 +174,38 @@ export default function HomeExperience({
     Promise.resolve().then(() => {
       if (!isActive) return;
 
+      // 이어서 만들기의 재료는 둘이다: 진행 중인 질문 드래프트(draft-storage)와, 생성이
+      // 끝나 편집까지 온 세션(edit-progress-storage). 둘 다 있을 수 있으므로 더 최근에
+      // 손댄 지점 하나만 노출한다.
+      const candidates: ContinueTarget[] = [];
+
       // 질문 세트가 바뀌었거나 손상된 드래프트(status: "stale")는 이어갈 수 없다 —
-      // 진입점을 아예 내린다. 사연은 굳이 알리지 않는다 (#121).
+      // 후보에서 아예 뺀다. 사연은 굳이 알리지 않는다 (#121).
       const stored = loadMoodTestDraft();
-      setContinueTarget(
-        stored.status === "ok"
-          ? {
-              href: getDraftStepHref(stored.draft),
-              label: `${stored.draft.stepIndex + 1}단계`,
-              updatedAt: stored.draft.updatedAt,
-            }
-          : null,
-      );
+      if (stored.status === "ok") {
+        candidates.push({
+          href: getDraftStepHref(stored.draft),
+          label: `${stored.draft.stepIndex + 1}단계`,
+          updatedAt: stored.draft.updatedAt,
+        });
+      }
+
+      // 편집 단계에서 나간 세션 — /test/{sessionId}/edit 로 되돌아가면 서버의 완료된 job
+      // 으로 편집을 그대로 이어간다 (job 이 아직이면 edit 페이지가 생성중으로 되돌린다).
+      const editStored = loadEditProgress();
+      if (editStored.status === "ok") {
+        candidates.push({
+          href: `/test/${editStored.progress.sessionId}/edit`,
+          label: "편집 단계",
+          updatedAt: editStored.progress.updatedAt,
+        });
+      }
+
+      // updatedAt 은 ISO 문자열이라 사전순 = 시간순이다.
+      const newest = candidates.sort((a, b) =>
+        b.updatedAt.localeCompare(a.updatedAt),
+      )[0];
+      setContinueTarget(newest ?? null);
     });
 
     return () => {
@@ -246,10 +259,20 @@ export default function HomeExperience({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-background text-foreground">
-      <header className="mx-auto flex w-full max-w-[720px] items-center justify-between px-4 py-3">
-        <Link href="/" className="text-sm font-bold tracking-normal">
-          mood·me
+      <header className="mx-auto flex w-full max-w-[720px] items-start justify-between px-4 py-3">
+        <Link
+          href="/"
+          className="flex flex-col items-start pt-2 text-foreground"
+        >
+          <VisionMark className="mb-3 h-[26px] w-auto" />
+          <ModeMark className="mb-3 h-[27px] w-auto" />
+          <VibeMark className="mb-3 h-[27px] w-auto" />
+          <span className="flex items-center gap-2">
+            <ChugumiMark className="h-[34px] w-auto" />
+            <BoardMark className="-mt-3 h-[27px] w-auto" />
+          </span>
         </Link>
+        <span />
         <ProfileMenu isLoggedIn={isLoggedIn} />
       </header>
 

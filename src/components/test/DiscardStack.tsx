@@ -88,7 +88,7 @@ export default function DiscardStack({
     .filter((card): card is Card => Boolean(card));
 
   return (
-    <div className="flex min-h-[26rem] flex-col items-center justify-center gap-6">
+    <div className="flex min-h-[26rem] flex-col items-center justify-start gap-6">
       {remaining.length > 0 && (
         <div className="gap- flex w-full items-center justify-between px-5">
           <Button

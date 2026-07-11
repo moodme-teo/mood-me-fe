@@ -128,6 +128,7 @@ const BOARD_PROMPT_TEMPLATE = `레퍼런스 수준의 세로형 Pinterest 스타
 위 비율 표에 적힌 페르소나 이름과 그 영문 표기(예: "러키걸", "Lucky Girl", "코스탈", "Coastal",
 "Y2K", "Dark Academia")를 메모·라벨·타이틀 어디에도 쓰지 마라.
 페르소나는 사진, 오브젝트, 색, 질감으로만 드러내고 이름은 숨긴다.
+연도나 날짜를 이미지에 넣을 경우 반드시 올해({CURRENT_YEAR}년)만 쓴다. 과거나 미래 연도는 쓰지 마라.
 한글과 영문을 섞어 쓸 수 있다.
 아래는 톤과 길이의 예시일 뿐이다 — 페르소나 비율에 맞는 문구를 직접 골라 넣어라.
 "인생은 직진" / "럭키한 하루" / "장수, 사랑, 건강, 행복" / "FIND A JOB" /
@@ -166,6 +167,10 @@ export function buildBoardPromptFromRanks(
   coreRanks: PersonaRank[],
   themeRanks: PersonaRank[],
   layout: LayoutStyle,
+  // 이미지에 박히는 "올해" 연도. 기본은 생성 시점의 실제 연도 — 모델은 오늘 날짜를
+  // 모르므로 숫자를 직접 주입해야 과거 연도(2025 등)를 쓰지 않는다. 목업 스크립트는
+  // 결과를 고정하려 명시값을 넘길 수 있어 인자로 노출한다.
+  currentYear: number = new Date().getFullYear(),
 ): string {
   const coreBlock = buildPersonaDetailBlock(
     coreRanks,
@@ -180,7 +185,8 @@ export function buildBoardPromptFromRanks(
 
   return BOARD_PROMPT_TEMPLATE.replace("{LAYOUT_STYLE_BLOCK}", layout.prompt)
     .replace("{CORE_PERSONA_DETAIL_BLOCK}", coreBlock)
-    .replace("{THEME_PERSONA_DETAIL_BLOCK}", themeBlock);
+    .replace("{THEME_PERSONA_DETAIL_BLOCK}", themeBlock)
+    .replace("{CURRENT_YEAR}", String(currentYear));
 }
 
 export function buildBoardPrompt(journey: Journey): string {
