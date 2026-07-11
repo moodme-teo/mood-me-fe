@@ -44,9 +44,9 @@ export default function EditingBoardsButton({ boards }: Props) {
         onClick={() => setOpen(true)}
         className="flex items-center justify-between rounded-[var(--radius-md)] bg-gray-200 px-4 py-3 font-semibold text-gray-900 ring-ring outline-none text-body-sm focus-visible:ring-2"
       >
-        <span>편집 중</span>
+        <span>편집 계속하기</span>
         <span className="text-gray-600 text-caption">
-          {boards.length}개 이어보기
+          {boards.length}개 편집중
         </span>
       </button>
 
