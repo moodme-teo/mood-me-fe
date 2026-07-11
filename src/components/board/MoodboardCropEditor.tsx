@@ -365,8 +365,10 @@ export default function MoodboardCropEditor({
     // 생성 직후 편집(sessionId 있음)만 이어하기 표시를 남긴다 — 아직 저장 전이라 여기서
     // 나가면 완료된 job 이 서버에 남아 있어도 홈에서 편집으로 되돌아올 길이 없다. 저장한
     // 보드 재편집(sessionId 없음)은 이미 히스토리에 있으므로 표시하지 않는다.
-    if (sessionId) saveEditProgress(sessionId);
-  }, [sessionId]);
+    // baseImageUrl 을 함께 남겨 홈 캐러셀이 편집중 카드를 서버 조회 없이 바로 그린다
+    // (data: URL 이면 storage 는 알아서 담지 않는다).
+    if (sessionId) saveEditProgress(sessionId, baseImageUrl);
+  }, [sessionId, baseImageUrl]);
 
   const handleImageLoad = useCallback(
     (image: HTMLImageElement) => {

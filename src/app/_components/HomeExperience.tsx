@@ -7,7 +7,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import FirstEntryLanding, {
   type ContinueTarget,
 } from "@/app/_components/FirstEntryLanding";
-import HistoryCarousel from "@/app/_components/HistoryCarousel";
+import HistoryCarousel, {
+  type HistoryCarouselItem,
+} from "@/app/_components/HistoryCarousel";
 import {
   BoardMark,
   ChugumiMark,
@@ -22,7 +24,8 @@ import { getMoodboards } from "@/lib/api/get-moodboards";
 import { ApiClientError } from "@/lib/api-client";
 import { loadMoodTestDraft } from "@/lib/mood-test/draft-storage";
 import type { MoodTestDraft } from "@/lib/mood-test/draft-storage";
-import { loadEditProgress } from "@/lib/mood-test/edit-progress-storage";
+import { loadEditProgressList } from "@/lib/mood-test/edit-progress-storage";
+import type { EditProgress } from "@/lib/mood-test/edit-progress-storage";
 import type { MoodboardSummary } from "@/lib/moodboard/summary";
 
 type Props = {
@@ -114,16 +117,20 @@ function ContinueDraftEntry({ target }: { target: ContinueTarget | null }) {
 }
 
 // 목록은 서버 렌더에서 이미 왔다 — 스켈레톤이 뜨는 건 재시도 중일 때뿐이다 (#132).
+// 라벨("N개…")은 저장된 보드 수(moodboards)만 세고, 캐러셀은 편집중 카드까지 실은
+// carouselItems 를 그린다 — 편집중은 아직 "모은" 보드가 아니라 진행 중이기 때문이다.
 function HistoryContent({
   errorPanel,
   hasError,
   isRetrying,
   moodboards,
+  carouselItems,
 }: {
   errorPanel: React.ReactNode;
   hasError: boolean;
   isRetrying: boolean;
   moodboards: MoodboardSummary[];
+  carouselItems: HistoryCarouselItem[];
 }) {
   return (
     <main className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden pb-3">
@@ -144,8 +151,8 @@ function HistoryContent({
         <div className="mx-auto w-full max-w-[680px]">
           <MoodboardSkeletonGrid />
         </div>
-      ) : moodboards.length > 0 ? (
-        <HistoryCarousel moodboards={moodboards} />
+      ) : carouselItems.length > 0 ? (
+        <HistoryCarousel moodboards={carouselItems} />
       ) : null}
     </main>
   );
@@ -167,6 +174,7 @@ export default function HomeExperience({
   const [continueTarget, setContinueTarget] = useState<ContinueTarget | null>(
     null,
   );
+  const [editingBoards, setEditingBoards] = useState<EditProgress[]>([]);
 
   useEffect(() => {
     let isActive = true;
@@ -174,38 +182,27 @@ export default function HomeExperience({
     Promise.resolve().then(() => {
       if (!isActive) return;
 
-      // 이어서 만들기의 재료는 둘이다: 진행 중인 질문 드래프트(draft-storage)와, 생성이
-      // 끝나 편집까지 온 세션(edit-progress-storage). 둘 다 있을 수 있으므로 더 최근에
-      // 손댄 지점 하나만 노출한다.
-      const candidates: ContinueTarget[] = [];
-
+      // "이어서 만들기"는 진행 중인 질문 드래프트만 담당한다 — 아직 보드가 없는 테스트
+      // 진행 상태다. 생성이 끝나 편집중인 세션은 이와 성격이 달라(이미지 있는 미저장 보드)
+      // 별개 진입점(캐러셀 편집 카드 · 첫진입 필)으로 분리한다. 합치면 새 테스트를 시작하는
+      // 순간 더 최근이라는 이유로 편집중 진입점이 가려진다(#155 회귀의 뿌리).
+      //
       // 질문 세트가 바뀌었거나 손상된 드래프트(status: "stale")는 이어갈 수 없다 —
-      // 후보에서 아예 뺀다. 사연은 굳이 알리지 않는다 (#121).
+      // 노출하지 않는다. 사연은 굳이 알리지 않는다 (#121).
       const stored = loadMoodTestDraft();
-      if (stored.status === "ok") {
-        candidates.push({
-          href: getDraftStepHref(stored.draft),
-          label: `${stored.draft.stepIndex + 1}단계`,
-          updatedAt: stored.draft.updatedAt,
-        });
-      }
+      setContinueTarget(
+        stored.status === "ok"
+          ? {
+              href: getDraftStepHref(stored.draft),
+              label: `${stored.draft.stepIndex + 1}단계`,
+              updatedAt: stored.draft.updatedAt,
+            }
+          : null,
+      );
 
-      // 편집 단계에서 나간 세션 — /test/{sessionId}/edit 로 되돌아가면 서버의 완료된 job
-      // 으로 편집을 그대로 이어간다 (job 이 아직이면 edit 페이지가 생성중으로 되돌린다).
-      const editStored = loadEditProgress();
-      if (editStored.status === "ok") {
-        candidates.push({
-          href: `/test/${editStored.progress.sessionId}/edit`,
-          label: "편집 단계",
-          updatedAt: editStored.progress.updatedAt,
-        });
-      }
-
-      // updatedAt 은 ISO 문자열이라 사전순 = 시간순이다.
-      const newest = candidates.sort((a, b) =>
-        b.updatedAt.localeCompare(a.updatedAt),
-      )[0];
-      setContinueTarget(newest ?? null);
+      // 편집중 세션들 — /test/{sessionId}/edit 로 되돌아가면 서버의 완료된 job 으로 편집을
+      // 그대로 이어간다 (job 이 아직이면 edit 페이지가 생성중으로 되돌린다).
+      setEditingBoards(loadEditProgressList());
     });
 
     return () => {
@@ -239,6 +236,19 @@ export default function HomeExperience({
   const hasMoodboards = moodboards.length > 0;
   const hasError = error !== null;
 
+  // 편집중 세션을 캐러셀 카드로 변환해 저장 보드 앞에 싣는다. 미리보기 URL 이 없으면(카드가
+  // data: 라 저장 안 됨/리포트 전) 빈 문자열로 두고, 캐러셀이 플레이스홀더로 그린다.
+  const editingItems: HistoryCarouselItem[] = editingBoards.map((board) => ({
+    id: board.sessionId,
+    thumbnailUrl: board.thumbnailUrl ?? "",
+    typeName: "",
+    title: "",
+    updatedAt: board.updatedAt,
+    isGuest: false,
+    editing: true,
+  }));
+  const carouselItems: HistoryCarouselItem[] = [...editingItems, ...moodboards];
+
   // 보드 유무는 서버가 이미 판정했다 — 회원은 인증 쿠키로, 게스트는 게스트 쿠키로
   // 조회한 결과가 initialMoodboards 로 온다 (#126 이후). 마운트 뒤 목록을 다시 부르면
   // 그 로딩 상태가 "보드 있음" 으로 새어 들어가 0개인 사용자에게도 History 셸이
@@ -252,6 +262,7 @@ export default function HomeExperience({
       <FirstEntryLanding
         isLoggedIn={isLoggedIn}
         continueTarget={continueTarget}
+        editingBoards={editingBoards}
         onCreate={handleCreateMoodboard}
       />
     );
@@ -281,6 +292,7 @@ export default function HomeExperience({
         hasError={hasError}
         isRetrying={isRetrying}
         moodboards={moodboards}
+        carouselItems={carouselItems}
       />
 
       <footer className="mx-auto w-full max-w-[720px] space-y-2 border-t border-gray-100 bg-background px-4 py-3">

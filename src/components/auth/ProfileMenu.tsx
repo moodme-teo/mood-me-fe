@@ -76,12 +76,12 @@ export default function ProfileMenu({ isLoggedIn = false }: Props) {
       {open && isLoggedIn && (
         <div
           aria-label="계정 메뉴"
-          className="absolute top-11 right-0 min-w-32 rounded-lg border border-gray-100 bg-card py-1 shadow-md"
+          className="absolute top-11 right-0 min-w-32 rounded-lg border border-gray-100 bg-card p-1 shadow-md"
         >
           <button
             type="button"
             onClick={logout}
-            className="w-full px-4 py-2 text-left text-sm text-gray-700 ring-ring outline-none hover:bg-surface-sunken focus-visible:ring-2"
+            className="w-full rounded-md px-4 py-2 text-left text-sm text-gray-700 ring-ring outline-none hover:bg-surface-sunken focus-visible:ring-2"
           >
             로그아웃
           </button>

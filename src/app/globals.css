@@ -499,6 +499,26 @@
     @apply bg-background text-foreground antialiased;
     font: var(--text-body-md);
   }
+  /* 버튼 전역 기본 — 활성 버튼은 클릭 가능한 커서. 비활성(disabled)은 제외한다.
+     base 레이어라 우선순위가 낮아 개별 컴포넌트가 cursor-* 로 덮어쓸 수 있다. */
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* 버튼 hover — 살짝 투명해져 피드백을 준다. @layer 밖(비레이어)이라 컴포넌트의
+   transition-* 유틸리티에 덮이지 않고 hover 가 항상 부드럽게 전환된다. 색 전환도 같이
+   살아 있도록 속성을 나열한다. 디자인 시스템 Button(data-slot="button")은 hover 를
+   그라디언트 stop 이동으로 이미 표현하므로 제외한다(커서만 공유). */
+button:not([data-slot="button"]):not(:disabled) {
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+button:not([data-slot="button"]):not(:disabled):hover {
+  opacity: 0.85;
 }
 
 @property --mood-gradient-stop-1 {
