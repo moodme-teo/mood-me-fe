@@ -323,12 +323,12 @@ const BASE_COPY: Record<
     hint: "덜어낼수록 진짜 나만 선명하게 남아요",
   },
   shadow: {
-    // "하는 것" 뒤에서 줄바꿈 — h2의 whitespace-pre-line이 \n을 반영한다(TestLayout).
-    title: "요즘 나를 무겁게 하는 것\n3개를 골라주세요",
+    // "하는 것," 뒤에서 줄바꿈 — h2의 whitespace-pre-line이 \n을 반영한다(TestLayout).
+    title: "요즘 나를 무겁게 하는 것,\n3개를 골라주세요",
     hint: "솔직할수록 보드가 정확해져요",
   },
   final: {
-    title: "당신의 무드보드가 될 5장을 골라주세요",
+    title: "당신의 무드보드가 될,\n5장을 골라주세요",
     hint: "곧 당신의 무드가 채워져요",
   },
 };
@@ -339,7 +339,7 @@ export function getScreenCopy(
 ): ScreenCopy {
   if (screen.kind === "transition") {
     return {
-      title: `'${shadowLabel ?? ""}'를 넘어설 당신의 무기를 골라주세요`,
+      title: `'${shadowLabel ?? ""}'를 넘어설,\n당신의 무기를 골라주세요`,
     };
   }
   return BASE_COPY[screen.kind];
