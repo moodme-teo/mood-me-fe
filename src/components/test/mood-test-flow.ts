@@ -304,36 +304,32 @@ export function previewCardIdsForScreen(
   }
 }
 
-export type ScreenCopy = { kicker: string; title: string; hint?: string };
+export type ScreenCopy = { title: string; hint?: string };
 
 const BASE_COPY: Record<
   Exclude<ScreenDescriptor["kind"], "transition">,
   ScreenCopy
 > = {
   gather: {
-    kicker: "A. 담기",
-    title: "끌리는 카드 12장을 담아주세요",
+    title: "끌리는 카드 12장을 담아보세요",
     hint: "생각은 넣어두고, 손이 먼저 가는 걸로요",
   },
   trim1: {
-    kicker: "B1. 덜어내기",
-    title: "이 중 4장을 내려놓아 주세요",
-    hint: "아깝죠? 괜찮아요, 남는 게 더 선명해져요",
+    title: "아쉽지만 4장을 덜어내 볼까요",
+    hint: "아까운 마음, 잘 고르고 있다는 신호예요",
   },
   trim2: {
-    kicker: "B2. 덜어내기",
-    title: "3장만 더 내려놓을게요",
-    hint: "지금 남은 5장이 당신의 확신이에요",
+    title: "이제 3장만 더 덜어내요",
+    hint: "덜어낼수록 진짜 나만 선명하게 남아요",
   },
   shadow: {
-    kicker: "C. 그림자",
-    title: "요즘 나를 무겁게 하는 것 3개를 골라주세요",
+    // "하는 것" 뒤에서 줄바꿈 — h2의 whitespace-pre-line이 \n을 반영한다(TestLayout).
+    title: "요즘 나를 무겁게 하는 것\n3개를 골라주세요",
     hint: "솔직할수록 보드가 정확해져요",
   },
   final: {
-    kicker: "E. 최종 대결",
-    title: "마지막이에요 — 당신의 무드보드에 남길 5장을 골라주세요",
-    hint: "지켜온 것과 바라는 것, 무엇이 남을까요",
+    title: "당신의 무드보드가 될 5장을 골라주세요",
+    hint: "곧 당신의 무드가 채워져요",
   },
 };
 
@@ -343,8 +339,7 @@ export function getScreenCopy(
 ): ScreenCopy {
   if (screen.kind === "transition") {
     return {
-      kicker: `D. 전환 (${screen.order + 1}/3)`,
-      title: `'${shadowLabel ?? ""}'를 넘어서기 위해, 지금 당신에게 필요한 힘은?`,
+      title: `'${shadowLabel ?? ""}'를 넘어설 당신의 무기를 골라주세요`,
     };
   }
   return BASE_COPY[screen.kind];
