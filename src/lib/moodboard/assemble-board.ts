@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isAiMockEnabled, mockBoardImage } from "@/lib/ai-mock";
 import type { Journey } from "@/lib/mood-test/journey";
 import { buildBoardPrompt } from "@/lib/moodboard/build-board-prompt";
 import { generateBoardImage } from "@/lib/moodboard/generate-board-image";
@@ -18,6 +19,9 @@ export type AssembleBoardResult = {
 export async function assembleBoard(
   journey: Journey,
 ): Promise<AssembleBoardResult> {
+  if (isAiMockEnabled()) {
+    return { elements: [], baseImageUrl: await mockBoardImage(journey) };
+  }
   const prompt = buildBoardPrompt(journey);
   const baseImageUrl = await generateBoardImage(prompt);
   return { elements: [], baseImageUrl };
