@@ -63,3 +63,5 @@ supabase/.branches/
 
 # 시각 회귀 기준 이미지 — 로컬에서만 쓴다 (docs/convention/qa.md §Visual regression)
 e2e/visual/__screenshots__/
+
+.omc
