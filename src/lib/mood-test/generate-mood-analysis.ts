@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isAiMockEnabled, mockMoodAnalysis } from "@/lib/ai-mock";
 import type { Requester } from "@/lib/auth/requester";
 import { getEliceClient, GPT_MODEL } from "@/lib/elice-ai";
 import { buildMoodAnalysisPayload } from "@/lib/mood-test/build-analysis-payload";
@@ -253,6 +254,14 @@ async function analyzeJourney(
   journey: Journey,
 ): Promise<{ ok: true; moodProfile: MoodProfile } | { ok: false }> {
   const payload = buildMoodAnalysisPayload(journey);
+
+  if (isAiMockEnabled()) {
+    const mock = await mockMoodAnalysis(payload);
+    return {
+      ok: true,
+      moodProfile: { ...mock, type_name: payload.persona.type_name },
+    };
+  }
 
   let text: string;
   try {

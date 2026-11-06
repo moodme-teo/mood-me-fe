@@ -42,3 +42,7 @@
 
 - `ELICE_MODEL_API_KEY`, `ELICE_BASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`는 서버 전용 — **`NEXT_PUBLIC_` 접두 금지**, 클라이언트 번들에 절대 노출하지 않습니다.
 - `lib/elice-ai.ts`는 클라이언트에서 import 금지 (`server-only`로 강제됨).
+
+## 목 모드
+
+- `AI_MOCK=true`면 `lib/ai-mock.ts`가 AI 호출을 대신합니다 — 분기는 호출 지점 두 곳(`analyzeJourney`, `assembleBoard`)에만 둡니다. 결과는 실제 응답과 같은 경로로 저장되므로 생성 이후 화면에는 목 분기를 넣지 않습니다.

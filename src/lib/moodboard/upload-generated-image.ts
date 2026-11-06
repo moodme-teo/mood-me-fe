@@ -20,7 +20,8 @@ export async function uploadGeneratedBaseImage(
   jobId: string,
   pngDataUrl: string,
 ): Promise<string> {
-  if (!canUseSupabaseService()) {
+  // AI 목 모드(ai-mock.ts)는 public/ 정적 경로를 돌려준다 — 이미 URL이라 올릴 게 없다.
+  if (!pngDataUrl.startsWith("data:") || !canUseSupabaseService()) {
     // Storage 미구성 로컬/E2E 환경 — 기존 동작(base64 그대로) 유지.
     return pngDataUrl;
   }

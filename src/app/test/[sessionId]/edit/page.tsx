@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 
+import AiMockNotice from "@/components/board/AiMockNotice";
 import MoodboardCropEditor from "@/components/board/MoodboardCropEditor";
+import { isAiMockEnabled } from "@/lib/ai-mock";
 import { getRequester } from "@/lib/auth/requester";
 import { getLatestGenerationJob } from "@/lib/mood-test/get-latest-generation-job";
 import { isMoodTestSessionOwner } from "@/lib/mood-test/session-owner";
@@ -32,12 +34,15 @@ export default async function EditPage({
   const moodboardId = deriveMoodboardId(sessionId);
 
   return (
-    <MoodboardCropEditor
-      moodboardId={moodboardId}
-      baseImageUrl={jobResult.value.baseImageUrl ?? ""}
-      moodProfile={jobResult.value.moodProfile}
-      analysisStatus={jobResult.value.analysisStatus}
-      sessionId={sessionId}
-    />
+    <>
+      <MoodboardCropEditor
+        moodboardId={moodboardId}
+        baseImageUrl={jobResult.value.baseImageUrl ?? ""}
+        moodProfile={jobResult.value.moodProfile}
+        analysisStatus={jobResult.value.analysisStatus}
+        sessionId={sessionId}
+      />
+      {isAiMockEnabled() && <AiMockNotice />}
+    </>
   );
 }

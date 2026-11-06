@@ -41,14 +41,17 @@ npm install
 
 배포용 환경변수는 **GitHub / Vercel** 에서 관리합니다. 로컬에서 띄울 때는 프로젝트 루트에 `.env.local` 을 직접 만들고 값을 채웁니다 — **값은 팀 Figma를 참고하세요.**
 
-| 변수                            | 설명                                         | 노출          |
-| ------------------------------- | -------------------------------------------- | ------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase 프로젝트 URL                        | 클라이언트    |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon 공개 키                        | 클라이언트    |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Supabase service role 키                     | **서버 전용** |
-| `FAL_KEY`                       | fal.ai API 키                                | **서버 전용** |
-| `ANTHROPIC_API_KEY`             | Anthropic Claude API 키                      | **서버 전용** |
-| `NEXT_PUBLIC_SITE_URL`          | 앱 기본 URL (로컬은 `http://localhost:3000`) | 클라이언트    |
+| 변수                            | 설명                                           | 노출          |
+| ------------------------------- | ---------------------------------------------- | ------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase 프로젝트 URL                          | 클라이언트    |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon 공개 키                          | 클라이언트    |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Supabase service role 키                       | **서버 전용** |
+| `FAL_KEY`                       | fal.ai API 키                                  | **서버 전용** |
+| `ANTHROPIC_API_KEY`             | Anthropic Claude API 키                        | **서버 전용** |
+| `NEXT_PUBLIC_SITE_URL`          | 앱 기본 URL (로컬은 `http://localhost:3000`)   | 클라이언트    |
+| `AI_MOCK`                       | `true`면 AI 호출 대신 목 결과 사용 (아래 참고) | **서버 전용** |
+
+> 💡 **AI 목 모드** — `AI_MOCK=true`로 두면 GPT-5·gpt-image-2를 부르지 않고 `src/lib/ai-mock.ts`가 미리 준비한 리포트와 보드 이미지(`public/assets/results/`, 스타일 3종 × 레이아웃 7종)를 돌려줍니다. API 키·과금 없이 테스트 → 생성 → 편집 → 결과 → 공유 흐름 전체를 확인할 수 있습니다. Vercel에서 값을 바꾼 뒤에는 재배포해야 적용됩니다.
 
 > ⚠️ **서버 전용** 키(`SUPABASE_SERVICE_ROLE_KEY`, `FAL_KEY`, `ANTHROPIC_API_KEY`)는 절대 클라이언트에 노출하면 안 됩니다. `src/lib/*`의 관련 모듈은 API 라우트·서버 컴포넌트 안에서만 import 하세요. `.env.local`은 `.gitignore`에 포함되어 커밋되지 않습니다.
 
