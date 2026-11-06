@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 
+import AiMockNotice from "@/components/board/AiMockNotice";
 import MoodboardResult from "@/components/board/MoodboardResult";
+import { isAiMockEnabled } from "@/lib/ai-mock";
 import { getMoodboardById } from "@/lib/moodboard/get-moodboard";
 
 type Props = {
@@ -42,5 +44,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function MoodboardResultPage({ params }: Props) {
   const { moodboardId } = await params;
 
-  return <MoodboardResult moodboardId={moodboardId} />;
+  return (
+    <>
+      <MoodboardResult moodboardId={moodboardId} />
+      {isAiMockEnabled() && <AiMockNotice />}
+    </>
+  );
 }

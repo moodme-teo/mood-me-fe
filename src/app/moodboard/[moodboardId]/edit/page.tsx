@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 
+import AiMockNotice from "@/components/board/AiMockNotice";
 import MoodboardCropEditor from "@/components/board/MoodboardCropEditor";
+import { isAiMockEnabled } from "@/lib/ai-mock";
 import { getRequester } from "@/lib/auth/requester";
 import { getMoodboardById } from "@/lib/moodboard/get-moodboard";
 import { checkMoodboardOwner } from "@/lib/moodboard/moodboard-owner";
@@ -29,11 +31,14 @@ export default async function MoodboardEditPage({
   const moodboard = result.value;
 
   return (
-    <MoodboardCropEditor
-      moodboardId={moodboardId}
-      baseImageUrl={moodboard.baseImageUrl}
-      moodProfile={moodboard.moodProfile}
-      initialEditState={moodboard.editState}
-    />
+    <>
+      <MoodboardCropEditor
+        moodboardId={moodboardId}
+        baseImageUrl={moodboard.baseImageUrl}
+        moodProfile={moodboard.moodProfile}
+        initialEditState={moodboard.editState}
+      />
+      {isAiMockEnabled() && <AiMockNotice />}
+    </>
   );
 }
