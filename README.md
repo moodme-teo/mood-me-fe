@@ -1,178 +1,115 @@
-# mood-me
+<div align="center">
+<img src="public/assets/favicons/android-icon-192x192.png" alt="mood·me 로고" width="120">
 
-짧은 테스트 답변을 **나만의 AI 무드보드**로 바꿔 SNS에 공유하는 감성 웹 경험.
+<br/>
 
-사용자가 테스트에 답하면 → Claude가 답을 이미지 프롬프트·키워드·무드 성향으로 변환하고 → fal.ai(Flux schnell)가 이미지를 실시간으로 생성해 보드를 채우며 → Konva 캔버스에서 꾸민 뒤 → PNG로 내보내 공유합니다.
+📍 짧은 취향 테스트 답변을 **나만의 AI 무드보드**로 바꿔 공유하는 감성 웹 경험</br>
+📎 [mood·me](https://mood-m-e.vercel.app) <br>
+🎤 [발표 자료](https://mood-m-e.vercel.app/deck.html) <br>
+🗓️ 2026/07/05 ~ 07/11 (`v1.0.0`)
 
-제품·디자인 배경은 [`PRODUCT.md`](./PRODUCT.md), [`DESIGN.md`](./DESIGN.md) 참고.
+</div>
 
-## 기술 스택
+## 📱 기능
 
-| 영역                 | 사용 기술                                       |
-| -------------------- | ----------------------------------------------- |
-| 프레임워크           | Next.js 16 (App Router) · React 19 · TypeScript |
-| 스타일               | Tailwind CSS v4                                 |
-| 인증 · DB · 스토리지 | Supabase (`@supabase/ssr`)                      |
-| 이미지 생성          | fal.ai — Flux schnell                           |
-| 텍스트/키워드 생성   | Anthropic Claude (`claude-haiku-4-5`)           |
-| 캔버스 편집          | Konva · react-konva                             |
-| 애니메이션           | Framer Motion                                   |
+|                                       1.첫진입 홈                                       |
+| :-------------------------------------------------------------------------------------: |
+| <img src="docs/assets/readme/home-first-entry.png" alt="첫진입 홈 화면" width="250px"/> |
 
-## 사전 요구사항
+- 실제 AI로 만든 예시 무드보드로 결과물을 먼저 보여주며 테스트 시작 유도
 
-- **Node.js 24 이상** (`.nvmrc` 참고 — `nvm use` 로 적용)
-- npm (저장소에 `package-lock.json` 포함)
-- 아래 서비스의 API 키:
-  - [Supabase](https://supabase.com) 프로젝트 (URL · anon key · service role key)
-  - [fal.ai](https://fal.ai) API 키
-  - [Anthropic](https://console.anthropic.com) API 키
+### 2.추구미 테스트
 
-## 시작하기
+|                                               담기                                               |                                              덜어내기                                              |                                               그림자                                               |
+| :----------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------: |
+| <img src="docs/assets/readme/test-gather.png" alt="추구미 테스트 담기 단계 화면" width="250px"/> | <img src="docs/assets/readme/test-trim.png" alt="추구미 테스트 덜어내기 단계 화면" width="250px"/> | <img src="docs/assets/readme/test-shadow.png" alt="추구미 테스트 그림자 단계 화면" width="250px"/> |
 
-### 1. 클론 & 의존성 설치
+|                                                 전환                                                 |                                              최종 대결                                               |
+| :--------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------: |
+| <img src="docs/assets/readme/test-transition.png" alt="추구미 테스트 전환 단계 화면" width="250px"/> | <img src="docs/assets/readme/test-final.png" alt="추구미 테스트 최종 대결 단계 화면" width="250px"/> |
 
-```bash
-git clone <repo-url>
-cd mood-me
-npm install
-```
+- 무엇을 골랐는지보다 무엇을 언제 버렸는지를 기록하는 8단계 카드 선택
+  - 담기: 카드 36장 중 끌리는 12장 담기
+  - 덜어내기: 담은 카드에서 4장, 다시 3장을 덜어내 확신의 가치 5장 남기기 (2단계)
+  - 그림자: 요즘 나를 무겁게 하는 것 3개 고르기
+  - 전환: 고른 그림자마다 넘어설 무기 하나씩 고르기 (3단계)
+  - 최종 대결: 확신의 가치와 열망의 가치 중 무드보드가 될 5장 고르기
+- 헤더의 미니 보드에 살아남은 카드가 쌓여, 버리는 경험을 확정의 경험으로 연출
+- 고른 카드와 망설임 같은 여정 신호로 페르소나 비율을 코드로 계산
 
-### 2. 환경변수 설정
+|                                     3.무드보드 생성                                     |                                           4.크롭 에디터                                            |
+| :-------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------: |
+| <img src="docs/assets/readme/generating.png" alt="무드보드 생성중 화면" width="300px"/> | <img src="docs/assets/readme/edit-crop-editor.png" alt="무드보드 크롭 에디터 화면" width="300px"/> |
 
-배포용 환경변수는 **GitHub / Vercel** 에서 관리합니다. 로컬에서 띄울 때는 프로젝트 루트에 `.env.local` 을 직접 만들고 값을 채웁니다 — **값은 팀 Figma를 참고하세요.**
+- GPT-5 는 무드 리포트를, GPT-Image-2 는 세로 2:3 보드 이미지를 생성
+- 텍스트·이미지 생성 갈래를 분리해 한쪽만 실패해도 나머지는 살리고, 실패한 갈래만 재시도
+- 진행률과 예상 소요 시간 안내, 생성 중 이탈·새로고침 경고
+- Konva 캔버스에서 도형·배경·구도를 다듬어 결과물 완성
 
-| 변수                            | 설명                                         | 노출          |
-| ------------------------------- | -------------------------------------------- | ------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase 프로젝트 URL                        | 클라이언트    |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon 공개 키                        | 클라이언트    |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Supabase service role 키                     | **서버 전용** |
-| `FAL_KEY`                       | fal.ai API 키                                | **서버 전용** |
-| `ANTHROPIC_API_KEY`             | Anthropic Claude API 키                      | **서버 전용** |
-| `NEXT_PUBLIC_SITE_URL`          | 앱 기본 URL (로컬은 `http://localhost:3000`) | 클라이언트    |
+|                                            5.결과물 (무드보드)                                             |                                           5.결과물 (결과 해석)                                            |
+| :--------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------: |
+| <img src="docs/assets/readme/result-board.png" alt="무드보드 결과 화면 상단의 보드 이미지" width="300px"/> | <img src="docs/assets/readme/result-report.png" alt="무드보드 결과 화면 하단의 결과 해석" width="300px"/> |
 
-> ⚠️ **서버 전용** 키(`SUPABASE_SERVICE_ROLE_KEY`, `FAL_KEY`, `ANTHROPIC_API_KEY`)는 절대 클라이언트에 노출하면 안 됩니다. `src/lib/*`의 관련 모듈은 API 라우트·서버 컴포넌트 안에서만 import 하세요. `.env.local`은 `.gitignore`에 포함되어 커밋되지 않습니다.
+- 상단에 완성한 무드보드와 유형명, 타이틀 제공
+- 하단에 해석 문구, 키워드, 무드 성향 5축으로 결과 해석 제공
+- PNG 로 내보내 SNS 공유, 카카오톡·SNS 링크 공유 카드 설정
 
-### 3. impeccable 설치 (최초 1회) ⚠️
+|                                           6.히스토리                                           |
+| :--------------------------------------------------------------------------------------------: |
+| <img src="docs/assets/readme/home-history.png" alt="내 무드보드 히스토리 화면" width="300px"/> |
 
-이 프로젝트는 [impeccable](https://github.com/pbakaus/impeccable) — AI 코딩 에이전트(**Claude Code / Codex**)가 더 나은 UI를 만들도록 돕는 디자인 스킬 — 로 프론트엔드를 개발합니다. 레포를 clone한 뒤 **각자 컴퓨터에 엔진을 1회 설치**해야 합니다.
+- 만든 무드보드를 홈 캐러셀에서 다시 보고 이어서 편집
 
-```bash
-npx impeccable install     # Claude Code / Codex 자동 감지해서 설치
-```
+### 7. 공통사항
 
-- 팀 디자인 기준 문서(`PRODUCT.md` · `DESIGN.md`)는 **이미 레포에 있어** 자동으로 읽힙니다. 따로 만들 필요 없습니다.
-- 설치하면 UI 파일 편집 시 자동으로 도는 **디자인 검사 hook**(AI 슬롭·저대비·접근성 문제 감지)도 함께 켜집니다.
-- **설치하지 않으면** `/impeccable` 명령과 자동 검사가 동작하지 않습니다. clone 후 꼭 1회 실행하세요.
+- Supabase 로 카카오 로그인과 비회원(게스트) 세션 관리, 로그인 시 게스트 보드 귀속
+- Elice AX 프록시 하나로 텍스트·이미지 모델을 통일해 키·과금 창구 단일화
+- Zod 로 AI 응답 스키마 검증
+- impeccable 디자인 스킬과 `PRODUCT.md`·`DESIGN.md` 로 디자인 기준 공유
+- Husky·lint-staged 로 커밋 컨벤션과 코드 품질 검사 자동화, Playwright 로 E2E·시각 회귀 테스트
+- GitHub 이슈·프로젝트 보드 기반 작업 흐름을 Claude Code 스킬로 자동화
 
-> 💡 개인별 hook 설정 파일(`.claude/settings.local.json` · `.codex/hooks.json`)은 머신마다 경로가 달라 `.gitignore` 처리되어 있습니다. `npx impeccable install`이 자기 경로에 맞게 자동 생성하므로 정상입니다.
-
-**자주 쓰는 명령**
-
-| 명령                          | 언제                           |
-| ----------------------------- | ------------------------------ |
-| `/impeccable shape <대상>`    | 코드 짜기 전 UX/UI 먼저 설계   |
-| `/impeccable craft <대상>`    | 새 기능/화면 기획+구현 한 번에 |
-| `/impeccable critique <대상>` | 화면 UX 리뷰(점수 포함)        |
-| `/impeccable audit <대상>`    | 접근성·성능·반응형 점검        |
-| `/impeccable polish <대상>`   | 배포 전 마감 다듬기            |
-
-전체 명령·사용법은 [`docs/impeccable/impeccable-guide.md`](./docs/impeccable/impeccable-guide.md), 세팅 배경은 [`docs/impeccable/impeccable-setup.md`](./docs/impeccable/impeccable-setup.md) 참고. (`PRODUCT.md`·`DESIGN.md`는 팀 공용 기준 문서 — 수정은 PR로.)
-
-### 4. 개발 서버 실행
-
-```bash
-npm run dev
-```
-
-[http://localhost:3000](http://localhost:3000) 에서 확인합니다.
-
-## 사용 가능한 스크립트
-
-| 명령            | 설명           |
-| --------------- | -------------- |
-| `npm run dev`   | 개발 서버 실행 |
-| `npm run build` | 프로덕션 빌드  |
-| `npm run start` | 빌드된 앱 실행 |
-| `npm run lint`  | ESLint 검사    |
-
-## 프로젝트 구조
+## 📂 폴더 구조
 
 ```
-src/
-├── app/                  # Next.js App Router (레이아웃·페이지·전역 스타일)
-│   ├── layout.tsx
-│   ├── page.tsx
-│   └── globals.css
-├── components/
-│   └── canvas/           # Konva 무드보드 캔버스
-│       └── BoardCanvas.tsx
-└── lib/
-    ├── anthropic.ts      # Claude 클라이언트 (서버 전용)
-    ├── fal.ts            # fal.ai 클라이언트 (서버 전용)
-    └── supabase/
-        ├── client.ts     # 브라우저용 Supabase 클라이언트
-        └── server.ts     # 서버용 Supabase 클라이언트 (SSR)
+┣ 📂.github
+┣ 📂.husky
+┣ 📂docs
+┃ ┣ 📂adr          # 기술 결정 기록
+┃ ┣ 📂convention   # 팀 컨벤션
+┃ ┣ 📂prd          # 제품 요구사항
+┃ ┗ 📜guide.md     # 개발 가이드 (설치·환경변수·워크플로우)
+┣ 📂e2e
+┣ 📂public
+┣ 📂src
+┃ ┣ 📂app
+┃ ┣ 📂components
+┃ ┣ 📂hooks
+┃ ┣ 📂lib
+┃ ┗ 📂types
+┣ 📂supabase
+┗ 📜etc (setting files)
 ```
 
-> 위는 현재 스캐폴드 상태입니다. **전체 목표 구조와 배치 규칙**은 [`docs/convention/folder-structure.md`](./docs/convention/folder-structure.md) 참고.
+## 📖 개발 가이드
 
-## 문서
+설치, 환경변수, 스크립트, 커밋 컨벤션, 작업 워크플로우는 [`docs/guide.md`](./docs/guide.md) 를 참고해주세요.
 
-| 문서                                                                           | 내용                                                                    |
-| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| [`docs/convention/`](./docs/convention/README.md)                              | 팀 컨벤션 — 커밋/브랜치·Component·State·API·Error·Naming·Type·Canvas·AI |
-| [`docs/convention/folder-structure.md`](./docs/convention/folder-structure.md) | 폴더 구조와 배치 규칙                                                   |
-| [`docs/convention/architecture.md`](./docs/convention/architecture.md)         | 레이어 · 데이터/AI/Canvas 흐름                                          |
-| [`docs/convention/glossary.md`](./docs/convention/glossary.md)                 | 도메인 용어사전                                                         |
-| [`docs/adr/`](./docs/adr/README.md)                                            | 기술 결정 기록(ADR) — 왜 그렇게 결정했는지                              |
-| [`docs/prd/`](./docs/prd/mood-me-prd.md)                                       | 제품 요구사항(PRD)                                                      |
+## 🛠 기술 스택
 
-## 커밋 컨벤션
+| 분류     | 스택                                                                        |
+| -------- | --------------------------------------------------------------------------- |
+| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS v4, shadcn/ui, Framer Motion |
+| 캔버스   | Konva, react-konva                                                          |
+| AI       | Elice AX 프록시, OpenAI SDK, GPT-5(무드 리포트), GPT-Image-2(보드 이미지)   |
+| 데이터   | Supabase                                                                    |
+| Infra    | Vercel                                                                      |
+| DX       | ESLint, Prettier, Husky, lint-staged, Playwright                            |
 
-모든 커밋 메시지는 `<prefix> : <메시지>` 형식을 따릅니다. (prefix 뒤 **공백 콜론 공백** 필수)
+## 👥 참여인원
 
-```
-feat : 새로운 기능 추가
-fix : 버그 및 기타 수정
-refactor : 코드 리팩토링
-rename : 네이밍 수정, 파일 이동, 오타 수정
-remove : 파일 삭제
-style : css style 관련 변경
-chore : 빌드 부분 혹은 패키지 매니저, config 수정, 모듈 추가
-docs : 문서 작성
-hotfix : 긴급 작업
-test : 테스트 코드 관련
-perf : 퍼포먼스 효율 개선 관련
-```
+팀 **무드어스**, 소수정예 무해한 순두부들
 
-> 이 규칙은 **Husky `commit-msg` 훅으로 자동 강제**됩니다. `npm install` 시 `prepare` 스크립트가 훅을 활성화하므로 별도 설정은 필요 없습니다. 형식·prefix에 맞지 않으면 커밋이 거부됩니다. 자세한 내용은 [`docs/convention/commit-convention.md`](./docs/convention/commit-convention.md) 참고.
-
-## 작업 워크플로우
-
-**GitHub 이슈가 곧 todo** 입니다. 별도 todo 파일 없이, 모든 작업은 이슈로 등록되어 **무드미 MVP 프로젝트 보드**(백로그 → 진행중 → 작업 완료)에서 관리됩니다. 등록부터 완료까지 Claude Code 스킬 3개로 자동화되어 있습니다:
-
-```
-/work-issue ──▶ GitHub 이슈 등록 ──▶ /work-work ──▶ 구현 + PR ──▶ 리뷰 ──▶ /work-done ──▶ 머지 + 이슈 닫기
-```
-
-| 스킬                                       | 하는 일                                                                                                                                                                                                      |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `/work-issue 역할, 작업이름, 일정, 페이지` | PRD·코드를 탐색해 명세(개요/작업 내용/완료 조건)를 이슈 본문으로 작성하고 즉시 등록. 라벨·배정·보드 백로그·일정 기록까지 자동. 기본은 본인 배정, `--assignee <이름>`/`--assignee none` 으로 지정·미배정 가능 |
-| `/work-work`                               | 내 이슈 + 미배정 이슈 중 선택(미배정을 고르면 본인에게 배정) → 보드 `진행중` → `dev` 기준 feature 브랜치에서 이슈 명세대로 구현 → 커밋 → `dev` 로 향하는 PR 생성(페이지 라벨 + 본인 제외 협업자 전원 리뷰어) |
-| `/work-done`                               | 리뷰 끝난 PR을 `dev` 로 squash-merge + 브랜치 삭제 → 이슈 자동 종료. PR 없는 작업(조사·신청 등)은 이슈만 닫음. GitHub에서 직접 머지해도 무방                                                                 |
-
-**브랜치 전략** (머지 방식은 브랜치 룰셋으로 강제됩니다):
-
-```
-main    ← dev 안정화 시 일반 merge (release)
-dev     ← feature PR을 squash-merge (개발 통합)
-feature ← dev 에서 따서 작업 (예: feat/login)
-```
-
-새로 합류했다면 최초 1회 GitHub CLI 인증이 필요합니다 (`gh auth login` + `gh auth refresh -s project`). 전체 흐름·컨벤션·보드 사용법은 [`docs/work/README.md`](./docs/work/README.md) 참고.
-
-## 참고 사항
-
-- **Konva는 클라이언트 전용**입니다. `next.config.ts`에서 `konva`·`canvas`를 `serverExternalPackages`로 지정해 서버 번들에서 제외합니다.
-- 외부 이미지는 `next.config.ts`의 `images.remotePatterns`에 허용된 호스트(`fal.media`, `**.supabase.co`)에서만 로드됩니다. 새 이미지 소스를 추가하면 이곳에 등록하세요.
-- 이 저장소는 **커스텀 Next.js 규칙**을 따릅니다. 코드 작성 전 [`AGENTS.md`](./AGENTS.md)를 먼저 읽어주세요.
+| [<img src="https://avatars.githubusercontent.com/u/90189513?v=4" width="120px" />](https://github.com/dev0leee) | [<img src="https://avatars.githubusercontent.com/u/84562770?v=4" width="120px" />](https://github.com/Haegnim) | [<img src="https://avatars.githubusercontent.com/u/66656181?v=4" width="120px" />](https://github.com/hyeon-aa) |
+| :-------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------: |
+|                                         **녕녕**<br>PM, 스위퍼, 그로워                                          |                                             **메굥**<br>UI/UX 리드                                             |                                          **류하**<br>빌더, 메인테이너                                           |
